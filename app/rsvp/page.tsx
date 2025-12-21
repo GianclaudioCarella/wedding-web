@@ -60,7 +60,7 @@ export default function RSVPPage() {
   };
 
   return (
-    <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
+    <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
       <div className="max-w-md mx-auto">
         <div className="text-center space-y-2">
           <Link href="/" className="inline-block">
@@ -115,12 +115,13 @@ export default function RSVPPage() {
 
             <div>
               <label htmlFor="address" className="block text-sm font-medium text-gray-900">
-                Address
+                Address *
               </label>
               <textarea
                 id="address"
                 name="address"
                 rows={3}
+                required
                 value={formData.address}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
@@ -158,13 +159,15 @@ export default function RSVPPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit RSVP'}
-            </button>
+            {submitStatus.type !== 'success' && (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit RSVP'}
+              </button>
+            )}
           </form>
         </div>
       </div>

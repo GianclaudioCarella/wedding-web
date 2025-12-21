@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main className="flex h-screen flex-col items-center justify-center p-6 pb-12 md:pb-6" style={{ backgroundColor: '#f5f7fd' }}>
       {/* Wedding Save the Date Image */}
-      <div className="w-full max-w-xl md:max-w-xl mx-auto flex-shrink-0">
+      <div className="w-full max-w-xl md:max-w-lg mx-auto flex-shrink-0">
         <Image
           src="/save-the-date.png"
           alt="Save the Date"
