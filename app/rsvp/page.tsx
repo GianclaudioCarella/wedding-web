@@ -1,46 +1,129 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function RSVPPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const guestId = searchParams.get('guest');
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     address: '',
     attending: '',
   });
+  const [errors, setErrors] = useState({
+    name: false,
+    email: false,
+    address: false,
+    attending: false,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [guestNotFound, setGuestNotFound] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [submitStatus, setSubmitStatus] = useState<{
     type: 'success' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
 
+  useEffect(() => {
+    if (!guestId) {
+      setGuestNotFound(true);
+      setIsLoading(false);
+    } else {
+      fetchGuestData(guestId);
+    }
+  }, [guestId]);
+
+  const fetchGuestData = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('guests')
+        .select('name, email, address, attending')
+        .eq('id', id)
+        .single();
+
+      if (error || !data) {
+        setGuestNotFound(true);
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          name: data.name || '',
+          email: data.email || '',
+          address: data.address || '',
+          attending: data.attending || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching guest:', error);
+      setGuestNotFound(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    // Validate required fields
+    const newErrors = {
+      name: !formData.name.trim(),
+      email: !formData.email.trim() || !emailRegex.test(formData.email),
+      address: !formData.address.trim(),
+      attending: !formData.attending,
+    };
+    
+    setErrors(newErrors);
+    
+    // Check if there are any errors
+    if (Object.values(newErrors).some(error => error)) {
+      return;
+    }
+    
     setIsSubmitting(true);
     setSubmitStatus({ type: null, message: '' });
 
     try {
-      const { error } = await supabase.from('rsvp_responses').insert([
-        {
-          name: formData.name,
-          email: formData.email,
-          address: formData.address,
-          attending: formData.attending,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+      if (guestId) {
+        // Update existing guest
+        const { error } = await supabase
+          .from('guests')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            address: formData.address,
+            attending: formData.attending,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', guestId);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Insert new guest
+        const { error } = await supabase.from('guests').insert([
+          {
+            name: formData.name,
+            email: formData.email,
+            address: formData.address,
+            attending: formData.attending,
+            created_at: new Date().toISOString(),
+          },
+        ]);
 
-      setSubmitStatus({
-        type: 'success',
-        message: 'Thank you for your RSVP! More details are to follow.',
-      });
-      setFormData({ name: '', email: '', address: '', attending: '' });
+        if (error) throw error;
+      }
+
+      // Redirect to confirmation page
+      const confirmationUrl = guestId ? `/rsvp/confirmation?guest=${guestId}` : '/rsvp/confirmation';
+      router.push(confirmationUrl);
     } catch (error) {
       console.error('Error submitting RSVP:', error);
       setSubmitStatus({
@@ -57,7 +140,36 @@ export default function RSVPPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [name]: false }));
+    }
   };
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
+        <div className="max-w-md mx-auto text-center">
+          <p className="text-gray-900">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (guestNotFound) {
+    return (
+      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#f5f7fd' }}>
+        <div className="max-w-md text-center space-y-4">
+          <h1 className="text-4xl font-bold text-gray-900" style={{ letterSpacing: '0.05em' }}>
+            Not Found
+          </h1>
+          <p className="text-lg text-gray-700">
+            We couldn't find your invitation. Please check your invitation link.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
@@ -80,7 +192,7 @@ export default function RSVPPage() {
         </div>
 
         <div className="bg-white rounded-lg p-6 mt-4">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-900">
                 Full Name *
@@ -92,9 +204,14 @@ export default function RSVPPage() {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
                 placeholder="John Doe"
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">Name is required</p>
+              )}
             </div>
 
             <div>
@@ -108,9 +225,14 @@ export default function RSVPPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
                 placeholder="john@example.com"
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">Please enter a valid email address</p>
+              )}
             </div>
 
             <div>
@@ -124,9 +246,14 @@ export default function RSVPPage() {
                 required
                 value={formData.address}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.address ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
                 placeholder="123 Main St, City, State, ZIP"
               />
+              {errors.address && (
+                <p className="mt-1 text-sm text-red-600">Address is required</p>
+              )}
             </div>
 
             <div>
@@ -139,13 +266,18 @@ export default function RSVPPage() {
                 required
                 value={formData.attending}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.attending ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
               >
                 <option value="" disabled>Select an option</option>
                 <option value="yes">Yes, I'll be there!</option>
                 <option value="no">Sorry, I can't make it</option>
                 <option value="perhaps">Perhaps</option>
               </select>
+              {errors.attending && (
+                <p className="mt-1 text-sm text-red-600">Please select an option</p>
+              )}
             </div>
 
             {submitStatus.type && (
