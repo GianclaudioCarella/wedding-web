@@ -50,7 +50,7 @@ CREATE TABLE rsvp_responses (
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   address TEXT,
-  attending BOOLEAN NOT NULL,
+  attending TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
