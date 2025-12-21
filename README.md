@@ -50,8 +50,9 @@ CREATE TABLE rsvp_responses (
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   address TEXT,
-  attending BOOLEAN NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  attending TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT attending_check CHECK (attending IN ('yes', 'no', 'perhaps'))
 );
 
 -- Enable Row Level Security
