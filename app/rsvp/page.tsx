@@ -138,8 +138,8 @@ export default function RSVPPage() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
               >
                 <option value="yes">Yes, I'll be there!</option>
-                <option value="perhaps">Perhaps</option>
                 <option value="no">Sorry, I can't make it</option>
+                <option value="perhaps">Perhaps</option>
               </select>
             </div>
 
