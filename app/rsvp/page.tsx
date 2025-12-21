@@ -38,7 +38,7 @@ export default function RSVPPage() {
 
       setSubmitStatus({
         type: 'success',
-        message: 'Thank you for your RSVP! We look forward to celebrating with you.',
+        message: 'Thank you for your RSVP! More details are to follow.',
       });
       setFormData({ name: '', email: '', address: '', attending: 'yes' });
     } catch (error) {
@@ -60,24 +60,26 @@ export default function RSVPPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
       <div className="max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-4">
+        <div className="text-center space-y-2">
+          <Link href="/" className="inline-block">
             <Image
               src="/save-the-date.png"
               alt="Save the Date"
-              width={200}
-              height={200}
+              width={250}
+              height={250}
               className="mx-auto rounded-lg"
               priority
             />
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">RSVP</h1>
-          <p className="mt-2 text-gray-600">Please fill in your information below</p>
+          <div className="space-y-0.5">
+            <h1 className="text-base md:text-md text-gray-900 font-semibold tracking-wide transform uppercase">Let us know if you can celebrate with us</h1>
+            <p className="text-base md:text-md text-gray-700">Please fill in your information below</p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg p-6 mt-4">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-900">
@@ -164,12 +166,6 @@ export default function RSVPPage() {
               {isSubmitting ? 'Submitting...' : 'Submit RSVP'}
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <Link href="/" className="text-sm text-gray-900 hover:text-gray-600">
-              ← Back to home
-            </Link>
-          </div>
         </div>
       </div>
     </main>
