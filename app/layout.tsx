@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Our Wedding",
+  title: "Gian & Cat Wedding",
   description: "Join us in celebrating our special day",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
