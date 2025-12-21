@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function RSVPPage() {
   const [formData, setFormData] = useState({
@@ -59,18 +60,18 @@ export default function RSVPPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-rose-50 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-4">
-            <svg
-              className="w-12 h-12 text-rose-500 mx-auto"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
+            <Image
+              src="/save-the-date.png"
+              alt="Save the Date"
+              width={200}
+              height={200}
+              className="mx-auto rounded-lg"
+              priority
+            />
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">RSVP</h1>
           <p className="mt-2 text-gray-600">Please fill in your information below</p>
@@ -79,7 +80,7 @@ export default function RSVPPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-900">
                 Full Name *
               </label>
               <input
@@ -89,13 +90,13 @@ export default function RSVPPage() {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
                 placeholder="John Doe"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-900">
                 Email Address *
               </label>
               <input
@@ -105,13 +106,13 @@ export default function RSVPPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
                 placeholder="john@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="address" className="block text-sm font-medium text-gray-900">
                 Address
               </label>
               <textarea
@@ -120,13 +121,13 @@ export default function RSVPPage() {
                 rows={3}
                 value={formData.address}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
                 placeholder="123 Main St, City, State, ZIP"
               />
             </div>
 
             <div>
-              <label htmlFor="attending" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="attending" className="block text-sm font-medium text-gray-900">
                 Will you be attending? *
               </label>
               <select
@@ -135,7 +136,7 @@ export default function RSVPPage() {
                 required
                 value={formData.attending}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rose-500 focus:border-rose-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
               >
                 <option value="yes">Yes, I'll be there!</option>
                 <option value="no">Sorry, I can't make it</option>
@@ -157,14 +158,14 @@ export default function RSVPPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 px-4 bg-rose-500 text-white font-semibold rounded-md shadow-sm hover:bg-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {isSubmitting ? 'Submitting...' : 'Submit RSVP'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/" className="text-sm text-rose-600 hover:text-rose-700">
+            <Link href="/" className="text-sm text-gray-900 hover:text-gray-600">
               ← Back to home
             </Link>
           </div>
