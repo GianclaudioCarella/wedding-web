@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function RSVPPage() {
+export default function RSVPPagePT() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -38,14 +38,14 @@ export default function RSVPPage() {
 
       setSubmitStatus({
         type: 'success',
-        message: 'Thank you for your RSVP! More details are to follow.',
+        message: 'Obrigado pela sua confirmação! Mais detalhes em breve.',
       });
       setFormData({ name: '', email: '', address: '', attending: '' });
     } catch (error) {
       console.error('Error submitting RSVP:', error);
       setSubmitStatus({
         type: 'error',
-        message: 'There was an error submitting your RSVP. Please try again or contact us directly.',
+        message: 'Houve um erro ao enviar sua confirmação. Por favor tente novamente ou entre em contato conosco diretamente.',
       });
     } finally {
       setIsSubmitting(false);
@@ -63,7 +63,7 @@ export default function RSVPPage() {
     <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
       <div className="max-w-md mx-auto">
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-block">
+          <Link href="/pt" className="inline-block">
             <Image
               src="/save-the-date.png"
               alt="Save the Date"
@@ -74,8 +74,8 @@ export default function RSVPPage() {
             />
           </Link>
           <div className="space-y-0.5">
-            <h1 className="text-base md:text-md text-gray-900 font-semibold tracking-wide transform uppercase">Let us know if you can celebrate with us</h1>
-            <p className="text-base md:text-md text-gray-700">Please fill in your information below</p>
+            <h1 className="text-base md:text-md text-gray-900 font-semibold tracking-wide transform uppercase">Nos avise se você pode celebrar conosco</h1>
+            <p className="text-base md:text-md text-gray-700">Por favor preencha suas informações abaixo</p>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ export default function RSVPPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-900">
-                Full Name *
+                Nome Completo *
               </label>
               <input
                 type="text"
@@ -93,13 +93,13 @@ export default function RSVPPage() {
                 value={formData.name}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                placeholder="John Doe"
+                placeholder="João Silva"
               />
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-                Email Address *
+                Endereço de Email *
               </label>
               <input
                 type="email"
@@ -109,13 +109,13 @@ export default function RSVPPage() {
                 value={formData.email}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                placeholder="john@example.com"
+                placeholder="joao@exemplo.com"
               />
             </div>
 
             <div>
               <label htmlFor="address" className="block text-sm font-medium text-gray-900">
-                Address *
+                Endereço *
               </label>
               <textarea
                 id="address"
@@ -125,13 +125,13 @@ export default function RSVPPage() {
                 value={formData.address}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                placeholder="123 Main St, City, State, ZIP"
+                placeholder="Rua Principal 123, Cidade, Estado, CEP"
               />
             </div>
 
             <div>
               <label htmlFor="attending" className="block text-sm font-medium text-gray-900">
-                Will you be attending? *
+                Você vai comparecer? *
               </label>
               <select
                 id="attending"
@@ -141,10 +141,10 @@ export default function RSVPPage() {
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
               >
-                <option value="" disabled>Select an option</option>
-                <option value="yes">Yes, I'll be there!</option>
-                <option value="no">Sorry, I can't make it</option>
-                <option value="perhaps">Perhaps</option>
+                <option value="" disabled>Selecione uma opção</option>
+                <option value="yes">Sim, estarei lá!</option>
+                <option value="no">Desculpe, não posso comparecer</option>
+                <option value="perhaps">Talvez</option>
               </select>
             </div>
 
@@ -166,7 +166,7 @@ export default function RSVPPage() {
                 disabled={isSubmitting}
                 className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit RSVP'}
+                {isSubmitting ? 'Enviando...' : 'Enviar Confirmação'}
               </button>
             )}
           </form>
