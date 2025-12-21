@@ -28,7 +28,7 @@ export default function RSVPPage() {
           name: formData.name,
           email: formData.email,
           address: formData.address,
-          attending: formData.attending === 'yes',
+          attending: formData.attending,
           created_at: new Date().toISOString(),
         },
       ]);
@@ -139,6 +139,7 @@ export default function RSVPPage() {
               >
                 <option value="yes">Yes, I'll be there!</option>
                 <option value="no">Sorry, I can't make it</option>
+                <option value="perhaps">Perhaps</option>
               </select>
             </div>
 
