@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [declinedCount, setDeclinedCount] = useState(0);
   const [maybeCount, setMaybeCount] = useState(0);
   const [totalGuests, setTotalGuests] = useState(0);
+  const [guests, setGuests] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -31,6 +32,15 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
+      // Get all guests with name, save_the_date_sent, and rsvp_link
+      const { data: guestsData, error: guestsError } = await supabase
+        .from('guests')
+        .select('id, name, save_the_date_sent, rsvp_link, attending')
+        .order('name', { ascending: true });
+
+      if (guestsError) throw guestsError;
+      setGuests(guestsData || []);
+
       // Get total guests
       const { count: total } = await supabase
         .from('guests')
@@ -70,6 +80,23 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  const handleMarkAsSent = async (guestId: string) => {
+    try {
+      const { error } = await supabase
+        .from('guests')
+        .update({ save_the_date_sent: true })
+        .eq('id', guestId);
+
+      if (error) throw error;
+
+      // Refresh the guests list
+      fetchStats();
+    } catch (error) {
+      console.error('Error updating save_the_date_sent:', error);
+      alert('Failed to update status');
+    }
+  };
+
   if (isLoading || !isAuthenticated) {
     return (
       <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f5f7fd' }}>
@@ -80,9 +107,9 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen py-12 px-4" style={{ backgroundColor: '#f5f7fd' }}>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Wedding Admin Dashboard</h1>
           <button
             onClick={handleLogout}
             className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
@@ -141,6 +168,86 @@ export default function AdminDashboard() {
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Guests List</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Attending
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Save the Date Sent
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    RSVP Link
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {guests.map((guest, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {guest.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {guest.attending ? (
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          guest.attending === 'yes' ? 'bg-green-100 text-green-800' :
+                          guest.attending === 'no' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {guest.attending === 'yes' ? 'Yes' : guest.attending === 'no' ? 'No' : 'Maybe'}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {guest.save_the_date_sent ? (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                          No
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <a 
+                        href={guest.rsvp_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {guest.rsvp_link}
+                      </a>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {!guest.save_the_date_sent && (
+                        <button
+                          onClick={() => handleMarkAsSent(guest.id)}
+                          className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Mark as Sent
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

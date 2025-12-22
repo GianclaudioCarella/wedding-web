@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS guests (
   email TEXT,
   address TEXT,
   attending TEXT CHECK (attending IN ('yes', 'no', 'perhaps')),
+  save_the_date_sent BOOLEAN DEFAULT FALSE,
+  rsvp_link TEXT GENERATED ALWAYS AS ('https://giancat.com/?guest=' || id) STORED,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE
 );

@@ -38,7 +38,7 @@ export default function AdminLogin() {
     <main className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#f5f7fd' }}>
       <div className="max-w-md w-full">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Admin Login</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Wedding Admin Login</h1>
           
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
