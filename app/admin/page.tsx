@@ -612,7 +612,7 @@ export default function AdminDashboard() {
                     setIsModalOpen(false);
                     setIsEditing(false);
                     setEditingGuestId(null);
-                    setNewGuest({ name: '', email: '', address: '', language: 'en', total_guests: 1 });
+                    setNewGuest({ name: '', email: '', phone: '', address: '', language: 'en', total_guests: 1 });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
                 >
