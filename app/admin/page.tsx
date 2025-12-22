@@ -13,6 +13,12 @@ export default function AdminDashboard() {
   const [maybeCount, setMaybeCount] = useState(0);
   const [totalGuests, setTotalGuests] = useState(0);
   const [guests, setGuests] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newGuest, setNewGuest] = useState({
+    name: '',
+    email: '',
+    address: ''
+  });
 
   useEffect(() => {
     checkAuth();
@@ -97,6 +103,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAddGuest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newGuest.name.trim()) {
+      alert('Name is required');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('guests')
+        .insert([newGuest]);
+
+      if (error) throw error;
+
+      // Reset form and close modal
+      setNewGuest({ name: '', email: '', address: '' });
+      setIsModalOpen(false);
+      
+      // Refresh the guests list
+      fetchStats();
+    } catch (error) {
+      console.error('Error adding guest:', error);
+      alert('Failed to add guest');
+    }
+  };
+
   if (isLoading || !isAuthenticated) {
     return (
       <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#f5f7fd' }}>
@@ -110,12 +143,20 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Wedding Admin Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
-          >
-            Logout
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              + Add Guest
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -251,6 +292,75 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Add Guest Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New Guest</h2>
+            <form onSubmit={handleAddGuest} className="space-y-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-1">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  value={newGuest.name}
+                  onChange={(e) => setNewGuest({ ...newGuest, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={newGuest.email}
+                  onChange={(e) => setNewGuest({ ...newGuest, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-900 mb-1">
+                  Address
+                </label>
+                <textarea
+                  id="address"
+                  value={newGuest.address}
+                  onChange={(e) => setNewGuest({ ...newGuest, address: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Add Guest
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setNewGuest({ name: '', email: '', address: '' });
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
