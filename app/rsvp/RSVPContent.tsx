@@ -245,7 +245,7 @@ export default function RSVPContent() {
               <textarea
                 id="address"
                 name="address"
-                rows={3}
+                rows={2}
                 required
                 value={formData.address}
                 onChange={handleChange}
@@ -291,7 +291,7 @@ export default function RSVPContent() {
               <textarea
                 id="notes"
                 name="notes"
-                rows={3}
+                rows={2}
                 maxLength={500}
                 value={formData.notes}
                 onChange={handleChange}

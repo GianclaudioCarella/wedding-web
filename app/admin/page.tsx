@@ -208,6 +208,12 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Wedding Admin Dashboard</h1>
           <div className="flex gap-3">
             <button
+              onClick={() => router.push('/admin/events')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+            >
+              📅 Manage Events
+            </button>
+            <button
               onClick={() => setIsModalOpen(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
