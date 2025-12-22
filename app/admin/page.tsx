@@ -287,12 +287,12 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-4 bg-white rounded-lg shadow-md p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-base font-semibold text-gray-900">Guests List</h2>
-            <div className="flex gap-2">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-gray-900 mb-3">Guests List</h2>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   filter === 'all' 
                     ? 'bg-blue-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setFilter('pending')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   filter === 'pending' 
                     ? 'bg-orange-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setFilter('sent')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   filter === 'sent' 
                     ? 'bg-blue-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setFilter('confirmed')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   filter === 'confirmed' 
                     ? 'bg-green-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -332,7 +332,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setFilter('declined')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   filter === 'declined' 
                     ? 'bg-red-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -342,7 +342,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setFilter('maybe')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   filter === 'maybe' 
                     ? 'bg-yellow-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -352,7 +352,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setFilter('no-response')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   filter === 'no-response' 
                     ? 'bg-gray-600 text-white' 
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
