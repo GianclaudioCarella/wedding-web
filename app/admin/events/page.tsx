@@ -163,7 +163,7 @@ export default function EventsPage() {
         if (error) throw error;
       }
 
-      setNewEvent({ name: '', description: '', event_date: '', event_time: '', location: '' });
+      setNewEvent({ name: '', description: '', event_date: '', location: '' });
       setIsEventModalOpen(false);
       setIsEditing(false);
       setEditingEventId(null);
