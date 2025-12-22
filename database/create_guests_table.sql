@@ -4,9 +4,15 @@ CREATE TABLE IF NOT EXISTS guests (
   name TEXT NOT NULL,
   email TEXT,
   address TEXT,
+  language TEXT DEFAULT 'en' CHECK (language IN ('en', 'pt')),
   attending TEXT CHECK (attending IN ('yes', 'no', 'perhaps')),
   save_the_date_sent BOOLEAN DEFAULT FALSE,
-  rsvp_link TEXT GENERATED ALWAYS AS ('https://giancat.com/?guest=' || id) STORED,
+  rsvp_link TEXT GENERATED ALWAYS AS (
+    CASE 
+      WHEN language = 'pt' THEN 'https://giancat.com/pt?guest=' || id
+      ELSE 'https://giancat.com/?guest=' || id
+    END
+  ) STORED,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE
 );

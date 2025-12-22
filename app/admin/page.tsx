@@ -14,10 +14,13 @@ export default function AdminDashboard() {
   const [totalGuests, setTotalGuests] = useState(0);
   const [guests, setGuests] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [guestToDelete, setGuestToDelete] = useState<{id: string, name: string} | null>(null);
   const [newGuest, setNewGuest] = useState({
     name: '',
     email: '',
-    address: ''
+    address: '',
+    language: 'en'
   });
 
   useEffect(() => {
@@ -41,7 +44,7 @@ export default function AdminDashboard() {
       // Get all guests with name, save_the_date_sent, and rsvp_link
       const { data: guestsData, error: guestsError } = await supabase
         .from('guests')
-        .select('id, name, save_the_date_sent, rsvp_link, attending')
+        .select('id, name, email, language, save_the_date_sent, rsvp_link, attending')
         .order('name', { ascending: true });
 
       if (guestsError) throw guestsError;
@@ -119,7 +122,7 @@ export default function AdminDashboard() {
       if (error) throw error;
 
       // Reset form and close modal
-      setNewGuest({ name: '', email: '', address: '' });
+      setNewGuest({ name: '', email: '', address: '', language: 'en' });
       setIsModalOpen(false);
       
       // Refresh the guests list
@@ -128,6 +131,37 @@ export default function AdminDashboard() {
       console.error('Error adding guest:', error);
       alert('Failed to add guest');
     }
+  };
+
+  const handleDeleteClick = (guest: any) => {
+    setGuestToDelete({ id: guest.id, name: guest.name });
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!guestToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('guests')
+        .delete()
+        .eq('id', guestToDelete.id);
+
+      if (error) throw error;
+
+      // Close modal and refresh
+      setIsDeleteModalOpen(false);
+      setGuestToDelete(null);
+      fetchStats();
+    } catch (error) {
+      console.error('Error deleting guest:', error);
+      alert('Failed to delete guest');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setGuestToDelete(null);
   };
 
   if (isLoading || !isAuthenticated) {
@@ -222,6 +256,9 @@ export default function AdminDashboard() {
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Language
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Attending
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -240,6 +277,11 @@ export default function AdminDashboard() {
                   <tr key={index}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {guest.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        {guest.language?.toUpperCase() || 'EN'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {guest.attending ? (
@@ -276,14 +318,25 @@ export default function AdminDashboard() {
                       </a>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {!guest.save_the_date_sent && (
+                      <div className="flex gap-2">
+                        {!guest.save_the_date_sent && (
+                          <button
+                            onClick={() => handleMarkAsSent(guest.id)}
+                            className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Mark as Sent
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleMarkAsSent(guest.id)}
-                          className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                          onClick={() => handleDeleteClick(guest)}
+                          className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                          title="Delete guest"
                         >
-                          Mark as Sent
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -327,6 +380,22 @@ export default function AdminDashboard() {
               </div>
 
               <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-900 mb-1">
+                  Language *
+                </label>
+                <select
+                  id="language"
+                  value={newGuest.language}
+                  onChange={(e) => setNewGuest({ ...newGuest, language: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  required
+                >
+                  <option value="en">English</option>
+                  <option value="pt">Português</option>
+                </select>
+              </div>
+
+              <div>
                 <label htmlFor="address" className="block text-sm font-medium text-gray-900 mb-1">
                   Address
                 </label>
@@ -350,7 +419,7 @@ export default function AdminDashboard() {
                   type="button"
                   onClick={() => {
                     setIsModalOpen(false);
-                    setNewGuest({ name: '', email: '', address: '' });
+                    setNewGuest({ name: '', email: '', address: '', language: 'en' });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
                 >
@@ -358,6 +427,32 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && guestToDelete && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Confirm Delete</h2>
+            <p className="text-gray-900 mb-6">
+              Are you sure you want to delete <strong>{guestToDelete.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+              <button
+                onClick={handleDeleteCancel}
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
