@@ -14,6 +14,7 @@ export default function RSVPContentPT() {
     email: '',
     address: '',
     attending: '',
+    notes: '',
   });
   const [errors, setErrors] = useState({
     name: false,
@@ -99,6 +100,7 @@ export default function RSVPContentPT() {
             email: formData.email,
             address: formData.address,
             attending: formData.attending,
+            notes: formData.notes,
             updated_at: new Date().toISOString(),
           })
           .eq('id', guestId);
@@ -112,6 +114,7 @@ export default function RSVPContentPT() {
             email: formData.email,
             address: formData.address,
             attending: formData.attending,
+            notes: formData.notes,
             created_at: new Date().toISOString(),
           },
         ]);
@@ -273,6 +276,23 @@ export default function RSVPContentPT() {
               </select>              {errors.attending && (
                 <p className="mt-1 text-sm text-red-600">Por favor, selecione uma opção</p>
               )}            </div>
+
+            <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+                Observações (Opcional)
+                <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows={3}
+                maxLength={500}
+                value={formData.notes}
+                onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                placeholder="Algum pedido especial ou comentário..."
+              />
+            </div>
 
             {submitStatus.type && (
               <div

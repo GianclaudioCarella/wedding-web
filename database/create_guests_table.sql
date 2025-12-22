@@ -3,9 +3,12 @@ CREATE TABLE IF NOT EXISTS guests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   email TEXT,
+  phone TEXT,
   address TEXT,
   language TEXT DEFAULT 'en' CHECK (language IN ('en', 'pt')),
+  total_guests INTEGER DEFAULT 1 NOT NULL,
   attending TEXT CHECK (attending IN ('yes', 'no', 'perhaps')),
+  notes TEXT CHECK (length(notes) <= 500),
   save_the_date_sent BOOLEAN DEFAULT FALSE,
   rsvp_link TEXT GENERATED ALWAYS AS (
     CASE 
