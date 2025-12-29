@@ -5,20 +5,13 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
-interface Message {
-  role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string;
-  timestamp: Date;
-  tool_call_id?: string;
-}
-
-interface Conversation {
-  id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Message, Conversation, MemorySaveResult, Model } from './types';
+import { MODELS, TOOLS } from './constants';
+import { UserSettingsService } from './services/user-settings.service';
+import { ChatSupabaseService } from './services/supabase.service';
+import { SearchWebTool } from './tools/search-web.tool';
+import { GuestTools } from './tools/guest.tools';
+import { EventTools } from './tools/event.tools';
 
 export default function AdminChat() {
   const router = useRouter();
@@ -31,8 +24,10 @@ export default function AdminChat() {
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [githubToken, setGithubToken] = useState('');
+  const [tavilyApiKey, setTavilyApiKey] = useState('');
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
+  const [tavilyKeyInput, setTavilyKeyInput] = useState('');
   const [selectedModel, setSelectedModel] = useState('gpt-4o');
   const [showSettings, setShowSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState('');
@@ -43,18 +38,24 @@ export default function AdminChat() {
   const [isMemorySaveModalOpen, setIsMemorySaveModalOpen] = useState(false);
   const [memorySaveLoading, setMemorySaveLoading] = useState(false);
   const [currentConversationHasMemory, setCurrentConversationHasMemory] = useState(false);
-  const [memorySaveResult, setMemorySaveResult] = useState<{
-    success: boolean;
-    message: string;
-    summary?: string;
-    importance?: number;
-    topics?: string[];
-  } | null>(null);
+  const [memorySaveResult, setMemorySaveResult] = useState<MemorySaveResult | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const models = [
-    { id: 'gpt-4o', name: 'GPT-4o', icon: '🤖' },
-  ];
+  // Initialize services
+  const userSettingsService = new UserSettingsService(supabase);
+  const chatService = new ChatSupabaseService(supabase);
+  const guestTools = new GuestTools(supabase);
+  const eventTools = new EventTools(supabase);
+
+  // Helper function to format wait time
+  const formatWaitTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  };
 
   useEffect(() => {
     checkAuth();
@@ -79,13 +80,8 @@ export default function AdminChat() {
     setIsAuthenticated(true);
     setUserId(user.id);
     
-    // Check for stored token
-    const storedToken = localStorage.getItem('github_token');
-    if (storedToken) {
-      setGithubToken(storedToken);
-    } else {
-      setIsTokenModalOpen(true);
-    }
+    // Load API keys from database
+    await loadUserSettings(user.id);
     
     // Load system message settings
     await loadSystemMessage();
@@ -97,59 +93,46 @@ export default function AdminChat() {
   };
 
   const loadSystemMessage = async () => {
-    const { data, error } = await supabase
-      .from('chat_settings')
-      .select('setting_value')
-      .eq('setting_key', 'system_message')
-      .single();
+    const message = await chatService.loadSystemMessage();
+    setSystemMessage(message);
+    setSystemMessageEdit(message);
+  };
 
-    if (error) {
-      console.error('Error loading system message:', error);
-      return;
-    }
-
+  const loadUserSettings = async (uid: string) => {
+    const data = await userSettingsService.loadUserSettings(uid);
+    
     if (data) {
-      setSystemMessage(data.setting_value);
-      setSystemMessageEdit(data.setting_value);
+      if (data.github_token) {
+        setGithubToken(data.github_token);
+      } else {
+        setIsTokenModalOpen(true);
+      }
+      if (data.tavily_api_key) {
+        setTavilyApiKey(data.tavily_api_key);
+      }
+    } else {
+      setIsTokenModalOpen(true);
     }
   };
 
   const saveSystemMessage = async () => {
     if (!userId) return;
 
-    const { error } = await supabase
-      .from('chat_settings')
-      .update({
-        setting_value: systemMessageEdit,
-        updated_at: new Date().toISOString(),
-        updated_by: userId,
-      })
-      .eq('setting_key', 'system_message');
-
-    if (error) {
-      console.error('Error saving system message:', error);
+    const result = await chatService.saveSystemMessage(userId, systemMessageEdit);
+    
+    if (result.success) {
+      setSystemMessage(systemMessageEdit);
+      setIsEditingSettings(false);
+      alert('Settings saved successfully!');
+    } else {
+      console.error('Error saving system message:', result.error);
       alert('Error saving settings');
-      return;
     }
-
-    setSystemMessage(systemMessageEdit);
-    setIsEditingSettings(false);
-    alert('Settings saved successfully!');
   };
 
   const loadConversations = async (uid: string) => {
-    const { data, error } = await supabase
-      .from('chat_conversations')
-      .select('*')
-      .eq('user_id', uid)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading conversations:', error);
-      return;
-    }
-
-    setConversations(data || []);
+    const data = await chatService.loadConversations(uid);
+    setConversations(data);
   };
 
   const loadConversation = async (conversationId: string) => {
@@ -322,141 +305,48 @@ export default function AdminChat() {
   };
 
   const saveMessage = async (conversationId: string, role: string, content: string) => {
-    const { error } = await supabase
-      .from('chat_messages')
-      .insert({
-        conversation_id: conversationId,
-        role: role,
-        content: content,
-      });
-
-    if (error) {
-      console.error('Error saving message:', error);
-    }
-
-    // Update conversation timestamp
-    await supabase
-      .from('chat_conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId);
-    
-    setIsLoading(false);
+    await chatService.saveMessage(conversationId, role, content);
   };
 
-  const handleSaveToken = () => {
-    if (tokenInput.trim()) {
-      localStorage.setItem('github_token', tokenInput.trim());
-      setGithubToken(tokenInput.trim());
+  const handleSaveToken = async () => {
+    if (!userId) return;
+    
+    const newGithubToken = tokenInput.trim() || undefined;
+    const newTavilyKey = tavilyKeyInput.trim() || undefined;
+    
+    if (!newGithubToken && !newTavilyKey) return;
+    
+    const result = await userSettingsService.saveUserSettings(userId, newGithubToken, newTavilyKey);
+    
+    if (result.success) {
+      if (tokenInput.trim()) {
+        setGithubToken(tokenInput.trim());
+        setTokenInput('');
+      }
+      if (tavilyKeyInput.trim()) {
+        setTavilyApiKey(tavilyKeyInput.trim());
+        setTavilyKeyInput('');
+      }
       setIsTokenModalOpen(false);
-      setTokenInput('');
+    } else {
+      console.error('Error saving API keys:', result.error);
+      alert('Erro ao salvar as chaves. Tente novamente.');
     }
   };
 
-  // Database functions that the AI can call
-  const getGuestStatistics = async () => {
-    const { data: guests, error } = await supabase
-      .from('guests')
-      .select('*');
-    
-    if (error) throw error;
-
-    const stats = {
-      total_guests: guests?.length || 0,
-      total_people: guests?.reduce((sum, g) => sum + (g.total_guests || 1), 0) || 0,
-      confirmed: guests?.filter(g => g.attending === 'yes').length || 0,
-      confirmed_people: guests?.filter(g => g.attending === 'yes').reduce((sum, g) => sum + (g.total_guests || 1), 0) || 0,
-      declined: guests?.filter(g => g.attending === 'no').length || 0,
-      maybe: guests?.filter(g => g.attending === 'perhaps').length || 0,
-      no_response: guests?.filter(g => !g.attending).length || 0,
-      invites_sent: guests?.filter(g => g.save_the_date_sent === true).length || 0,
-      invites_pending: guests?.filter(g => g.save_the_date_sent !== true).length || 0,
-    };
-
-    return stats;
-  };
-
-  const listGuests = async (filter?: string) => {
-    const { data: guests, error } = await supabase
-      .from('guests')
-      .select('id, name, email, phone, language, total_guests, attending, save_the_date_sent')
-      .order('name');
-    
-    if (error) throw error;
-
-    let filtered = guests || [];
-    if (filter === 'confirmed') filtered = filtered.filter(g => g.attending === 'yes');
-    if (filter === 'declined') filtered = filtered.filter(g => g.attending === 'no');
-    if (filter === 'maybe') filtered = filtered.filter(g => g.attending === 'perhaps');
-    if (filter === 'no_response') filtered = filtered.filter(g => !g.attending);
-    if (filter === 'sent') filtered = filtered.filter(g => g.save_the_date_sent === true);
-    if (filter === 'pending') filtered = filtered.filter(g => g.save_the_date_sent !== true);
-
-    return filtered;
-  };
-
-  const listEvents = async () => {
-    const { data: events, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('event_date');
-    
-    if (error) throw error;
-    return events || [];
-  };
-
-  const tools = [
-    {
-      type: 'function',
-      function: {
-        name: 'get_guest_statistics',
-        description: 'Get statistics about wedding guests including total count, confirmations, declines, and RSVP status',
-        parameters: {
-          type: 'object',
-          properties: {},
-          required: [],
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'list_guests',
-        description: 'List all guests or filter by status (confirmed, declined, maybe, no_response, sent, pending)',
-        parameters: {
-          type: 'object',
-          properties: {
-            filter: {
-              type: 'string',
-              enum: ['confirmed', 'declined', 'maybe', 'no_response', 'sent', 'pending', 'all'],
-              description: 'Filter guests by their status',
-            },
-          },
-          required: [],
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'list_events',
-        description: 'List all wedding events with their details',
-        parameters: {
-          type: 'object',
-          properties: {},
-          required: [],
-        },
-      },
-    },
-  ];
-
+  // Tool execution
   const executeTool = async (toolName: string, args: any) => {
+    const searchWebTool = new SearchWebTool(supabase, tavilyApiKey);
+    
     switch (toolName) {
+      case 'search_web':
+        return await searchWebTool.execute(args.query);
       case 'get_guest_statistics':
-        return await getGuestStatistics();
+        return await guestTools.getGuestStatistics();
       case 'list_guests':
-        return await listGuests(args.filter);
+        return await guestTools.listGuests(args.filter);
       case 'list_events':
-        return await listEvents();
+        return await eventTools.listEvents();
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -550,6 +440,10 @@ export default function AdminChat() {
         { role: 'user', content: inputMessage },
       ];
 
+      console.log('🔑 GitHub Token (first 10 chars):', githubToken?.substring(0, 10));
+      console.log('🤖 Selected Model:', selectedModel);
+      console.log('📨 Sending request to GitHub Models API...');
+      
       let response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
         method: 'POST',
         headers: {
@@ -561,14 +455,37 @@ export default function AdminChat() {
           model: selectedModel,
           temperature: 0.7,
           max_tokens: 2000,
-          tools: tools,
+          tools: TOOLS,
           tool_choice: 'auto',
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to get response');
+        console.error('❌ API Error Status:', response.status, response.statusText);
+        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+        try {
+          const error = await response.json();
+          console.error('❌ API Error Details:', error);
+          
+          // Check for rate limit error
+          if (error.message && error.message.includes('Rate limit')) {
+            const match = error.message.match(/wait (\d+) seconds/);
+            if (match) {
+              const waitSeconds = parseInt(match[1]);
+              const waitTime = formatWaitTime(waitSeconds);
+              errorMessage = `⏳ **Rate Limit Exceeded**\n\nYou've reached the GitHub Models API limit of 50 requests per day.\n\n**Please wait ${waitTime}** before trying again.\n\nTip: Consider using a different GitHub account or token if you need more requests.`;
+            } else {
+              errorMessage = `⏳ **Rate Limit Exceeded**\n\n${error.message}\n\nTip: Consider using a different GitHub account or token.`;
+            }
+          } else {
+            errorMessage = error.message || error.error?.message || errorMessage;
+          }
+        } catch (e) {
+          const errorText = await response.text();
+          console.error('❌ API Error Text:', errorText);
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       let data = await response.json();
@@ -600,6 +517,7 @@ export default function AdminChat() {
         }
 
         // Get final response from model
+        console.log('🔄 Sending follow-up request after tool execution...');
         response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
           method: 'POST',
           headers: {
@@ -611,14 +529,37 @@ export default function AdminChat() {
             model: selectedModel,
             temperature: 0.7,
             max_tokens: 2000,
-            tools: tools,
+            tools: TOOLS,
             tool_choice: 'auto',
           }),
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to get response');
+          console.error('❌ API Error Status (follow-up):', response.status, response.statusText);
+          let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+          try {
+            const error = await response.json();
+            console.error('❌ API Error Details (follow-up):', error);
+            
+            // Check for rate limit error
+            if (error.message && error.message.includes('Rate limit')) {
+              const match = error.message.match(/wait (\d+) seconds/);
+              if (match) {
+                const waitSeconds = parseInt(match[1]);
+                const waitTime = formatWaitTime(waitSeconds);
+                errorMessage = `⏳ **Rate Limit Exceeded**\n\nYou've reached the GitHub Models API limit of 50 requests per day.\n\n**Please wait ${waitTime}** before trying again.\n\nTip: Consider using a different GitHub account or token if you need more requests.`;
+              } else {
+                errorMessage = `⏳ **Rate Limit Exceeded**\n\n${error.message}\n\nTip: Consider using a different GitHub account or token.`;
+              }
+            } else {
+              errorMessage = error.message || error.error?.message || errorMessage;
+            }
+          } catch (e) {
+            const errorText = await response.text();
+            console.error('❌ API Error Text (follow-up):', errorText);
+            errorMessage = errorText || errorMessage;
+          }
+          throw new Error(errorMessage);
         }
 
         data = await response.json();
@@ -638,10 +579,10 @@ export default function AdminChat() {
         await saveMessage(convId, 'assistant', assistantMessage.content);
       }
     } catch (error: any) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
       const errorMessage: Message = {
         role: 'assistant',
-        content: `Error: ${error.message}. Please check your GitHub token and try again.`,
+        content: error.message,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -765,18 +706,28 @@ export default function AdminChat() {
             
             <div className="space-y-2">
               <p className="text-xs uppercase text-gray-400 px-2 mb-2">Model</p>
-              {models.map((model) => (
+              {MODELS.map((model) => (
                 <button
                   key={model.id}
                   onClick={() => setSelectedModel(model.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  className={`w-full flex items-start gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                     selectedModel === model.id
                       ? 'bg-gray-800 text-white'
                       : 'text-gray-300 hover:bg-gray-800'
                   }`}
                 >
-                  <span className="text-lg">{model.icon}</span>
-                  <span>{model.name}</span>
+                  <span className="text-lg mt-0.5">{model.icon}</span>
+                  <div className="flex-1 text-left">
+                    <div className="font-medium">{model.name}</div>
+                    {model.description && (
+                      <div className="text-xs text-gray-400 mt-0.5">{model.description}</div>
+                    )}
+                  </div>
+                  {selectedModel === model.id && (
+                    <svg className="h-4 w-4 text-blue-400 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
                 </button>
               ))}
             </div>
@@ -843,11 +794,11 @@ export default function AdminChat() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-xl">{models.find(m => m.id === selectedModel)?.icon || '🤖'}</span>
+                    <span className="text-xl">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900">
-                      {models.find(m => m.id === selectedModel)?.name || 'AI Assistant'}
+                      {MODELS.find((m: Model) => m.id === selectedModel)?.name || 'AI Assistant'}
                     </h2>
                     <p className="text-xs text-gray-500">Online</p>
                   </div>
@@ -932,7 +883,7 @@ export default function AdminChat() {
                   <div key={index} className={`flex gap-4 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                     {message.role === 'assistant' && (
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm">{models.find(m => m.id === selectedModel)?.icon || '🤖'}</span>
+                        <span className="text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                       </div>
                     )}
                     {message.role === 'user' && (
@@ -949,9 +900,19 @@ export default function AdminChat() {
                           : 'bg-white border border-gray-200 mr-12 text-black'
                       }`}>
                         {message.role === 'assistant' ? (
-                          <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-black prose-p:text-black prose-li:text-black prose-strong:text-black prose-code:text-black prose-pre:bg-gray-100 prose-pre:text-black">
+                          <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-black prose-p:text-black prose-li:text-black prose-strong:text-black prose-code:text-black prose-pre:bg-gray-100 prose-pre:text-black prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
+                              components={{
+                                a: ({ node, ...props }) => (
+                                  <a
+                                    {...props}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
+                                  />
+                                ),
+                              }}
                             >
                               {message.content}
                             </ReactMarkdown>
@@ -970,7 +931,7 @@ export default function AdminChat() {
                 {isSending && (
                   <div className="flex gap-4">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm">{models.find(m => m.id === selectedModel)?.icon || '🤖'}</span>
+                      <span className="text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                     </div>
                     <div className="flex-1">
                       <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 mr-12">
@@ -1039,7 +1000,7 @@ export default function AdminChat() {
       {isTokenModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Configure GitHub Token</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Configure API Keys</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1065,19 +1026,46 @@ export default function AdminChat() {
                   {' '}with &quot;models&quot; scope
                 </p>
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tavily API Key (Optional - for web search)
+                </label>
+                <input
+                  type="password"
+                  value={tavilyKeyInput}
+                  onChange={(e) => setTavilyKeyInput(e.target.value)}
+                  placeholder="tvly-..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Get a free API key at{' '}
+                  <a
+                    href="https://app.tavily.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    tavily.com
+                  </a>
+                  {' '}to enable web search capabilities
+                </p>
+              </div>
+              
               <div className="flex gap-3">
                 <button
                   onClick={handleSaveToken}
-                  disabled={!tokenInput.trim()}
+                  disabled={!tokenInput.trim() && !tavilyKeyInput.trim()}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  Save Token
+                  Save Keys
                 </button>
                 {githubToken && (
                   <button
                     onClick={() => {
                       setIsTokenModalOpen(false);
                       setTokenInput('');
+                      setTavilyKeyInput('');
                     }}
                     className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
                   >
