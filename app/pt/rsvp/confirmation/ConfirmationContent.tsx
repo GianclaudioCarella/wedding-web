@@ -54,7 +54,7 @@ export default function ConfirmationContent() {
       <div className="max-w-md w-full text-center space-y-8">
         <div className="flex justify-center">
           <Image
-            src="/save-the-date.png"
+            src="/savethedate.png"
             alt="Save the Date"
             width={200}
             height={200}

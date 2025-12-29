@@ -70,7 +70,7 @@ export default function HomeContentPT() {
     <main className="flex h-screen flex-col items-center justify-center p-6 pb-12 md:pb-6" style={{ backgroundColor: '#f5f7fd' }}>
       <div className="w-full max-w-xl md:max-w-lg mx-auto flex-shrink-0">
         <Image
-          src="/save-the-date.png"
+          src="/savethedate.png"
           alt="Save the Date"
           width={800}
           height={800}

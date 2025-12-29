@@ -264,19 +264,16 @@ export default function RSVPContentPT() {
                 id="attending"
                 name="attending"
                 required
-                value={formData.attending}
-                onChange={handleChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                  errors.attending ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                }`}
+                value={attending}
+                onChange={(e) => setAttending(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 border-gray-300 focus:border-gray-500"
               >
                 <option value="" disabled>Selecione uma opção</option>
                 <option value="yes">Sim, estarei lá!</option>
                 <option value="no">Desculpe, não posso comparecer</option>
                 <option value="perhaps">Talvez</option>
-              </select>              {errors.attending && (
-                <p className="mt-1 text-sm text-red-600">Por favor, selecione uma opção</p>
-              )}            </div>
+              </select>
+            </div>
 
             <div>
               <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
