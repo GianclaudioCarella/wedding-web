@@ -21,6 +21,8 @@ export default function AdminDashboard() {
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [guestToDelete, setGuestToDelete] = useState<{id: string, name: string} | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedGuest, setSelectedGuest] = useState<any>(null);
   const [newGuest, setNewGuest] = useState({
     name: '',
     email: '',
@@ -165,6 +167,11 @@ export default function AdminDashboard() {
   const handleDeleteClick = (guest: any) => {
     setGuestToDelete({ id: guest.id, name: guest.name });
     setIsDeleteModalOpen(true);
+  };
+
+  const handleRowClick = (guest: any) => {
+    setSelectedGuest(guest);
+    setIsDetailsModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -375,6 +382,9 @@ export default function AdminDashboard() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                     Phone
                   </th>
@@ -414,9 +424,12 @@ export default function AdminDashboard() {
                     return true;
                   })
                   .map((guest, index) => (
-                  <tr key={index}>
+                  <tr key={index} onClick={() => handleRowClick(guest)} className="cursor-pointer hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       {guest.name}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {guest.email || <span className="text-gray-400">-</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-32">
                       {guest.phone || <span className="text-gray-400">-</span>}
@@ -474,7 +487,7 @@ export default function AdminDashboard() {
                       </a>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleEditClick(guest)}
                           className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
@@ -655,6 +668,118 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-    </main>
+      {/* Guest Details Modal */}
+      {isDetailsModalOpen && selectedGuest && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">Guest Details</h2>
+              <button
+                onClick={() => {
+                  setIsDetailsModalOpen(false);
+                  setSelectedGuest(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Name</label>
+                  <p className="text-gray-900 font-medium">{selectedGuest.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Total Guests</label>
+                  <p className="text-gray-900 font-medium">{selectedGuest.total_guests || 1}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
+                  <p className="text-gray-900">{selectedGuest.email || <span className="text-gray-400">Not provided</span>}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Phone</label>
+                  <p className="text-gray-900">{selectedGuest.phone || <span className="text-gray-400">Not provided</span>}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Language</label>
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                    {selectedGuest.language?.toUpperCase() || 'EN'}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">RSVP Status</label>
+                  <div>
+                    {selectedGuest.attending ? (
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        selectedGuest.attending === 'yes' ? 'bg-green-100 text-green-800' :
+                        selectedGuest.attending === 'no' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {selectedGuest.attending === 'yes' ? 'Confirmed' : selectedGuest.attending === 'no' ? 'Declined' : 'Maybe'}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">No response yet</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Address</label>
+                <p className="text-gray-900">{selectedGuest.address || <span className="text-gray-400">Not provided</span>}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Save the Date Sent</label>
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  selectedGuest.save_the_date_sent ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {selectedGuest.save_the_date_sent ? 'Yes' : 'No'}
+                </span>
+              </div>
+
+              {selectedGuest.notes && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Notes</label>
+                  <p className="text-gray-900 bg-gray-50 p-3 rounded">{selectedGuest.notes}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">RSVP Link</label>
+                <a 
+                  href={selectedGuest.rsvp_link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 hover:underline break-all"
+                >
+                  {selectedGuest.rsvp_link}
+                </a>
+              </div>
+            </div>
+            <div className="mt-6">
+              <button
+                onClick={() => {
+                  setIsDetailsModalOpen(false);
+                  setSelectedGuest(null);
+                }}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}    </main>
   );
 }
