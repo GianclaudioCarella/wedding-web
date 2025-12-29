@@ -1092,8 +1092,8 @@ export default function AdminChat() {
 
       {/* Settings Modal */}
       {isEditingSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/95 backdrop-blur-md rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">Memory Settings</h2>
               <p className="text-sm text-gray-600 mt-1">
@@ -1146,8 +1146,8 @@ export default function AdminChat() {
 
       {/* Documents Modal */}
       {isDocumentModalOpen && userId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/95 backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Knowledge Base Documents</h2>
@@ -1179,8 +1179,8 @@ export default function AdminChat() {
 
       {/* Memories Modal */}
       {isMemoryModalOpen && userId && githubToken && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/95 backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Conversation Memories</h2>
