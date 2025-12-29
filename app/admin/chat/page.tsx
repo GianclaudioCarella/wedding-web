@@ -464,21 +464,29 @@ export default function AdminChat() {
         console.error('❌ API Error Status:', response.status, response.statusText);
         let errorMessage = `API Error: ${response.status} ${response.statusText}`;
         try {
-          const error = await response.json();
-          console.error('❌ API Error Details:', error);
+          const errorData = await response.json();
+          console.error('❌ API Error Details:', errorData);
+          
+          // GitHub API returns { error: { message: "..." } }
+          const errorMsg = errorData.error?.message || errorData.message;
           
           // Check for rate limit error
-          if (error.message && error.message.includes('Rate limit')) {
-            const match = error.message.match(/wait (\d+) seconds/);
+          if (errorMsg && errorMsg.includes('Rate limit')) {
+            const match = errorMsg.match(/wait (\d+) seconds/);
+            const currentModelName = MODELS.find((m: Model) => m.id === selectedModel)?.name || selectedModel;
+            const availableModels = MODELS.filter((m: Model) => m.id !== selectedModel)
+              .map((m: Model) => `${m.icon} **${m.name}**`)
+              .join(' or ');
+            
             if (match) {
               const waitSeconds = parseInt(match[1]);
               const waitTime = formatWaitTime(waitSeconds);
-              errorMessage = `⏳ **Rate Limit Exceeded**\n\nYou've reached the GitHub Models API limit of 50 requests per day.\n\n**Please wait ${waitTime}** before trying again.\n\nTip: Consider using a different GitHub account or token if you need more requests.`;
+              errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\nYou've reached the limit of 50 requests per day for this model.\n\n🔄 **Try switching to another model:**\nClick on ${availableModels} in the sidebar\n\n⏱️ Or wait ${waitTime} to use ${currentModelName} again.`;
             } else {
-              errorMessage = `⏳ **Rate Limit Exceeded**\n\n${error.message}\n\nTip: Consider using a different GitHub account or token.`;
+              errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\n${errorMsg}\n\n🔄 **Try switching to:** ${availableModels}`;
             }
           } else {
-            errorMessage = error.message || error.error?.message || errorMessage;
+            errorMessage = errorMsg || errorMessage;
           }
         } catch (e) {
           const errorText = await response.text();
@@ -538,21 +546,29 @@ export default function AdminChat() {
           console.error('❌ API Error Status (follow-up):', response.status, response.statusText);
           let errorMessage = `API Error: ${response.status} ${response.statusText}`;
           try {
-            const error = await response.json();
-            console.error('❌ API Error Details (follow-up):', error);
+            const errorData = await response.json();
+            console.error('❌ API Error Details (follow-up):', errorData);
+            
+            // GitHub API returns { error: { message: "..." } }
+            const errorMsg = errorData.error?.message || errorData.message;
             
             // Check for rate limit error
-            if (error.message && error.message.includes('Rate limit')) {
-              const match = error.message.match(/wait (\d+) seconds/);
+            if (errorMsg && errorMsg.includes('Rate limit')) {
+              const match = errorMsg.match(/wait (\d+) seconds/);
+              const currentModelName = MODELS.find((m: Model) => m.id === selectedModel)?.name || selectedModel;
+              const availableModels = MODELS.filter((m: Model) => m.id !== selectedModel)
+                .map((m: Model) => `${m.icon} **${m.name}**`)
+                .join(' or ');
+              
               if (match) {
                 const waitSeconds = parseInt(match[1]);
                 const waitTime = formatWaitTime(waitSeconds);
-                errorMessage = `⏳ **Rate Limit Exceeded**\n\nYou've reached the GitHub Models API limit of 50 requests per day.\n\n**Please wait ${waitTime}** before trying again.\n\nTip: Consider using a different GitHub account or token if you need more requests.`;
+                errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\nYou've reached the limit of 50 requests per day for this model.\n\n🔄 **Try switching to another model:**\nClick on ${availableModels} in the sidebar\n\n⏱️ Or wait ${waitTime} to use ${currentModelName} again.`;
               } else {
-                errorMessage = `⏳ **Rate Limit Exceeded**\n\n${error.message}\n\nTip: Consider using a different GitHub account or token.`;
+                errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\n${errorMsg}\n\n🔄 **Try switching to:** ${availableModels}`;
               }
             } else {
-              errorMessage = error.message || error.error?.message || errorMessage;
+              errorMessage = errorMsg || errorMessage;
             }
           } catch (e) {
             const errorText = await response.text();
