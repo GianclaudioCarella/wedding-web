@@ -536,7 +536,12 @@ export default function AdminChat() {
         systemMessageWithContext += '\n\n' + relevantContext;
       }
 
-      const conversationMessages = [
+      const conversationMessages: Array<{
+        role: string;
+        content: string;
+        tool_call_id?: string;
+        tool_calls?: any;
+      }> = [
         {
           role: 'system',
           content: systemMessageWithContext,
