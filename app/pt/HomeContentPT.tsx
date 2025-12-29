@@ -94,7 +94,7 @@ export default function HomeContentPT() {
 
         <Link
           href={`/pt/rsvp?guest=${guestId}`}
-          className="inline-block py-3 px-8 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 transition-all"
+          className="inline-block text-black underline underline-offset-4 hover:text-gray-600 transition-colors"
         >
           Confirmar Presença →
         </Link>

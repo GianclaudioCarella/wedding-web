@@ -129,7 +129,7 @@ export default function RSVPContentPT() {
       console.error('Error submitting RSVP:', error);
       setSubmitStatus({
         type: 'error',
-        message: 'Houve um erro ao enviar sua resposta. Por favor, tente novamente ou entre em contato conosco.',
+        message: 'Houve um erro ao enviar sua confirmação. Por favor tente novamente ou entre em contato conosco diretamente.',
       });
     } finally {
       setIsSubmitting(false);
@@ -149,7 +149,7 @@ export default function RSVPContentPT() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#fafafa' }}>
+      <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
         <div className="max-w-md mx-auto text-center">
           <p className="text-gray-900">Carregando...</p>
         </div>
@@ -159,7 +159,7 @@ export default function RSVPContentPT() {
 
   if (guestNotFound) {
     return (
-      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
+      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#f5f7fd' }}>
         <div className="max-w-md text-center space-y-4">
           <h1 className="text-4xl font-bold text-gray-900" style={{ letterSpacing: '0.05em' }}>
             Não Encontrado
@@ -197,146 +197,104 @@ export default function RSVPContentPT() {
             {/* First: Attending Question with Segmented Buttons */}
             <div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAttending('yes')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'yes'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  Sim
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttending('perhaps')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'perhaps'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  Talvez
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttending('no')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'no'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  Não
-                </button>
-              </div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-900">
+                Nome Completo *
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
+                placeholder="João Silva"
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">Nome é obrigatório</p>
+              )}
             </div>
 
-            {/* Conditional Fields: Show only if "Yes" */}
-            {attending === 'yes' && (
-              <>
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-900">
-                    Seu Nome *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder="João Silva"
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">Como você gostaria de ser tratado. É obrigatório.</p>
-                  )}
-                </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-900">
+                Endereço de Email *
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
+                placeholder="joao@exemplo.com"
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">Por favor, insira um endereço de email válido</p>
+              )}
+            </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-                    Endereço de Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder="seu@email.com"
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">Por favor, insira um endereço de email válido</p>
-                  )}
-                </div>
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-900">
+                Endereço *
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                rows={2}
+                required
+                value={formData.address}
+                onChange={handleChange}
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.address ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
+                placeholder="Rua Principal 123, Cidade, Estado, CEP"
+              />              {errors.address && (
+                <p className="mt-1 text-sm text-red-600">Endereço é obrigatório</p>
+              )}            </div>
 
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-900">
-                    Endereço postal *
-                  </label>
-                  <textarea
-                    id="address"
-                    name="address"
-                    rows={2}
-                    required
-                    value={formData.address}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.address ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder="Para enviarmos o convite formal."
-                  />
-                  {errors.address && (
-                    <p className="mt-1 text-sm text-red-600">Endereço é obrigatório</p>
-                  )}
-                </div>
+            <div>
+              <label htmlFor="attending" className="block text-sm font-medium text-gray-900">
+                Você vai comparecer? *
+              </label>
+              <select
+                id="attending"
+                name="attending"
+                required
+                value={formData.attending}
+                onChange={handleChange}
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                  errors.attending ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                }`}
+              >
+                <option value="" disabled>Selecione uma opção</option>
+                <option value="yes">Sim, estarei lá!</option>
+                <option value="no">Desculpe, não posso comparecer</option>
+                <option value="perhaps">Talvez</option>
+              </select>              {errors.attending && (
+                <p className="mt-1 text-sm text-red-600">Por favor, selecione uma opção</p>
+              )}            </div>
 
-                <div>
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                    Notas (Opcional)
-                    <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
-                  </label>
-                  <textarea
-                    id="notes"
-                    name="notes"
-                    rows={2}
-                    maxLength={500}
-                    value={formData.notes}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                    placeholder="Algum pedido especial ou comentário..."
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Notes field for "No" or "Maybe" response */}
-            {(attending === 'no' || attending === 'perhaps') && (
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                  Notas (Opcional)
-                  <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  rows={2}
-                  maxLength={500}
-                  value={formData.notes}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                  placeholder="Deixe-nos saber se há algo que você gostaria de compartilhar..."
-                />
-              </div>
-            )}
+            <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+                Observações (Opcional)
+                <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows={2}
+                maxLength={500}
+                value={formData.notes}
+                onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                placeholder="Algum pedido especial ou comentário..."
+              />
+            </div>
 
             {submitStatus.type && (
               <div
@@ -350,13 +308,13 @@ export default function RSVPContentPT() {
               </div>
             )}
 
-            {submitStatus.type !== 'success' && attending && (
+            {submitStatus.type !== 'success' && (
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isSubmitting ? 'Enviando...' : 'Enviar resposta'}
+                {isSubmitting ? 'Enviando...' : 'Enviar Confirmação'}
               </button>
             )}
           </form>
