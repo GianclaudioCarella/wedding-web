@@ -11,18 +11,17 @@ export default function RSVPContent() {
   const router = useRouter();
   const guestId = searchParams.get('guest');
   
+  const [attending, setAttending] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     address: '',
-    attending: '',
     notes: '',
   });
   const [errors, setErrors] = useState({
     name: false,
     email: false,
     address: false,
-    attending: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guestNotFound, setGuestNotFound] = useState(false);
@@ -57,8 +56,8 @@ export default function RSVPContent() {
           name: data.name || '',
           email: data.email || '',
           address: data.address || '',
-          attending: data.attending || '',
         }));
+        setAttending(data.attending || '');
       }
     } catch (error) {
       console.error('Error fetching guest:', error);
@@ -79,7 +78,6 @@ export default function RSVPContent() {
       name: !formData.name.trim(),
       email: !formData.email.trim() || !emailRegex.test(formData.email),
       address: !formData.address.trim(),
-      attending: !formData.attending,
     };
     
     setErrors(newErrors);
@@ -101,7 +99,7 @@ export default function RSVPContent() {
             name: formData.name,
             email: formData.email,
             address: formData.address,
-            attending: formData.attending,
+            attending: attending,
             notes: formData.notes,
             updated_at: new Date().toISOString(),
           })
@@ -115,7 +113,7 @@ export default function RSVPContent() {
             name: formData.name,
             email: formData.email,
             address: formData.address,
-            attending: formData.attending,
+            attending: attending,
             notes: formData.notes,
             created_at: new Date().toISOString(),
           },
@@ -151,7 +149,7 @@ export default function RSVPContent() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
+      <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-md mx-auto text-center">
           <p className="text-gray-900">Loading...</p>
         </div>
@@ -161,7 +159,7 @@ export default function RSVPContent() {
 
   if (guestNotFound) {
     return (
-      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#f5f7fd' }}>
+      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-md text-center space-y-4">
           <h1 className="text-4xl font-bold text-gray-900" style={{ letterSpacing: '0.05em' }}>
             Not Found
@@ -175,130 +173,170 @@ export default function RSVPContent() {
   }
 
   return (
-    <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#f5f7fd' }}>
-      <div className="max-w-md mx-auto">
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-block">
-            <Image
-              src="/save-the-date.png"
-              alt="Save the Date"
-              width={250}
-              height={250}
-              className="mx-auto rounded-lg"
-              priority
-            />
-          </Link>
-          <div className="space-y-0.5">
-            <h1 className="text-base md:text-md text-gray-900 font-semibold tracking-wide transform uppercase">Let us know if you can celebrate with us</h1>
-            <p className="text-base md:text-md text-gray-700">Please fill in your information below</p>
+    <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8 flex items-center justify-center" style={{ backgroundColor: '#fafafa' }}>
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-lg p-6">
+          <div className="text-center space-y-2 mb-6">
+            <Link href={guestId ? `/?guest=${guestId}` : "/"} className="inline-block w-[98%] mx-auto">
+              <Image
+                src="/savethedate.png"
+                alt="Save the Date"
+                width={300}
+                height={300}
+                className="rounded-lg w-full h-auto"
+                priority
+              />
+            </Link>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg p-6 mt-4">
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
+            <div className="text-center mb-4">
+              <h1 className="text-base md:text-md text-gray-900 font-semibold">Let us know if you can make it</h1>
+              <p className="text-base text-sm text-gray-700">Any answer helps us plan – yes, no, or maybe.</p>
+            </div>
+            {/* First: Attending Question with Segmented Buttons */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-900">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                  errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                }`}
-                placeholder="John Doe"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">Name is required</p>
-              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAttending('yes')}
+                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
+                    attending === 'yes'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttending('perhaps')}
+                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
+                    attending === 'perhaps'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                  }`}
+                >
+                  Maybe
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttending('no')}
+                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
+                    attending === 'no'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                  }`}
+                >
+                  No
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                  errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                }`}
-                placeholder="john@example.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">Please enter a valid email address</p>
-              )}
-            </div>
+            {/* Conditional Fields: Show only if "Yes" */}
+            {attending === 'yes' && (
+              <>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-900">
+                    Your Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                      errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                    }`}
+                    placeholder="John Doe"
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-600">How you’d like us to address you. It's required.</p>
+                  )}
+                </div>
 
-            <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-900">
-                Address *
-              </label>
-              <textarea
-                id="address"
-                name="address"
-                rows={2}
-                required
-                value={formData.address}
-                onChange={handleChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                  errors.address ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                }`}
-                placeholder="123 Main St, City, State, ZIP"
-              />
-              {errors.address && (
-                <p className="mt-1 text-sm text-red-600">Address is required</p>
-              )}
-            </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-900">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                      errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                    }`}
+                    placeholder="Your email address"
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">Please enter a valid email address</p>
+                  )}
+                </div>
 
-            <div>
-              <label htmlFor="attending" className="block text-sm font-medium text-gray-900">
-                Will you be attending? *
-              </label>
-              <select
-                id="attending"
-                name="attending"
-                required
-                value={formData.attending}
-                onChange={handleChange}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                  errors.attending ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                }`}
-              >
-                <option value="" disabled>Select an option</option>
-                <option value="yes">Yes, I'll be there!</option>
-                <option value="no">Sorry, I can't make it</option>
-                <option value="perhaps">Perhaps</option>
-              </select>
-              {errors.attending && (
-                <p className="mt-1 text-sm text-red-600">Please select an option</p>
-              )}
-            </div>
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-900">
+                    Postal address *
+                  </label>
+                  <textarea
+                    id="address"
+                    name="address"
+                    rows={2}
+                    required
+                    value={formData.address}
+                    onChange={handleChange}
+                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
+                      errors.address ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
+                    }`}
+                    placeholder="So we can send you a formal invitation."
+                  />
+                  {errors.address && (
+                    <p className="mt-1 text-sm text-red-600">Address is required</p>
+                  )}
+                </div>
 
-            <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                Notes (Optional)
-                <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
-              </label>
-              <textarea
-                id="notes"
-                name="notes"
-                rows={2}
-                maxLength={500}
-                value={formData.notes}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                placeholder="Any special requests or comments..."
-              />
-            </div>
+                <div>
+                  <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+                    Notes (Optional)
+                    <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
+                  </label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    rows={2}
+                    maxLength={500}
+                    value={formData.notes}
+                    onChange={handleChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                    placeholder="Any special requests or comments..."
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Notes field for "No" or "Maybe" response */}
+            {(attending === 'no' || attending === 'perhaps') && (
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
+                  Notes (Optional)
+                  <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
+                </label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  rows={2}
+                  maxLength={500}
+                  value={formData.notes}
+                  onChange={handleChange}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
+                  placeholder="Let us know if there's anything you'd like to share..."
+                />
+              </div>
+            )}
 
             {submitStatus.type && (
               <div
@@ -312,13 +350,13 @@ export default function RSVPContent() {
               </div>
             )}
 
-            {submitStatus.type !== 'success' && (
+            {submitStatus.type !== 'success' && attending && (
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit RSVP'}
+                {isSubmitting ? 'Sending...' : 'Send response'}
               </button>
             )}
           </form>

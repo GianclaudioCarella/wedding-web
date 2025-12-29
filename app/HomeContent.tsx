@@ -53,7 +53,7 @@ export default function HomeContent() {
 
   if (guestNotFound) {
     return (
-      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#f5f7fd' }}>
+      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-md text-center space-y-4">
           <h1 className="text-4xl font-bold text-gray-900" style={{ letterSpacing: '0.05em' }}>
             Not Found
@@ -67,11 +67,11 @@ export default function HomeContent() {
   }
 
   return (
-    <main className="flex h-screen flex-col items-center justify-center p-6 pb-12 md:pb-6" style={{ backgroundColor: '#f5f7fd' }}>
+    <main className="flex h-screen flex-col items-center justify-center p-6 pb-12 md:pb-6" style={{ backgroundColor: '#fff' }}>
       {/* Wedding Save the Date Image */}
       <div className="w-full max-w-xl md:max-w-lg mx-auto flex-shrink-0">
         <Image
-          src="/save-the-date.png"
+          src="/savethedate.png"
           alt="Save the Date"
           width={800}
           height={800}
@@ -82,22 +82,21 @@ export default function HomeContent() {
 
       <div className="max-w-2xl w-full space-y-4 text-center mt-4">
         <div className="space-y-1">
-          <h1 className="text-base md:text-md text-gray-900 font-semibold tracking-wide transform uppercase">
-            {guestName}, you're invited!
+          <h1 className="text-base md:text-md text-gray-900 font-semibold">
+            {guestName} — Save the date.
           </h1>
-          <h1 className="text-base md:text-md text-gray-900 font-semibold tracking-wide transform uppercase">
-            Gian & Cat are getting married 3/10/2026.
-          </h1>
+          <div>
           <p className="text-base md:text-md text-gray-700">
-            Please let us know if you can make it
-          </p>
+            Let us know if you can make it. Yes, no, or maybe all help us plan.</p>
+            <p className="text-base md:text-md text-gray-700">More details to follow</p>
+          </div>
         </div>
 
         <Link
           href={`/rsvp?guest=${guestId}`}
-          className="inline-block px-6 py-3 bg-gray-900 text-white font-semibold rounded-md hover:bg-gray-700 transition-all"
+          className="inline-block text-black underline underline-offset-4 hover:text-gray-600 transition-colors"
         >
-          RSVP Now →
+          Let us know as soon as you can →
         </Link>
       </div>
     </main>
