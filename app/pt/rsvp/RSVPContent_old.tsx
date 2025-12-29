@@ -196,7 +196,6 @@ export default function RSVPContentPT() {
             </div>
             {/* First: Attending Question with Segmented Buttons */}
             <div>
-              <div className="flex gap-2">
               <label htmlFor="name" className="block text-sm font-medium text-gray-900">
                 Nome Completo *
               </label>
