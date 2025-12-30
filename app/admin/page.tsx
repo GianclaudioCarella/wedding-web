@@ -188,7 +188,7 @@ export default function AdminDashboard() {
       }
 
       // Reset form and close modal
-      setNewGuest({ name: '', email: '', phone: '', address: '', language: 'en', total_guests: 1 });
+      setNewGuest({ name: '', email: '', phone: '', address: '', language: 'en', total_guests: 1, tags: [] });
       setIsModalOpen(false);
       setIsEditing(false);
       setEditingGuestId(null);
