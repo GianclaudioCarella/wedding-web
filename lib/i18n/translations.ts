@@ -187,9 +187,70 @@ export const translations = {
       },
     },
   },
-} as const;
+};
 
-export type TranslationKeys = typeof translations.en;
+export type TranslationKeys = {
+  common: {
+    loading: string;
+    sending: string;
+  };
+  rsvp: {
+    title: string;
+    subtitle: string;
+    notFound: {
+      title: string;
+      message: string;
+    };
+    attending: {
+      yes: string;
+      maybe: string;
+      no: string;
+    };
+    form: {
+      name: {
+        label: string;
+        required: boolean;
+        placeholder: string;
+        error: string;
+      };
+      email: {
+        label: string;
+        required: boolean;
+        placeholder: string;
+        error: string;
+      };
+      address: {
+        label: string;
+        required: boolean;
+        placeholder: string;
+        error: string;
+      };
+      notes: {
+        label: string;
+        placeholder: {
+          yes: string;
+          default: string;
+        };
+        counter: (count: number) => string;
+      };
+    };
+    submit: {
+      button: string;
+      sending: string;
+      error: string;
+    };
+  };
+  confirmation: {
+    title: string;
+    subtitle: string;
+    backHome: string;
+    message: {
+      yes: string;
+      maybe: string;
+      no: string;
+    };
+  };
+};
 
 export function getTranslation(locale: Locale): TranslationKeys {
   return translations[locale];
