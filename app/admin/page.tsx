@@ -16,7 +16,7 @@ export default function AdminDashboard() {
   const [pendingCount, setPendingCount] = useState(0);
   const [guests, setGuests] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'sent' | 'confirmed' | 'declined' | 'maybe' | 'no-response'>('all');
-  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [nameSearch, setNameSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -266,8 +266,17 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      // Update selectedGuest with new data
-      setSelectedGuest({ ...selectedGuest, ...updateData });
+      // Fetch the updated guest data including the regenerated rsvp_link
+      const { data: updatedGuest, error: fetchError } = await supabase
+        .from('guests')
+        .select('id, name, email, phone, address, language, total_guests, save_the_date_sent, rsvp_link, attending, notes, tags')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update selectedGuest with fresh data from database
+      setSelectedGuest(updatedGuest);
       setIsEditingInDetails(false);
       setEditFormData(null);
       fetchStats();
@@ -480,7 +489,7 @@ export default function AdminDashboard() {
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                All ({guests.length})
+                All ({guests.reduce((sum, g) => sum + (g.total_guests || 1), 0)})
               </button>
               <button
                 onClick={() => setFilter('pending')}
@@ -510,7 +519,7 @@ export default function AdminDashboard() {
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Confirmed ({guests.filter(g => g.attending === 'yes').length})
+                Confirmed ({guests.filter(g => g.attending === 'yes').reduce((sum, g) => sum + (g.total_guests || 1), 0)})
               </button>
               <button
                 onClick={() => setFilter('declined')}
@@ -520,7 +529,7 @@ export default function AdminDashboard() {
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Declined ({guests.filter(g => g.attending === 'no').length})
+                Declined ({guests.filter(g => g.attending === 'no').reduce((sum, g) => sum + (g.total_guests || 1), 0)})
               </button>
               <button
                 onClick={() => setFilter('maybe')}
@@ -530,7 +539,7 @@ export default function AdminDashboard() {
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                Maybe ({guests.filter(g => g.attending === 'perhaps').length})
+                Maybe ({guests.filter(g => g.attending === 'perhaps').reduce((sum, g) => sum + (g.total_guests || 1), 0)})
               </button>
               <button
                 onClick={() => setFilter('no-response')}
@@ -540,7 +549,7 @@ export default function AdminDashboard() {
                     : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                No Response ({guests.filter(g => !g.attending).length})
+                No Response ({guests.filter(g => !g.attending).reduce((sum, g) => sum + (g.total_guests || 1), 0)})
               </button>
             </div>
             
@@ -552,25 +561,31 @@ export default function AdminDashboard() {
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     <p className="text-xs font-medium text-gray-500 mb-2">Filter by Tag:</p>
                     <div className="flex flex-wrap gap-2">
-                      {tagFilter && (
+                      {tagFilter.length > 0 && (
                         <button
-                          onClick={() => setTagFilter(null)}
+                          onClick={() => setTagFilter([])}
                           className="px-3 py-1 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                         >
-                          Clear Tag Filter ×
+                          Clear All Tags ×
                         </button>
                       )}
                       {allTags.sort().map((tag) => (
                         <button
                           key={tag}
-                          onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                          onClick={() => {
+                            if (tagFilter.includes(tag)) {
+                              setTagFilter(tagFilter.filter(t => t !== tag));
+                            } else {
+                              setTagFilter([...tagFilter, tag]);
+                            }
+                          }}
                           className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-                            tagFilter === tag
+                            tagFilter.includes(tag)
                               ? 'border-2 border-blue-400 bg-blue-50 text-blue-700'
                               : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                           }`}
                         >
-                          {tag} ({guests.filter(g => g.tags?.includes(tag)).length})
+                          {tag} ({guests.filter(g => g.tags?.includes(tag)).reduce((sum, g) => sum + (g.total_guests || 1), 0)})
                         </button>
                       ))}
                     </div>
@@ -661,8 +676,8 @@ export default function AdminDashboard() {
                     else if (filter === 'maybe') statusMatch = guest.attending === 'perhaps';
                     else if (filter === 'no-response') statusMatch = !guest.attending;
                     
-                    // Filter by tag
-                    const tagMatch = !tagFilter || (guest.tags && guest.tags.includes(tagFilter));
+                    // Filter by tag (match if guest has ANY of the selected tags)
+                    const tagMatch = tagFilter.length === 0 || (guest.tags && tagFilter.some(tag => guest.tags.includes(tag)));
                     
                     // Filter by name search
                     const nameMatch = !nameSearch || guest.name.toLowerCase().includes(nameSearch.toLowerCase());
@@ -882,6 +897,7 @@ export default function AdminDashboard() {
                 >
                   <option value="en">English</option>
                   <option value="pt">Português</option>
+                  <option value="es">Español</option>
                 </select>
               </div>
 
@@ -1159,6 +1175,7 @@ export default function AdminDashboard() {
                     >
                       <option value="en">English</option>
                       <option value="pt">Português</option>
+                      <option value="es">Español</option>
                     </select>
                   </div>
                   <div>

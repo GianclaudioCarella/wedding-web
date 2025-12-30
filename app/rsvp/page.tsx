@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import RSVPContent from './RSVPContent';
+import RSVPForm from '@/components/rsvp/RSVPForm';
 
 export default function RSVPPage() {
   return (
@@ -8,7 +8,7 @@ export default function RSVPPage() {
         <p className="text-gray-900">Loading...</p>
       </div>
     }>
-      <RSVPContent />
+      <RSVPForm locale="en" />
     </Suspense>
   );
 }

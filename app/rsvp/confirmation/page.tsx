@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import ConfirmationContent from './ConfirmationContent';
+import ConfirmationPage from '@/components/rsvp/ConfirmationPage';
 
 export default function Confirmation() {
   return (
@@ -8,7 +8,7 @@ export default function Confirmation() {
         <p className="text-gray-900">Loading...</p>
       </div>
     }>
-      <ConfirmationContent />
+      <ConfirmationPage locale="en" />
     </Suspense>
   );
 }
