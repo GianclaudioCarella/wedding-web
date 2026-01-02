@@ -1,8 +1,8 @@
 // Generic AI Agent Core
 // Handles communication with AI models and tool execution
 
-import { Message, AgentConfig } from '../types';
-import { ToolRegistry } from '../tools/tool-registry';
+import { Message, AgentConfig } from './types';
+import { ToolRegistry } from './tools/tool-registry';
 
 export interface AgentResponse {
   success: boolean;

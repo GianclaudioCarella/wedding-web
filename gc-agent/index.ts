@@ -34,4 +34,4 @@ export type {
   AgentConfig,
   Tool,
   ToolExecutor,
-} from './types';
+} from './types/index';
