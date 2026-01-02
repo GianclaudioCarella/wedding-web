@@ -1,0 +1,45 @@
+{
+  "name": "gc-agent",
+  "version": "1.0.0",
+  "description": "A flexible, domain-agnostic AI chat agent that can be customized for any use case",
+  "main": "agent.ts",
+  "types": "types/index.ts",
+  "keywords": [
+    "ai",
+    "chatbot",
+    "agent",
+    "gpt",
+    "openai",
+    "github-models",
+    "conversational-ai",
+    "tools",
+    "extensible"
+  ],
+  "author": "Gianclaudio Carella",
+  "license": "ISC",
+  "exports": {
+    ".": "./agent.ts",
+    "./types": "./types/index.ts",
+    "./constants": "./constants.ts",
+    "./tools": "./tools/tool-registry.ts",
+    "./services": "./services/database.service.ts"
+  },
+  "files": [
+    "agent.ts",
+    "constants.ts",
+    "types/",
+    "services/",
+    "tools/",
+    "README.md",
+    "examples.ts"
+  ],
+  "scripts": {
+    "example": "tsx examples.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
