@@ -70,6 +70,8 @@ export default function RSVPContentPT() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🚀 RSVP Submit started!', { attending, email: formData.email });
+    
     // Email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
@@ -84,14 +86,18 @@ export default function RSVPContentPT() {
     
     // Check if there are any errors
     if (Object.values(newErrors).some(error => error)) {
+      console.log('❌ Form validation failed:', newErrors);
       return;
     }
     
     setIsSubmitting(true);
     setSubmitStatus({ type: null, message: '' });
+    
+    console.log('✅ Form validated, saving to database...');
 
     try {
       if (guestId) {
+        console.log('📝 Updating existing guest:', guestId);
         // Update existing guest
         const { error } = await supabase
           .from('guests')
@@ -106,7 +112,9 @@ export default function RSVPContentPT() {
           .eq('id', guestId);
 
         if (error) throw error;
+        console.log('✅ Guest updated successfully');
       } else {
+        console.log('➕ Creating new guest');
         // Insert new guest
         const { error } = await supabase.from('guests').insert([
           {
@@ -120,6 +128,38 @@ export default function RSVPContentPT() {
         ]);
 
         if (error) throw error;
+        console.log('✅ Guest created successfully');
+      }
+
+      // Send confirmation email only for yes responses
+      if (attending === 'yes') {
+        try {
+          console.log('Sending confirmation email to:', formData.email);
+          const response = await fetch('/api/send-rsvp-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              guestName: formData.name,
+              guestEmail: formData.email,
+              attending: attending,
+              eventDate: 'Saturday, October 3, 2026',
+              eventLocation: 'La Garriga de Castelladral, Barcelona',
+              locale: 'pt',
+            }),
+          });
+          
+          const result = await response.json();
+          console.log('Email API response:', response.status, result);
+          
+          if (!response.ok) {
+            console.error('Email API error:', result);
+          }
+        } catch (emailError) {
+          // Don't fail the RSVP if email fails
+          console.error('Failed to send confirmation email:', emailError);
+        }
       }
 
       // Redirect to confirmation page

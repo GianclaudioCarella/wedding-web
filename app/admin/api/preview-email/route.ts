@@ -1,66 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  
+  // Get parameters from query string with defaults
+  const guestName = searchParams.get('name') || 'John Doe';
+  const locale = searchParams.get('locale') || 'en';
+  const eventDate = searchParams.get('eventDate') || 'Saturday, October 3, 2026';
+  const eventLocation = searchParams.get('eventLocation') || 'La Garriga de Castelladral, Barcelona';
 
-export async function POST(request: NextRequest) {
-  try {
-    console.log('=== Email API called ===');
-    const { guestName, guestEmail, attending, eventDate, eventLocation, locale = 'en' } = await request.json();
-    console.log('Request data:', { guestName, guestEmail, attending, locale });
+  // Generate the same HTML as the email
+  const emailHtml = generateEmailHtml(guestName, eventDate, eventLocation, locale);
 
-    // Validate required fields
-    if (!guestName || !guestEmail || !attending) {
-      console.error('Missing required fields:', { guestName, guestEmail, attending });
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Check API key
-    if (!process.env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY not configured!');
-      return NextResponse.json(
-        { error: 'Email service not configured' },
-        { status: 500 }
-      );
-    }
-
-    console.log('Using from email:', process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev');
-
-    // Get translations
-    const t = getTranslations(locale);
-
-    // Generate email HTML
-    const emailHtml = generateEmailHtml(guestName, eventDate, eventLocation, locale);
-    const subject = t.subject;
-
-    console.log('Sending email with subject:', subject);
-
-    const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-      to: guestEmail,
-      subject: subject,
-      html: emailHtml,
-      text: generatePlainTextEmail(guestName, eventDate, eventLocation, locale),
-      replyTo: process.env.RESEND_REPLY_TO_EMAIL || process.env.RESEND_FROM_EMAIL,
-    });
-
-    if (error) {
-      console.error('Resend error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    console.log('Email sent successfully! ID:', data?.id);
-    return NextResponse.json({ success: true, data });
-  } catch (error) {
-    console.error('Error sending email:', error);
-    return NextResponse.json(
-      { error: 'Failed to send email' },
-      { status: 500 }
-    );
-  }
+  // Return HTML response
+  return new NextResponse(emailHtml, {
+    headers: {
+      'Content-Type': 'text/html',
+    },
+  });
 }
 
 type Locale = 'en' | 'es' | 'pt';
@@ -266,6 +223,15 @@ function generateEmailHtml(
       background-color: #e5e5e5;
       margin: 30px 0;
     }
+    .preview-banner {
+      background-color: #fef3c7;
+      border: 2px solid #f59e0b;
+      padding: 15px;
+      text-align: center;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 20px;
+    }
     @media only screen and (max-width: 600px) {
       .container {
         margin: 20px;
@@ -281,6 +247,9 @@ function generateEmailHtml(
   </style>
 </head>
 <body>
+  <div class="preview-banner">
+    📧 EMAIL PREVIEW MODE - This email will not be sent
+  </div>
   <div class="container">
     <div class="header">
       <img src="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/savethedate.png" alt="Save the Date" style="max-width: 300px; width: 100%;" />
@@ -327,43 +296,24 @@ function generateEmailHtml(
       </p>
     </div>
   </div>
+  
+  <div style="max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f3f4f6; border-radius: 8px; font-family: monospace; font-size: 14px;">
+    <h3 style="margin-top: 0;">🔍 Preview URL Parameters:</h3>
+    <p><strong>Current values:</strong></p>
+    <ul style="list-style: none; padding: 0;">
+      <li>• name: ${guestName}</li>
+      <li>• locale: ${locale}</li>
+      <li>• eventDate: ${eventDate}</li>
+      <li>• eventLocation: ${eventLocation}</li>
+    </ul>
+    <p><strong>Test different languages:</strong></p>
+    <ul style="padding-left: 20px;">
+      <li><a href="?locale=en&name=John Doe">🇺🇸 English</a></li>
+      <li><a href="?locale=es&name=María García">🇪🇸 Español</a></li>
+      <li><a href="?locale=pt&name=João Silva">🇧🇷 Português</a></li>
+    </ul>
+  </div>
 </body>
 </html>
   `;
-}
-
-function generatePlainTextEmail(
-  guestName: string,
-  eventDate?: string,
-  eventLocation?: string,
-  locale: string = 'en'
-): string {
-  const t = getTranslations(locale);
-  
-  let message = `${t.dear} ${guestName},\n\n`;
-  
-  message += `${t.thankYou}\n\n`;
-  message += `${t.thrilled}\n\n`;
-  message += `Status: ${t.attending}\n\n`;
-  
-  if (eventDate || eventLocation) {
-    message += `${t.eventDetailsTitle.toUpperCase()}\n`;
-    if (eventDate) message += `${t.date}: ${eventDate}\n`;
-    if (eventLocation) message += `${t.location}: ${eventLocation}\n`;
-    message += `\n`;
-  }
-  
-  message += `${t.whatToExpect.toUpperCase()}\n`;
-  message += `- ${t.expectItem1}\n`;
-  message += `- ${t.expectItem2}\n`;
-  message += `- ${t.expectItem3}\n\n`;
-  
-  message += `${t.withLove}\n`;
-  message += `${t.couple}\n\n`;
-  message += `---\n`;
-  message += `${t.automated}\n`;
-  message += `${t.questions}\n`;
-  message += `${t.received}\n`;
-
-  return message;
 }
