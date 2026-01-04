@@ -56,7 +56,7 @@ export default function ConfirmationPage({ locale }: ConfirmationPageProps) {
       <div className="max-w-md w-full text-center space-y-8">
         <div className="flex justify-center">
           <Image
-            src="/savethedate.png"
+            src="/save-the-date-gif.gif"
             alt="Save the Date"
             width={200}
             height={200}

@@ -193,7 +193,7 @@ export default function RSVPForm({ locale }: RSVPFormProps) {
           <div className="text-center space-y-2 mb-6">
             <Link href={homeUrl} className="inline-block w-[98%] mx-auto">
               <Image
-                src="/savethedate.png"
+                src="/save-the-date-gif.gif"
                 alt="Save the Date"
                 width={300}
                 height={300}
