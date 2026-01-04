@@ -122,6 +122,26 @@ export default function RSVPContent() {
         if (error) throw error;
       }
 
+      // Send confirmation email
+      try {
+        await fetch('/api/send-rsvp-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            guestName: formData.name,
+            guestEmail: formData.email,
+            attending: attending,
+            eventDate: 'Saturday, August 15, 2026 at 4:00 PM',
+            eventLocation: 'Grand Ballroom, Elegant Hotel',
+          }),
+        });
+      } catch (emailError) {
+        // Don't fail the RSVP if email fails
+        console.error('Failed to send confirmation email:', emailError);
+      }
+
       // Redirect to confirmation page
       const confirmationUrl = guestId ? `/rsvp/confirmation?guest=${guestId}` : '/rsvp/confirmation';
       router.push(confirmationUrl);
