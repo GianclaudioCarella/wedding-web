@@ -53,13 +53,10 @@ export default function ConfirmationContent() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#f5f7fd' }}>
       <div className="max-w-md w-full text-center space-y-8">
         <div className="flex justify-center">
-          <Image
+          <img
             src="/save-the-date-gif.gif"
             alt="Save the Date"
-            width={200}
-            height={200}
-            priority
-            className="rounded-lg"
+            className="rounded-lg w-[200px] h-auto"
           />
         </div>
         

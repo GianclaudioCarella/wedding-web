@@ -70,13 +70,10 @@ export default function HomeContent() {
     <main className="flex h-screen flex-col items-center justify-center p-6 pb-12 md:pb-6" style={{ backgroundColor: '#fff' }}>
       {/* Wedding Save the Date Image */}
       <div className="w-full max-w-xl md:max-w-lg mx-auto flex-shrink-0">
-        <Image
+        <img
           src="/save-the-date-gif.gif"
           alt="Save the Date"
-          width={800}
-          height={800}
           className="w-full h-auto rounded-lg"
-          priority
         />
       </div>
 

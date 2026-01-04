@@ -178,13 +178,10 @@ export default function RSVPContentPT() {
         <div className="bg-white rounded-lg p-6">
           <div className="text-center space-y-2 mb-6">
             <Link href={guestId ? `/pt?guest=${guestId}` : "/pt"} className="inline-block w-[98%] mx-auto">
-              <Image
+              <img
                 src="/save-the-date-gif.gif"
                 alt="Save the Date"
-                width={300}
-                height={300}
                 className="rounded-lg w-full h-auto"
-                priority
               />
             </Link>
           </div>
