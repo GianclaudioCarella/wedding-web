@@ -27,10 +27,11 @@ interface Document {
 interface DocumentUploadProps {
   githubToken: string;
   userId: string;
+  isDarkMode: boolean;
   onDocumentsChange?: () => void; // Callback when documents are added/removed
 }
 
-export default function DocumentUpload({ githubToken, userId, onDocumentsChange }: DocumentUploadProps) {
+export default function DocumentUpload({ githubToken, userId, isDarkMode, onDocumentsChange }: DocumentUploadProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
@@ -208,7 +209,10 @@ export default function DocumentUpload({ githubToken, userId, onDocumentsChange 
         onDrop={handleDrop}
         className={`
           border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-          ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+          ${isDragging 
+            ? (isDarkMode ? 'border-blue-400 bg-blue-900/20' : 'border-blue-500 bg-blue-50')
+            : (isDarkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400')
+          }
           ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
         `}
         onClick={() => !isUploading && fileInputRef.current?.click()}
@@ -223,7 +227,7 @@ export default function DocumentUpload({ githubToken, userId, onDocumentsChange 
         />
         
         <svg
-          className="mx-auto h-12 w-12 text-gray-400"
+          className={`mx-auto h-12 w-12 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
           stroke="currentColor"
           fill="none"
           viewBox="0 0 48 48"
@@ -236,10 +240,10 @@ export default function DocumentUpload({ githubToken, userId, onDocumentsChange 
           />
         </svg>
         
-        <p className="mt-2 text-sm text-gray-600">
+        <p className={`mt-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           {isUploading ? uploadProgress : 'Drag and drop a file here, or click to select'}
         </p>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           Supported formats: .txt, .pdf
         </p>
       </div>
@@ -247,18 +251,18 @@ export default function DocumentUpload({ githubToken, userId, onDocumentsChange 
       {/* Documents List */}
       {documents.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-gray-700">Uploaded Documents</h3>
+          <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>Uploaded Documents</h3>
           <div className="space-y-1">
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className={`flex items-center justify-between p-3 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-700/50 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'}`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className={`text-sm font-medium truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                     {doc.filename}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     {formatFileSize(doc.file_size)} • {formatDate(doc.uploaded_at)}
                   </p>
                 </div>

@@ -18,6 +18,7 @@ export default function AdminChat() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -60,6 +61,10 @@ export default function AdminChat() {
 
   useEffect(() => {
     checkAuth();
+    const savedTheme = localStorage.getItem('chatTheme');
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark');
+    }
   }, []);
 
   useEffect(() => {
@@ -91,6 +96,12 @@ export default function AdminChat() {
     await loadConversations(user.id);
     
     setIsLoading(false);
+  };
+
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    localStorage.setItem('chatTheme', newTheme ? 'dark' : 'light');
   };
 
   const loadSystemMessage = async () => {
@@ -558,8 +569,8 @@ export default function AdminChat() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600">Loading...</div>
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Loading...</div>
       </div>
     );
   }
@@ -569,12 +580,33 @@ export default function AdminChat() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white">
+    <div className={`h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Sidebar + Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <div className="w-64 bg-gray-900 text-white flex flex-col border-r border-gray-800">
-          <div className="p-4 border-b border-gray-800">
+          <div className="p-4 border-b border-gray-800 space-y-2">
+            <button
+              onClick={toggleTheme}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500/10 transition-colors text-left"
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkMode ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  <span>Light</span>
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                  <span>Dark</span>
+                </>
+              )}
+            </button>
             <button
               onClick={() => router.push('/admin')}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-left"
@@ -728,7 +760,7 @@ export default function AdminChat() {
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <div className="border-b border-gray-200 bg-white">
+          <div className={`border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
             <div className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -736,10 +768,10 @@ export default function AdminChat() {
                     <span className="text-xl">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                       {MODELS.find((m: Model) => m.id === selectedModel)?.name || 'AI Assistant'}
                     </h2>
-                    <p className="text-xs text-gray-500">Online</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Online</p>
                   </div>
                 </div>
                 {currentConversationId && (
@@ -772,7 +804,7 @@ export default function AdminChat() {
           </div>
 
           {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto bg-gray-50">
+          <div className={`flex-1 overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="max-w-3xl mx-auto px-4 py-8">
               {messages.length === 0 && (
                 <div className="text-center py-16">
@@ -781,37 +813,37 @@ export default function AdminChat() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-semibold text-gray-900 mb-2">How can I help you today?</h3>
-                  <p className="text-gray-500">Ask me anything about wedding planning, guest management, or events.</p>
+                  <h3 className={`text-2xl font-semibold mb-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>How can I help you today?</h3>
+                  <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Ask me anything about wedding planning, guest management, or events.</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8 max-w-2xl mx-auto">
                     <button
                       onClick={() => setInputMessage("How many guests have confirmed their attendance?")}
-                      className="p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-left"
+                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
                     >
-                      <p className="text-sm font-medium text-gray-900">Check RSVP Status</p>
-                      <p className="text-xs text-gray-500 mt-1">View confirmation statistics</p>
+                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Check RSVP Status</p>
+                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>View confirmation statistics</p>
                     </button>
                     <button
                       onClick={() => setInputMessage("Help me draft an email to send to guests who haven't responded")}
-                      className="p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-left"
+                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
                     >
-                      <p className="text-sm font-medium text-gray-900">Draft Follow-up Email</p>
-                      <p className="text-xs text-gray-500 mt-1">Compose reminder message</p>
+                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Draft Follow-up Email</p>
+                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Compose reminder message</p>
                     </button>
                     <button
                       onClick={() => setInputMessage("What are some creative ideas for wedding decorations?")}
-                      className="p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-left"
+                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
                     >
-                      <p className="text-sm font-medium text-gray-900">Get Decoration Ideas</p>
-                      <p className="text-xs text-gray-500 mt-1">Explore creative options</p>
+                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Get Decoration Ideas</p>
+                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Explore creative options</p>
                     </button>
                     <button
                       onClick={() => setInputMessage("Help me organize the seating arrangement")}
-                      className="p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-left"
+                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
                     >
-                      <p className="text-sm font-medium text-gray-900">Plan Seating</p>
-                      <p className="text-xs text-gray-500 mt-1">Organize guest placement</p>
+                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Plan Seating</p>
+                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Organize guest placement</p>
                     </button>
                   </div>
                 </div>
@@ -836,10 +868,12 @@ export default function AdminChat() {
                       <div className={`rounded-2xl px-4 py-3 ${
                         message.role === 'user'
                           ? 'bg-gray-900 text-white ml-12'
+                          : isDarkMode
+                          ? 'bg-gray-800 border border-gray-700 mr-12 text-gray-100'
                           : 'bg-white border border-gray-200 mr-12 text-black'
                       }`}>
                         {message.role === 'assistant' ? (
-                          <div className="text-sm leading-relaxed prose prose-sm max-w-none prose-headings:text-black prose-p:text-black prose-li:text-black prose-strong:text-black prose-code:text-black prose-pre:bg-gray-100 prose-pre:text-black prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium">
+                          <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${isDarkMode ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-100 prose-li:text-gray-100 prose-strong:text-gray-100 prose-code:text-gray-100 prose-pre:bg-gray-900 prose-pre:text-gray-100' : 'prose-headings:text-black prose-p:text-black prose-li:text-black prose-strong:text-black prose-code:text-black prose-pre:bg-gray-100 prose-pre:text-black'} prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium`}>
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
                               components={{
@@ -860,7 +894,7 @@ export default function AdminChat() {
                           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-1 px-2">
+                      <p className={`text-xs mt-1 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                         {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
@@ -873,12 +907,12 @@ export default function AdminChat() {
                       <span className="text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                     </div>
                     <div className="flex-1">
-                      <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 mr-12">
+                      <div className={`rounded-2xl px-4 py-3 mr-12 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
                         <div className="flex items-center gap-2">
                           <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`} style={{ animationDelay: '0ms' }}></div>
+                            <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`} style={{ animationDelay: '150ms' }}></div>
+                            <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`} style={{ animationDelay: '300ms' }}></div>
                           </div>
                         </div>
                       </div>
@@ -891,7 +925,7 @@ export default function AdminChat() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-gray-200 bg-white">
+          <div className={`border-t ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
             <div className="max-w-3xl mx-auto px-4 py-4">
               {!githubToken && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -907,10 +941,10 @@ export default function AdminChat() {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Type your message..."
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white placeholder-gray-400 [color:black] disabled:opacity-50"
+                    className={`w-full px-4 py-3 pr-12 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50 ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-400' : 'border-gray-300 bg-white text-black placeholder-gray-400'}`}
                     rows={1}
                     disabled={isSending || !githubToken}
-                    style={{ minHeight: '52px', maxHeight: '200px', color: 'black !important' }}
+                    style={{ minHeight: '52px', maxHeight: '200px' }}
                   />
                 </div>
                 <button
@@ -937,12 +971,12 @@ export default function AdminChat() {
 
       {/* Token Configuration Modal */}
       {isTokenModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Configure API Keys</h2>
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)' }}>
+          <div className={`rounded-lg shadow-xl p-6 w-full max-w-md ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+            <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Configure API Keys</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   GitHub Personal Access Token
                 </label>
                 <input
@@ -950,9 +984,9 @@ export default function AdminChat() {
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
                   placeholder="ghp_..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Create a token at{' '}
                   <a
                     href="https://github.com/settings/tokens"
@@ -967,7 +1001,7 @@ export default function AdminChat() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Tavily API Key (Optional - for web search)
                 </label>
                 <input
@@ -975,9 +1009,9 @@ export default function AdminChat() {
                   value={tavilyKeyInput}
                   onChange={(e) => setTavilyKeyInput(e.target.value)}
                   placeholder="tvly-..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Get a free API key at{' '}
                   <a
                     href="https://app.tavily.com"
@@ -1006,7 +1040,7 @@ export default function AdminChat() {
                       setTokenInput('');
                       setTavilyKeyInput('');
                     }}
-                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                    className={`flex-1 px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
                   >
                     Cancel
                   </button>
@@ -1020,17 +1054,17 @@ export default function AdminChat() {
       {/* Settings Modal */}
       {isEditingSettings && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-md rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Memory Settings</h2>
-              <p className="text-sm text-gray-600 mt-1">
+          <div className={`backdrop-blur-md rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col ${isDarkMode ? 'bg-gray-800/95 border border-gray-700' : 'bg-white/95 border border-gray-200'}`}>
+            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Memory Settings</h2>
+              <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Configure the global memory that will be shared across all conversations and all admin users.
                 This helps the AI remember important wedding details.
               </p>
             </div>
             <div className="p-6 flex-1 overflow-y-auto">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   System Message (Global Memory)
                 </label>
                 <textarea
@@ -1038,15 +1072,15 @@ export default function AdminChat() {
                   onChange={(e) => setSystemMessageEdit(e.target.value)}
                   placeholder="Enter wedding details and information that the AI should remember..."
                   rows={12}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-mono text-sm"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   💡 Include information like: bride and groom names, wedding date, venue, important contacts, 
                   special instructions, etc. This will be included in every conversation as context for the AI.
                 </p>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 flex gap-3">
+            <div className={`p-6 border-t flex gap-3 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <button
                 onClick={async () => {
                   await saveSystemMessage();
@@ -1062,7 +1096,7 @@ export default function AdminChat() {
                   setSystemMessageEdit(systemMessage);
                   setIsEditingSettings(false);
                 }}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                className={`flex-1 px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
               >
                 Cancel
               </button>
@@ -1074,17 +1108,17 @@ export default function AdminChat() {
       {/* Documents Modal */}
       {isDocumentModalOpen && userId && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div className={`backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col ${isDarkMode ? 'bg-gray-800/95 border border-gray-700' : 'bg-white/95 border border-gray-200'}`}>
+            <div className={`p-6 border-b flex items-center justify-between ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Knowledge Base Documents</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Knowledge Base Documents</h2>
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Upload documents to enhance the AI's knowledge. The AI will search these documents to answer questions.
                 </p>
               </div>
               <button
                 onClick={() => setIsDocumentModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className={`transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1097,6 +1131,7 @@ export default function AdminChat() {
                 <DocumentUploadWrapper 
                   githubToken={githubToken} 
                   userId={userId}
+                  isDarkMode={isDarkMode}
                 />
               )}
             </div>
@@ -1107,17 +1142,17 @@ export default function AdminChat() {
       {/* Memories Modal */}
       {isMemoryModalOpen && userId && githubToken && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div className={`backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col ${isDarkMode ? 'bg-gray-800/95 border border-gray-700' : 'bg-white/95 border border-gray-200'}`}>
+            <div className={`p-6 border-b flex items-center justify-between ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Conversation Memories</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Conversation Memories</h2>
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   AI-generated summaries of your past conversations. These help maintain context across chats.
                 </p>
               </div>
               <button
                 onClick={() => setIsMemoryModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className={`transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1129,6 +1164,7 @@ export default function AdminChat() {
                 supabase={supabase}
                 githubToken={githubToken}
                 userId={userId}
+                isDarkMode={isDarkMode}
               />
             </div>
           </div>
@@ -1155,11 +1191,13 @@ export default function AdminChat() {
 function ConversationMemoriesView({ 
   supabase, 
   githubToken, 
-  userId 
+  userId,
+  isDarkMode
 }: { 
   supabase: any; 
   githubToken: string; 
   userId: string;
+  isDarkMode: boolean;
 }) {
   const [memories, setMemories] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -1224,20 +1262,20 @@ function ConversationMemoriesView({
     <div className="space-y-4">
       {/* Stats */}
       {stats && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">Memory Statistics</h3>
+        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
+          <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-blue-900'} mb-2`}>Memory Statistics</h3>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
-              <p className="text-blue-600 font-medium">{stats.totalSummaries}</p>
-              <p className="text-blue-700">Conversations</p>
+              <p className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} font-medium`}>{stats.totalSummaries}</p>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-blue-700'}>Conversations</p>
             </div>
             <div>
-              <p className="text-blue-600 font-medium">{stats.totalMessages}</p>
-              <p className="text-blue-700">Messages</p>
+              <p className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} font-medium`}>{stats.totalMessages}</p>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-blue-700'}>Messages</p>
             </div>
             <div>
-              <p className="text-blue-600 font-medium">{stats.averageImportance}/10</p>
-              <p className="text-blue-700">Avg Importance</p>
+              <p className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} font-medium`}>{stats.averageImportance}/10</p>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-blue-700'}>Avg Importance</p>
             </div>
           </div>
         </div>
@@ -1245,7 +1283,7 @@ function ConversationMemoriesView({
 
       {/* Memories List */}
       {memories.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">
+        <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} py-8`}>
           <p>No conversation memories yet.</p>
           <p className="text-sm mt-2">Have at least 4 messages in a conversation, then switch to a new one to create a summary.</p>
         </div>
@@ -1254,32 +1292,32 @@ function ConversationMemoriesView({
           {memories.map((memory) => (
             <div
               key={memory.id}
-              className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+              className={`${isDarkMode ? 'border-gray-700 hover:border-gray-600' : 'border-gray-200 hover:border-blue-300'} border rounded-lg p-4 transition-colors`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs text-gray-500">
+                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {new Date(memory.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
                       })}
                     </span>
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                    <span className={`text-xs px-2 py-0.5 ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-700'} rounded`}>
                       Importance: {memory.importance_score}/10
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {memory.message_count} messages
                     </span>
                   </div>
-                  <p className="text-sm text-gray-900 mb-2">{memory.summary}</p>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} mb-2`}>{memory.summary}</p>
                   {memory.key_topics && memory.key_topics.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {memory.key_topics.map((topic: string, idx: number) => (
                         <span
                           key={idx}
-                          className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded"
+                          className={`text-xs px-2 py-0.5 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} rounded`}
                         >
                           {topic}
                         </span>
@@ -1304,8 +1342,8 @@ function ConversationMemoriesView({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmOpen && memoryToDelete && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full shadow-2xl">
+        <div className={`fixed inset-0 ${isDarkMode ? 'bg-black/50' : 'bg-black/30'} backdrop-blur-sm flex items-center justify-center z-50 p-4`}>
+          <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-lg max-w-lg w-full shadow-2xl`}>
             <div className="p-6">
               <div className="flex items-start gap-4 mb-4">
                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
@@ -1314,14 +1352,14 @@ function ConversationMemoriesView({
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} mb-2`}>
                     Delete Memory?
                   </h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-3`}>
                     Are you sure you want to delete this memory? This action cannot be undone.
                   </p>
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <p className="text-sm text-gray-700 line-clamp-3">
+                  <div className={`p-3 ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} border rounded-lg`}>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} line-clamp-3`}>
                       {memoryToDelete.summary}
                     </p>
                   </div>
@@ -1335,7 +1373,7 @@ function ConversationMemoriesView({
                     setMemoryToDelete(null);
                   }}
                   disabled={isDeleting}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-4 py-2 ${isDarkMode ? 'text-gray-200 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   Cancel
                 </button>
@@ -1505,7 +1543,7 @@ function MemorySaveModal({
 /**
  * Wrapper component to lazy load DocumentUpload
  */
-function DocumentUploadWrapper({ githubToken, userId }: { githubToken: string; userId: string }) {
+function DocumentUploadWrapper({ githubToken, userId, isDarkMode }: { githubToken: string; userId: string; isDarkMode: boolean }) {
   const [DocumentUpload, setDocumentUpload] = useState<any>(null);
 
   useEffect(() => {
@@ -1515,8 +1553,8 @@ function DocumentUploadWrapper({ githubToken, userId }: { githubToken: string; u
   }, []);
 
   if (!DocumentUpload) {
-    return <div className="text-center text-gray-500">Loading...</div>;
+    return <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading...</div>;
   }
 
-  return <DocumentUpload githubToken={githubToken} userId={userId} />;
+  return <DocumentUpload githubToken={githubToken} userId={userId} isDarkMode={isDarkMode} />;
 }
