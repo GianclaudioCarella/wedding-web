@@ -12,6 +12,7 @@ import { ChatSupabaseService } from './services/supabase.service';
 import { SearchWebTool } from './tools/search-web.tool';
 import { GuestTools } from './tools/guest.tools';
 import { EventTools } from './tools/event.tools';
+import { LLMService } from './services/llm.service';
 
 export default function AdminChat() {
   const router = useRouter();
@@ -444,59 +445,17 @@ export default function AdminChat() {
       console.log('🤖 Selected Model:', selectedModel);
       console.log('📨 Sending request to GitHub Models API...');
       
-      let response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${githubToken}`,
-        },
-        body: JSON.stringify({
-          messages: conversationMessages,
-          model: selectedModel,
-          temperature: 0.7,
-          max_tokens: 2000,
-          tools: TOOLS,
-          tool_choice: 'auto',
-        }),
+      // Use LLM service with automatic metrics tracking
+      const llmService = new LLMService(githubToken);
+      
+      let data = await llmService.chatCompletion({
+        messages: conversationMessages,
+        model: selectedModel,
+        temperature: 0.7,
+        max_tokens: 2000,
+        tools: TOOLS,
+        tool_choice: 'auto',
       });
-
-      if (!response.ok) {
-        console.error('❌ API Error Status:', response.status, response.statusText);
-        let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          console.error('❌ API Error Details:', errorData);
-          
-          // GitHub API returns { error: { message: "..." } }
-          const errorMsg = errorData.error?.message || errorData.message;
-          
-          // Check for rate limit error
-          if (errorMsg && errorMsg.includes('Rate limit')) {
-            const match = errorMsg.match(/wait (\d+) seconds/);
-            const currentModelName = MODELS.find((m: Model) => m.id === selectedModel)?.name || selectedModel;
-            const availableModels = MODELS.filter((m: Model) => m.id !== selectedModel)
-              .map((m: Model) => `${m.icon} **${m.name}**`)
-              .join(' or ');
-            
-            if (match) {
-              const waitSeconds = parseInt(match[1]);
-              const waitTime = formatWaitTime(waitSeconds);
-              errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\nYou've reached the limit of 50 requests per day for this model.\n\n🔄 **Try switching to another model:**\nClick on ${availableModels} in the sidebar\n\n⏱️ Or wait ${waitTime} to use ${currentModelName} again.`;
-            } else {
-              errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\n${errorMsg}\n\n🔄 **Try switching to:** ${availableModels}`;
-            }
-          } else {
-            errorMessage = errorMsg || errorMessage;
-          }
-        } catch (e) {
-          const errorText = await response.text();
-          console.error('❌ API Error Text:', errorText);
-          errorMessage = errorText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
-
-      let data = await response.json();
       let assistantMessage = data.choices[0].message;
 
       // Handle tool calls
@@ -526,59 +485,14 @@ export default function AdminChat() {
 
         // Get final response from model
         console.log('🔄 Sending follow-up request after tool execution...');
-        response = await fetch('https://models.inference.ai.azure.com/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${githubToken}`,
-          },
-          body: JSON.stringify({
-            messages: conversationMessages,
-            model: selectedModel,
-            temperature: 0.7,
-            max_tokens: 2000,
-            tools: TOOLS,
-            tool_choice: 'auto',
-          }),
+        data = await llmService.chatCompletion({
+          messages: conversationMessages,
+          model: selectedModel,
+          temperature: 0.7,
+          max_tokens: 2000,
+          tools: TOOLS,
+          tool_choice: 'auto',
         });
-
-        if (!response.ok) {
-          console.error('❌ API Error Status (follow-up):', response.status, response.statusText);
-          let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-          try {
-            const errorData = await response.json();
-            console.error('❌ API Error Details (follow-up):', errorData);
-            
-            // GitHub API returns { error: { message: "..." } }
-            const errorMsg = errorData.error?.message || errorData.message;
-            
-            // Check for rate limit error
-            if (errorMsg && errorMsg.includes('Rate limit')) {
-              const match = errorMsg.match(/wait (\d+) seconds/);
-              const currentModelName = MODELS.find((m: Model) => m.id === selectedModel)?.name || selectedModel;
-              const availableModels = MODELS.filter((m: Model) => m.id !== selectedModel)
-                .map((m: Model) => `${m.icon} **${m.name}**`)
-                .join(' or ');
-              
-              if (match) {
-                const waitSeconds = parseInt(match[1]);
-                const waitTime = formatWaitTime(waitSeconds);
-                errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\nYou've reached the limit of 50 requests per day for this model.\n\n🔄 **Try switching to another model:**\nClick on ${availableModels} in the sidebar\n\n⏱️ Or wait ${waitTime} to use ${currentModelName} again.`;
-              } else {
-                errorMessage = `⏳ **Rate Limit Exceeded for ${currentModelName}**\n\n${errorMsg}\n\n🔄 **Try switching to:** ${availableModels}`;
-              }
-            } else {
-              errorMessage = errorMsg || errorMessage;
-            }
-          } catch (e) {
-            const errorText = await response.text();
-            console.error('❌ API Error Text (follow-up):', errorText);
-            errorMessage = errorText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-
-        data = await response.json();
         assistantMessage = data.choices[0].message;
       }
 
@@ -789,6 +703,15 @@ export default function AdminChat() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
               <span className="text-sm">Memories</span>
+            </button>
+            <button
+              onClick={() => router.push('/admin/metrics')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors text-left"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="text-sm">Metrics</span>
             </button>
             <button
               onClick={handleLogout}
@@ -1019,7 +942,7 @@ export default function AdminChat() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Configure API Keys</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   GitHub Personal Access Token
                 </label>
                 <input
@@ -1044,7 +967,7 @@ export default function AdminChat() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Tavily API Key (Optional - for web search)
                 </label>
                 <input
@@ -1107,7 +1030,7 @@ export default function AdminChat() {
             </div>
             <div className="p-6 flex-1 overflow-y-auto">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   System Message (Global Memory)
                 </label>
                 <textarea

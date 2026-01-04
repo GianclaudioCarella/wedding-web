@@ -10,6 +10,9 @@ A beautiful, responsive wedding invitation website built with Next.js, React, an
 - 📝 RSVP form for guests
 - 💾 Supabase backend for storing guest responses
 - ⚡ Fast and optimized with Next.js App Router
+- 🤖 AI-powered chat with Tavily search integration
+- 📊 **Built-in metrics dashboard** for API monitoring
+- 💰 Token usage tracking for cost management
 
 ## Getting Started
 
@@ -52,7 +55,7 @@ npm run dev
 
 ## Building for Production
 
-```bash
+5``bash
 npm run build
 npm start
 ```
@@ -72,6 +75,20 @@ Don't forget to add your environment variables in the Vercel project settings!
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
 - [Supabase](https://supabase.com/) - Backend and database
+- [Recharts](https://recharts.org/) - Chart library for metrics visualization
+- [Tavily API](https://tavily.com/) - AI search integration
+
+## Monitoring & Metrics 📊
+
+This project includes a built-in metrics dashboard at `/admin/metrics`:
+
+- **API Logs**: Track all API calls with response times
+- **Token Usage**: Monitor LLM token consumption and costs
+- **Tavily Metrics**: Cache hit rates and search performance
+- **Cost Tracking**: Estimate and track API costs
+- **Real-time Charts**: Live visualization with auto-refresh every 30s
+
+Access at: [http://localhost:3000/admin/metrics](http://localhost:3000/admin/metrics)
 
 ## License
 

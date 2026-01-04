@@ -1,14 +1,19 @@
-// Web search tool using Tavily API with caching
+// Web search tool using Tavily API with caching and metrics tracking
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeQueryForCache, hashString } from '../services/cache.service';
+import { MetricsService } from '../services/metrics.service';
 import { SearchWebResult } from '../types';
 
 export class SearchWebTool {
+  private metricsService: MetricsService;
+
   constructor(
     private supabase: SupabaseClient,
     private tavilyApiKey: string
-  ) {}
+  ) {
+    this.metricsService = new MetricsService(supabase);
+  }
 
   async execute(query: string): Promise<SearchWebResult> {
     if (!this.tavilyApiKey) {
@@ -18,6 +23,8 @@ export class SearchWebTool {
         query,
       };
     }
+
+    const startTime = Date.now();
 
     try {
       // Normalize query semantically for better cache hits
@@ -41,6 +48,23 @@ export class SearchWebTool {
       
       if (cached) {
         console.log('✅ Cache HIT! Using cached result');
+        
+        // Log metrics for cache hit
+        const responseTime = Date.now() - startTime;
+        await this.metricsService.logApiCall({
+          api_name: 'tavily',
+          endpoint: '/search',
+          method: 'POST',
+          response_time_ms: responseTime,
+          status_code: 200,
+          success: true,
+          metadata: {
+            from_cache: true,
+            cache_hit_count: cached.hit_count,
+            query_normalized: normalizedQuery,
+          },
+        });
+        
         // Update hit count and last accessed
         await this.supabase
           .from('tavily_cache')
@@ -58,30 +82,44 @@ export class SearchWebTool {
       }
 
       console.log('❌ Cache MISS. Fetching from Tavily API...');
-      // No cache hit, fetch from Tavily API
-      const response = await fetch('https://api.tavily.com/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          api_key: this.tavilyApiKey,
-          query: query,
-          search_depth: 'basic',
-          include_answer: true,
-          max_results: 5,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Tavily API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
       
-      const results: SearchWebResult = {
-        answer: data.answer || '',
-        results: data.results?.map((r: any) => ({
+      // No cache hit, fetch from Tavily API with metrics tracking
+      const result = await this.metricsService.trackApiCall(
+        'tavily',
+        async () => {
+          const response = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              api_key: this.tavilyApiKey,
+              query: query,
+              search_depth: 'basic',
+              include_answer: true,
+              max_results: 5,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Tavily API error: ${response.statusText}`);
+          }
+
+          return await response.json();
+        },
+        {
+          endpoint: '/search',
+          method: 'POST',
+          metadata: {
+            from_cache: false,
+            query_normalized: normalizedQuery,
+          },
+        }
+      );
+
+      const searchResult: SearchWebResult = {
+        answer: result.answer || '',
+        results: result.results?.map((r: any) => ({
           title: r.title,
           url: r.url,
           content: r.content,
@@ -97,7 +135,7 @@ export class SearchWebTool {
         .insert({
           query: normalizedQuery,
           query_hash: queryHash,
-          results: results,
+          results: searchResult,
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
         });
       
@@ -107,8 +145,21 @@ export class SearchWebTool {
         console.log('✅ Saved to cache successfully');
       }
       
-      return results;
+      return searchResult;
     } catch (error: any) {
+      // Log error metrics
+      const responseTime = Date.now() - startTime;
+      await this.metricsService.logApiCall({
+        api_name: 'tavily',
+        endpoint: '/search',
+        method: 'POST',
+        response_time_ms: responseTime,
+        status_code: 500,
+        success: false,
+        error_message: error.message,
+        error_type: error.name || 'Error',
+      });
+      
       return {
         error: error.message,
         results: [],

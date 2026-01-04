@@ -382,22 +382,22 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">Confirmed (Yes)</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Confirmed (Yes)</h2>
             <p className="text-3xl font-bold text-green-600">{confirmedCount}</p>
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">Declined (No)</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Declined (No)</h2>
             <p className="text-3xl font-bold text-red-600">{declinedCount}</p>
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">Maybe</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Maybe</h2>
             <p className="text-3xl font-bold text-yellow-600">{maybeCount}</p>
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">RSVP Sent Status</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">RSVP Sent Status</h2>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-bold text-blue-600">{sentCount}</p>
               <span className="text-xs text-gray-500">sent</span>
@@ -408,7 +408,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-1">Total Guests</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Total Guests</h2>
             <p className="text-3xl font-bold text-gray-900">{totalGuests}</p>
           </div>
         </div>
@@ -599,63 +599,63 @@ export default function AdminDashboard() {
             <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.name}px` }}>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.name}px` }}>
                     Name
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'name')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.email}px` }}>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.email}px` }}>
                     Email
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'email')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.tags}px` }}>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.tags}px` }}>
                     Tags
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'tags')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.language}px` }}>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.language}px` }}>
                     Language
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'language')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.totalGuests}px` }}>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.totalGuests}px` }}>
                     Total Guests
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'totalGuests')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.dateSent}px` }}>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.dateSent}px` }}>
                     Save the Date Sent
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'dateSent')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.attending}px` }}>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.attending}px` }}>
                     Attending
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'attending')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.notes}px` }}>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.notes}px` }}>
                     Notes
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'notes')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 transition-colors"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: `${columnWidths.rsvpLink}px` }}>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider relative" style={{ width: `${columnWidths.rsvpLink}px` }}>
                     RSVP Link
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'rsvpLink')}
@@ -1008,35 +1008,35 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">Name</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Name</label>
                     <p className="text-gray-900 font-medium">{selectedGuest.name}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">Total Guests</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Total Guests</label>
                     <p className="text-gray-900 font-medium">{selectedGuest.total_guests || 1}</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
                     <p className="text-gray-900">{selectedGuest.email || <span className="text-gray-400">Not provided</span>}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">Phone</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Phone</label>
                     <p className="text-gray-900">{selectedGuest.phone || <span className="text-gray-400">Not provided</span>}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">Language</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">Language</label>
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
                       {selectedGuest.language?.toUpperCase() || 'EN'}
                     </span>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">RSVP Status</label>
+                    <label className="block text-sm font-medium text-gray-900 mb-1">RSVP Status</label>
                     <div>
                       {selectedGuest.attending ? (
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -1054,12 +1054,12 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Address</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Address</label>
                   <p className="text-gray-900">{selectedGuest.address || <span className="text-gray-400">Not provided</span>}</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Save the Date Sent</label>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">Save the Date Sent</label>
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     selectedGuest.save_the_date_sent ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
