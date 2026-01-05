@@ -7,8 +7,22 @@ export async function GET(request: NextRequest) {
   // Get parameters from query string with defaults
   const guestName = searchParams.get('name') || 'John Doe';
   const locale = searchParams.get('locale') || 'en';
-  const eventDate = searchParams.get('eventDate') || 'Saturday, October 3, 2026';
-  const eventLocation = searchParams.get('eventLocation') || 'La Garriga de Castelladral, Barcelona';
+  
+  // Default dates localized by language
+  const defaultDates: Record<string, string> = {
+    'en': 'Saturday, October 3, 2026',
+    'es': 'Sábado, 3 de octubre de 2026',
+    'pt': 'Sábado, 3 de outubro de 2026'
+  };
+  
+  const defaultLocations: Record<string, string> = {
+    'en': 'La Garriga de Castelladral, Barcelona',
+    'es': 'La Garriga de Castelladral, Barcelona',
+    'pt': 'La Garriga de Castelladral, Barcelona'
+  };
+  
+  const eventDate = searchParams.get('eventDate') || defaultDates[locale] || defaultDates['en'];
+  const eventLocation = searchParams.get('eventLocation') || defaultLocations[locale] || defaultLocations['en'];
 
   // Generate the same HTML as the email
   let emailHtml = generateEmailHtml(guestName, eventDate, eventLocation, locale);
