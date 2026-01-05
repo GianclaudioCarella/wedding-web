@@ -144,7 +144,7 @@ export default function RSVPContentPT() {
               guestName: formData.name,
               guestEmail: formData.email,
               attending: attending,
-              eventDate: 'Saturday, October 3, 2026',
+              eventDate: 'Sábado, 3 de outubro de 2026',
               eventLocation: 'La Garriga de Castelladral, Barcelona',
               locale: 'pt',
             }),

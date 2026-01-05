@@ -142,6 +142,14 @@ export default function RSVPForm({ locale }: RSVPFormProps) {
       if (attending === 'yes') {
         try {
           console.log('Sending confirmation email to:', formData.email);
+          
+          // Localized event dates
+          const eventDates: Record<string, string> = {
+            'en': 'Saturday, October 3, 2026',
+            'es': 'Sábado, 3 de octubre de 2026',
+            'pt': 'Sábado, 3 de outubro de 2026'
+          };
+          
           const response = await fetch('/api/send-rsvp-email', {
             method: 'POST',
             headers: {
@@ -151,7 +159,7 @@ export default function RSVPForm({ locale }: RSVPFormProps) {
               guestName: formData.name,
               guestEmail: formData.email,
               attending: attending,
-              eventDate: 'Saturday, October 3, 2026',
+              eventDate: eventDates[locale] || eventDates['en'],
               eventLocation: 'La Garriga de Castelladral, Barcelona',
               locale: locale,
             }),
