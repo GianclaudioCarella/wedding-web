@@ -14,9 +14,7 @@ interface EmailTranslations {
   date: string;
   location: string;
   whatToExpect: string;
-  expectItem1: string;
-  expectItem2: string;
-  expectItem3: string;
+  thanksRespond: string;
   withLove: string;
   couple: string;
   automated: string;
@@ -43,7 +41,7 @@ export function generateEmailHtml(
   if (eventDate || eventLocation) {
     eventDetails = `
       <div class="event-details">
-        <h3>📅 ${t.eventDetailsTitle}</h3>
+        <h3>${t.eventDetailsTitle}</h3>
         ${eventDate ? `<p><strong>${t.date}:</strong> ${eventDate}</p>` : ''}
         ${eventLocation ? `<p><strong>${t.location}:</strong> ${eventLocation}</p>` : ''}
       </div>
@@ -61,9 +59,7 @@ export function generateEmailHtml(
     .replace('{{thrilled}}', t.thrilled)
     .replace('{{eventDetails}}', eventDetails)
     .replace('{{whatToExpect}}', t.whatToExpect)
-    .replace('{{expectItem1}}', t.expectItem1)
-    .replace('{{expectItem2}}', t.expectItem2)
-    .replace('{{expectItem3}}', t.expectItem3)
+    .replace('{{thanksRespond}}', t.thanksRespond)
     .replace('{{withLove}}', t.withLove)
     .replace('{{couple}}', t.couple)
     .replace('{{automated}}', t.automated)
@@ -94,10 +90,8 @@ export function generatePlainTextEmail(
     message += `\n`;
   }
   
-  message += `${t.whatToExpect.toUpperCase()}\n`;
-  message += `- ${t.expectItem1}\n`;
-  message += `- ${t.expectItem2}\n`;
-  message += `- ${t.expectItem3}\n\n`;
+  message += `${t.whatToExpect}\n\n`;
+  message += `${t.thanksRespond}\n\n`;
   
   message += `${t.withLove}\n`;
   message += `${t.couple}\n\n`;
