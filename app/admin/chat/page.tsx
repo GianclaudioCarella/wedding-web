@@ -41,6 +41,7 @@ export default function AdminChat() {
   const [memorySaveLoading, setMemorySaveLoading] = useState(false);
   const [currentConversationHasMemory, setCurrentConversationHasMemory] = useState(false);
   const [memorySaveResult, setMemorySaveResult] = useState<MemorySaveResult | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize services
@@ -581,11 +582,28 @@ export default function AdminChat() {
 
   return (
     <div className={`h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      {/* Mobile sidebar overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar + Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-64 bg-gray-900 text-white flex flex-col border-r border-gray-800">
+        <div className={`fixed md:relative inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col border-r border-gray-800 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
           <div className="p-4 border-b border-gray-800 space-y-2">
+            {/* Close button for mobile */}
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden w-full flex items-center justify-end px-2 py-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
             <button
               onClick={toggleTheme}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500/10 transition-colors text-left"
@@ -761,29 +779,38 @@ export default function AdminChat() {
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <div className={`border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-xl">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
+            <div className="px-3 sm:px-6 py-3 sm:py-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {/* Mobile menu button */}
+                  <button
+                    onClick={() => setIsSidebarOpen(true)}
+                    className={`md:hidden p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <span className="text-base sm:text-xl">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                   </div>
                   <div>
-                    <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                    <h2 className={`text-sm sm:text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                       {MODELS.find((m: Model) => m.id === selectedModel)?.name || 'AI Assistant'}
                     </h2>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Online</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} hidden sm:block`}>Online</p>
                   </div>
                 </div>
                 {currentConversationId && (
                   <button
                     onClick={handleGenerateSummary}
-                    className={`flex items-center gap-2 px-4 py-2 text-white text-sm rounded-lg transition-colors ${
-                      currentConversationHasMemory 
-                        ? 'bg-green-600 hover:bg-green-700' 
+                    className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg transition-colors flex-shrink-0 ${
+                      currentConversationHasMemory
+                        ? 'bg-green-600 hover:bg-green-700'
                         : 'bg-purple-600 hover:bg-purple-700'
                     }`}
-                    title={currentConversationHasMemory 
-                      ? 'This conversation is already saved in memory' 
+                    title={currentConversationHasMemory
+                      ? 'This conversation is already saved in memory'
                       : 'Save this conversation to long-term memory'
                     }
                   >
@@ -796,7 +823,7 @@ export default function AdminChat() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                       </svg>
                     )}
-                    Remember It
+                    <span className="hidden sm:inline">Remember It</span>
                   </button>
                 )}
               </div>
@@ -805,18 +832,18 @@ export default function AdminChat() {
 
           {/* Messages Container */}
           <div className={`flex-1 overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-            <div className="max-w-3xl mx-auto px-4 py-8">
+            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
               {messages.length === 0 && (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="text-center py-8 sm:py-16">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 sm:h-10 sm:w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                     </svg>
                   </div>
-                  <h3 className={`text-2xl font-semibold mb-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>How can I help you today?</h3>
-                  <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>Ask me anything about wedding planning, guest management, or events.</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8 max-w-2xl mx-auto">
+                  <h3 className={`text-xl sm:text-2xl font-semibold mb-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>How can I help you today?</h3>
+                  <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Ask me anything about wedding planning, guest management, or events.</p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-6 sm:mt-8 max-w-2xl mx-auto">
                     <button
                       onClick={() => setInputMessage("How many guests have confirmed their attendance?")}
                       className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
@@ -851,26 +878,26 @@ export default function AdminChat() {
               
               <div className="space-y-6">
                 {messages.map((message, index) => (
-                  <div key={index} className={`flex gap-4 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div key={index} className={`flex gap-2 sm:gap-4 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                     {message.role === 'assistant' && (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs sm:text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                       </div>
                     )}
                     {message.role === 'user' && (
-                      <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                       </div>
                     )}
                     <div className="flex-1">
-                      <div className={`rounded-2xl px-4 py-3 ${
+                      <div className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 ${
                         message.role === 'user'
-                          ? 'bg-gray-900 text-white ml-12'
+                          ? 'bg-gray-900 text-white ml-4 sm:ml-12'
                           : isDarkMode
-                          ? 'bg-gray-800 border border-gray-700 mr-12 text-gray-100'
-                          : 'bg-white border border-gray-200 mr-12 text-black'
+                          ? 'bg-gray-800 border border-gray-700 mr-4 sm:mr-12 text-gray-100'
+                          : 'bg-white border border-gray-200 mr-4 sm:mr-12 text-black'
                       }`}>
                         {message.role === 'assistant' ? (
                           <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${isDarkMode ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-100 prose-li:text-gray-100 prose-strong:text-gray-100 prose-code:text-gray-100 prose-pre:bg-gray-900 prose-pre:text-gray-100' : 'prose-headings:text-black prose-p:text-black prose-li:text-black prose-strong:text-black prose-code:text-black prose-pre:bg-gray-100 prose-pre:text-black'} prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium`}>
@@ -902,12 +929,12 @@ export default function AdminChat() {
                 ))}
                 
                 {isSending && (
-                  <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
+                  <div className="flex gap-2 sm:gap-4">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs sm:text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
                     </div>
                     <div className="flex-1">
-                      <div className={`rounded-2xl px-4 py-3 mr-12 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+                      <div className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 mr-4 sm:mr-12 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
                         <div className="flex items-center gap-2">
                           <div className="flex gap-1">
                             <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`} style={{ animationDelay: '0ms' }}></div>
@@ -926,42 +953,42 @@ export default function AdminChat() {
 
           {/* Input Area */}
           <div className={`border-t ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <div className="max-w-3xl mx-auto px-4 py-4">
+            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
               {!githubToken && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">
-                    ⚠️ Please configure your GitHub token in Settings to start chatting
+                <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-xs sm:text-sm text-red-800">
+                    Please configure your GitHub token to start chatting
                   </p>
                 </div>
               )}
-              <div className="flex gap-3 items-end">
+              <div className="flex gap-2 sm:gap-3 items-end">
                 <div className="flex-1 relative">
                   <textarea
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Type your message..."
-                    className={`w-full px-4 py-3 pr-12 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50 ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-400' : 'border-gray-300 bg-white text-black placeholder-gray-400'}`}
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 sm:pr-12 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50 text-sm sm:text-base ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-400' : 'border-gray-300 bg-white text-black placeholder-gray-400'}`}
                     rows={1}
                     disabled={isSending || !githubToken}
-                    style={{ minHeight: '52px', maxHeight: '200px' }}
+                    style={{ minHeight: '44px', maxHeight: '200px' }}
                   />
                 </div>
                 <button
                   onClick={handleSendMessage}
                   disabled={isSending || !inputMessage.trim() || !githubToken}
-                  className="w-12 h-12 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 shadow-lg hover:shadow-xl"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 shadow-lg hover:shadow-xl"
                 >
                   {isSending ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-2 text-center">
+              <p className="text-xs text-gray-400 mt-2 text-center hidden sm:block">
                 Press Enter to send • Shift+Enter for new line
               </p>
             </div>

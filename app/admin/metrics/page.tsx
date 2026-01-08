@@ -53,6 +53,7 @@ export default function MetricsPage() {
   const [apiBreakdown, setApiBreakdown] = useState<{ name: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('24h');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadMetrics();
@@ -160,9 +161,26 @@ export default function MetricsPage() {
 
   return (
     <div className="h-screen flex bg-white">
+      {/* Mobile sidebar overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-gray-900 text-white flex flex-col border-r border-gray-800">
+      <div className={`fixed md:relative inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col border-r border-gray-800 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-4 border-b border-gray-800">
+          {/* Close button for mobile */}
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="md:hidden w-full flex items-center justify-end px-2 py-2 text-gray-400 hover:text-white transition-colors mb-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
           <button
             onClick={() => router.push('/admin')}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-left"
@@ -173,7 +191,7 @@ export default function MetricsPage() {
             <span className="font-medium">Back to Admin</span>
           </button>
         </div>
-        
+
         <div className="flex-1 p-4">
           <div className="space-y-2">
             <button
@@ -196,7 +214,7 @@ export default function MetricsPage() {
             </button>
           </div>
         </div>
-        
+
         <div className="p-4 border-t border-gray-800">
           <button
             onClick={handleLogout}
@@ -212,17 +230,28 @@ export default function MetricsPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">
-                📊 Metrics
-              </h1>
-              <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+              <div className="flex items-center gap-3">
+                {/* Mobile menu button */}
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="md:hidden p-2 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Metrics
+                </h1>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
                 <div className="flex bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => setPeriodFilter('24h')}
-                    className={`px-4 py-2 rounded transition ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm rounded transition ${
                       periodFilter === '24h'
                         ? 'bg-blue-600 text-white'
                         : 'text-gray-700 hover:bg-gray-200'
@@ -232,7 +261,7 @@ export default function MetricsPage() {
                   </button>
                   <button
                     onClick={() => setPeriodFilter('month')}
-                    className={`px-4 py-2 rounded transition ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm rounded transition ${
                       periodFilter === 'month'
                         ? 'bg-blue-600 text-white'
                         : 'text-gray-700 hover:bg-gray-200'
@@ -243,59 +272,59 @@ export default function MetricsPage() {
                 </div>
                 <button
                   onClick={loadMetrics}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                 >
-                  🔄 Refresh
+                  Refresh
                 </button>
               </div>
             </div>
 
             {/* Cards de Resumo */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-sm font-semibold mb-2">Total API Calls</div>
-                <div className="text-3xl font-bold text-blue-600">{summary?.totalApiCalls || 0}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 mb-6 sm:mb-8">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
+                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Total API Calls</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">{summary?.totalApiCalls || 0}</div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-sm font-semibold mb-2">Tavily Calls</div>
-                <div className="text-3xl font-bold text-green-600">{summary?.tavilyCallsToday || 0}</div>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
+                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Tavily Calls</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">{summary?.tavilyCallsToday || 0}</div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-sm font-semibold mb-2">LLM Calls</div>
-                <div className="text-3xl font-bold text-orange-600">{summary?.llmCallsToday || 0}</div>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
+                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">LLM Calls</div>
+                <div className="text-2xl sm:text-3xl font-bold text-orange-600">{summary?.llmCallsToday || 0}</div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-sm font-semibold mb-2">Total Tokens</div>
-                <div className="text-3xl font-bold text-purple-600">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
+                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Total Tokens</div>
+                <div className="text-xl sm:text-3xl font-bold text-purple-600">
                   {(summary?.totalTokens || 0).toLocaleString()}
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-sm font-semibold mb-2">Estimated Cost</div>
-                <div className="text-3xl font-bold text-red-600">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition col-span-2 sm:col-span-1">
+                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Estimated Cost</div>
+                <div className="text-2xl sm:text-3xl font-bold text-red-600">
                   ${(summary?.estimatedCost || 0).toFixed(4)}
                 </div>
               </div>
             </div>
 
             {/* Gráficos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
               {/* API Calls by Hour Chart */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
                   API Calls per {periodFilter === '24h' ? 'Hour' : 'Day'}
                 </h2>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={hourlyData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" />
-                    <YAxis />
+                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
                     <Bar dataKey="tavily" fill="#10B981" name="Tavily" />
                     <Bar dataKey="llm" fill="#3B82F6" name="LLM" />
                   </BarChart>
@@ -303,22 +332,21 @@ export default function MetricsPage() {
               </div>
 
               {/* Token Usage Chart */}
-              {/* Token Usage Chart */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
                   Token Usage per {periodFilter === '24h' ? 'Hour' : 'Day'}
                 </h2>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={hourlyData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" />
-                    <YAxis />
+                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="tokens" 
-                      stroke="#8B5CF6" 
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="tokens"
+                      stroke="#8B5CF6"
                       strokeWidth={2}
                       name="Tokens"
                     />
@@ -327,9 +355,9 @@ export default function MetricsPage() {
               </div>
 
               {/* Pie Chart - API Distribution */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Distribution by API</h2>
-                <ResponsiveContainer width="100%" height={300}>
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Distribution by API</h2>
+                <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie
                       data={apiBreakdown}
@@ -337,7 +365,7 @@ export default function MetricsPage() {
                       cy="50%"
                       labelLine={false}
                       label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : 0}%`}
-                      outerRadius={80}
+                      outerRadius={70}
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -351,20 +379,20 @@ export default function MetricsPage() {
               </div>
 
               {/* Additional Statistics */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Statistics</h2>
-                <div className="space-y-4">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Statistics</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
                   <div>
-                    <div className="text-sm text-gray-900 font-semibold">Success Rate</div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-xs sm:text-sm text-gray-900 font-semibold">Success Rate</div>
+                    <div className="text-xl sm:text-2xl font-bold text-green-600">
                       {recentCalls.length > 0
                         ? ((recentCalls.filter(c => c.success).length / recentCalls.length) * 100).toFixed(1)
                         : 0}%
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-900 font-semibold">Average Response Time</div>
-                    <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-xs sm:text-sm text-gray-900 font-semibold">Average Response Time</div>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600">
                       {recentCalls.length > 0
                         ? Math.round(
                             recentCalls.reduce((sum, c) => sum + (c.response_time_ms || 0), 0) /
@@ -374,8 +402,8 @@ export default function MetricsPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-900 font-semibold">Average Cost per Call</div>
-                    <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-xs sm:text-sm text-gray-900 font-semibold">Avg Cost per Call</div>
+                    <div className="text-xl sm:text-2xl font-bold text-purple-600">
                       ${summary?.llmCallsToday
                         ? ((summary?.estimatedCost || 0) / summary.llmCallsToday).toFixed(6)
                         : '0.000000'}
@@ -387,23 +415,23 @@ export default function MetricsPage() {
 
             {/* Recent Calls */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Recent Calls</h2>
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+                <h2 className="text-base sm:text-xl font-semibold text-gray-900">Recent Calls</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Timestamp
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         API
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                      <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Time (ms)
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                         Status
                       </th>
                     </tr>
@@ -411,26 +439,28 @@ export default function MetricsPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {recentCalls.map((call, idx) => (
                       <tr key={idx} className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(call.timestamp).toLocaleString('en-US')}
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
+                          <span className="hidden sm:inline">{new Date(call.timestamp).toLocaleString('en-US')}</span>
+                          <span className="sm:hidden">{new Date(call.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          <span className="px-2 py-1 bg-gray-100 rounded">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 rounded text-xs">
                             {call.api_name}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {call.response_time_ms || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${
                               call.success
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
                             }`}
                           >
-                            {call.success ? '✓ Success' : '✗ Failed'}
+                            <span className="hidden sm:inline">{call.success ? '✓ Success' : '✗ Failed'}</span>
+                            <span className="sm:hidden">{call.success ? '✓' : '✗'}</span>
                           </span>
                         </td>
                       </tr>

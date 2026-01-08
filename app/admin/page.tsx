@@ -353,16 +353,16 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main className={`min-h-screen py-8 px-6 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <main className={`min-h-screen py-4 sm:py-8 px-3 sm:px-6 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-[1800px] mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Wedding Admin Dashboard</h1>
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <h1 className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Wedding Admin</h1>
+          <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={toggleTheme}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
-                isDarkMode 
-                  ? 'border-yellow-500 text-yellow-400 hover:bg-yellow-900/30' 
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
+                isDarkMode
+                  ? 'border-yellow-500 text-yellow-400 hover:bg-yellow-900/30'
                   : 'border-yellow-600 text-yellow-600 hover:bg-yellow-50'
               }`}
               title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
@@ -376,11 +376,11 @@ export default function AdminDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
-              {isDarkMode ? 'Light' : 'Dark'}
+              <span className="hidden sm:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
             </button>
             <button
               onClick={() => router.push('/admin/events')}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
                 isDarkMode
                   ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
                   : 'border-purple-600 text-purple-600 hover:bg-purple-50'
@@ -389,11 +389,11 @@ export default function AdminDashboard() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              Events
+              <span className="hidden sm:inline">Events</span>
             </button>
             <button
               onClick={() => router.push('/admin/chat')}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
                 isDarkMode
                   ? 'border-green-500 text-green-400 hover:bg-green-900/30'
                   : 'border-green-600 text-green-600 hover:bg-green-50'
@@ -402,11 +402,11 @@ export default function AdminDashboard() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
-              AI Assistant
+              <span className="hidden sm:inline">AI Assistant</span>
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
                 isDarkMode
                   ? 'border-blue-500 text-blue-400 hover:bg-blue-900/30'
                   : 'border-blue-600 text-blue-600 hover:bg-blue-50'
@@ -415,11 +415,11 @@ export default function AdminDashboard() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Add Guest
+              <span className="hidden sm:inline">Add Guest</span>
             </button>
             <button
               onClick={handleLogout}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
                 isDarkMode
                   ? 'border-gray-600 text-gray-400 hover:bg-gray-800'
                   : 'border-gray-300 text-gray-600 hover:bg-gray-50'
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Logout
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
@@ -648,67 +648,67 @@ export default function AdminDashboard() {
               return null;
             })()}
           </div>
-          <div className="overflow-x-auto">
-            <table className={`min-w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`} style={{ tableLayout: 'fixed' }}>
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+            <table className={`w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'} md:table-fixed`}>
               <thead className={isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}>
                 <tr>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.name}px` }}>
+                  <th className={`px-4 sm:px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.name}px` }}>
                     Name
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'name')}
-                      className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
+                      className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors hidden md:block"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.email}px` }}>
+                  <th className={`hidden md:table-cell px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.email}px` }}>
                     Email
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'email')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.tags}px` }}>
+                  <th className={`hidden lg:table-cell px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.tags}px` }}>
                     Tags
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'tags')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.language}px` }}>
+                  <th className={`hidden lg:table-cell px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.language}px` }}>
                     Language
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'language')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.totalGuests}px` }}>
+                  <th className={`hidden lg:table-cell px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.totalGuests}px` }}>
                     Total Guests
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'totalGuests')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.dateSent}px` }}>
+                  <th className={`hidden xl:table-cell px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.dateSent}px` }}>
                     Save the Date Sent
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'dateSent')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.attending}px` }}>
+                  <th className={`hidden md:table-cell px-6 py-3 text-center text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.attending}px` }}>
                     Attending
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'attending')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.notes}px` }}>
+                  <th className={`hidden xl:table-cell px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.notes}px` }}>
                     Notes
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'notes')}
                       className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
                     />
                   </th>
-                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.rsvpLink}px` }}>
+                  <th className={`hidden xl:table-cell px-6 py-3 text-left text-xs font-medium uppercase tracking-wider relative ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ width: `${columnWidths.rsvpLink}px` }}>
                     RSVP Link
                     <div
                       onMouseDown={(e) => handleResizeStart(e, 'rsvpLink')}
@@ -739,13 +739,28 @@ export default function AdminDashboard() {
                   })
                   .map((guest, index) => (
                   <tr key={index} onClick={() => handleRowClick(guest)} className={`cursor-pointer transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                    <td className={`px-6 py-4 text-sm font-medium overflow-hidden ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-                      <div className="truncate">{guest.name}</div>
+                    <td className={`px-4 sm:px-6 py-4 text-sm font-medium overflow-hidden ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                      <div className="flex items-center gap-2">
+                        <div className="truncate flex-1">{guest.name}</div>
+                        {/* Mobile-only status indicator */}
+                        <div className="flex md:hidden items-center gap-1.5 flex-shrink-0">
+                          {guest.attending && (
+                            <span className={`w-2 h-2 rounded-full ${
+                              guest.attending === 'yes' ? 'bg-green-500' :
+                              guest.attending === 'no' ? 'bg-red-500' :
+                              'bg-yellow-500'
+                            }`} title={guest.attending === 'yes' ? 'Confirmed' : guest.attending === 'no' ? 'Declined' : 'Maybe'} />
+                          )}
+                          <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
                     </td>
-                    <td className={`px-6 py-4 text-sm overflow-hidden ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <td className={`hidden md:table-cell px-6 py-4 text-sm overflow-hidden ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       <div className="truncate">{guest.email || <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>-</span>}</div>
                     </td>
-                    <td className={`px-6 py-4 text-sm overflow-hidden ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <td className={`hidden lg:table-cell px-6 py-4 text-sm overflow-hidden ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {guest.tags && guest.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {guest.tags.map((tag: string, idx: number) => (
@@ -761,15 +776,15 @@ export default function AdminDashboard() {
                         <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>-</span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <td className={`hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}>
                         {guest.language?.toUpperCase() || 'EN'}
                       </span>
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-center ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                    <td className={`hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm font-medium text-center ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                       {guest.total_guests || 1}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <td className={`hidden xl:table-cell px-6 py-4 whitespace-nowrap text-sm text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {guest.save_the_date_sent ? (
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isDarkMode ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-700'}`}>
                           Yes
@@ -780,7 +795,7 @@ export default function AdminDashboard() {
                         </span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <td className={`hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {guest.attending ? (
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           guest.attending === 'yes' ? (isDarkMode ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-700') :
@@ -793,7 +808,7 @@ export default function AdminDashboard() {
                         <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>-</span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 text-sm overflow-hidden ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <td className={`hidden xl:table-cell px-6 py-4 text-sm overflow-hidden ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {guest.notes ? (
                         <div className="truncate" title={guest.notes}>
                           {guest.notes}
@@ -802,13 +817,14 @@ export default function AdminDashboard() {
                         <span className={isDarkMode ? 'text-gray-500' : 'text-gray-400'}>-</span>
                       )}
                     </td>
-                    <td className={`px-6 py-4 text-sm w-64 max-w-64 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      <a 
-                        href={guest.rsvp_link} 
-                        target="_blank" 
+                    <td className={`hidden xl:table-cell px-6 py-4 text-sm w-64 max-w-64 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <a
+                        href={guest.rsvp_link}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className={`block truncate ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} hover:underline`}
                         title={guest.rsvp_link}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {guest.rsvp_link}
                       </a>
