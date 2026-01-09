@@ -59,13 +59,20 @@ export default function PlanningPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   // Form
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<{
+    name: string;
+    description: string;
+    start_month: number;
+    end_month: number;
+    color: string;
+    status: 'pending' | 'done';
+  }>({
     name: '',
     description: '',
     start_month: 1,
     end_month: 1,
     color: TASK_COLORS[0].value,
-    status: 'pending' as const,
+    status: 'pending',
   });
 
   // Drag & Drop
