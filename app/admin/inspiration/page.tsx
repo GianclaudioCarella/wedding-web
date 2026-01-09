@@ -98,7 +98,10 @@ export default function AdminInspirationPage() {
       }
 
       if (data?.pinterest_board_url) {
+        console.log('Loaded Pinterest URL:', data.pinterest_board_url);
         setBoardUrl(data.pinterest_board_url);
+      } else {
+        console.log('No Pinterest URL found in database');
       }
     } catch (error) {
       console.error('Error loading board URL:', error);
@@ -138,10 +141,10 @@ export default function AdminInspirationPage() {
       setIsEditMode(false);
       setEditUrl('');
       
-      // Reload Pinterest widget
-      if ((window as any).PinUtils) {
-        (window as any).PinUtils.build();
-      }
+      // Force reload of the page to refresh Pinterest widget
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     } catch (error) {
       console.error('Error saving board URL:', error);
       alert('Error saving Pinterest board URL. Please try again.');
@@ -189,12 +192,23 @@ export default function AdminInspirationPage() {
             </button>
             <div className="flex items-center gap-2">
               <button
-                onClick={toggleTheme}
+                onClick={handleEditClick}
                 className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
                   isDarkMode
-                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'border-rose-600 text-rose-400 hover:bg-rose-900/30'
+                    : 'border-rose-300 text-rose-600 hover:bg-rose-50'
                 }`}
+                title="Edit board URL"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="hidden sm:inline">Edit URL</span>
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border-2 border-yellow-500 text-yellow-500 rounded-lg hover:bg-yellow-500/10 transition-colors"
+                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
                 {isDarkMode ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -228,24 +242,9 @@ export default function AdminInspirationPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className={`text-4xl md:text-5xl font-bold ${text('text-gray-100', 'text-gray-900')}`}>
-              Wedding Inspiration Board
-            </h1>
-            <button
-              onClick={handleEditClick}
-              className={`p-2 transition-colors ${
-                isDarkMode 
-                  ? 'text-gray-400 hover:text-rose-400' 
-                  : 'text-gray-600 hover:text-rose-600'
-              }`}
-              title="Edit board URL"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-          </div>
+          <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${text('text-gray-100', 'text-gray-900')}`}>
+            Wedding Inspiration Board
+          </h1>
           <p className={`text-lg max-w-2xl mx-auto ${text('text-gray-400', 'text-gray-600')}`}>
             Our Pinterest board with all the ideas and inspiration for the wedding
           </p>
