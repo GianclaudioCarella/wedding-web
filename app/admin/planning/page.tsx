@@ -278,8 +278,9 @@ export default function PlanningPage() {
     e.dataTransfer.setData('text/plain', task.id);
 
     if (e.currentTarget instanceof HTMLElement) {
+      const element = e.currentTarget;
       setTimeout(() => {
-        e.currentTarget.style.opacity = '0.5';
+        element.style.opacity = '0.5';
       }, 0);
     }
   };
