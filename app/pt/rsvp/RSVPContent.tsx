@@ -72,22 +72,26 @@ export default function RSVPContentPT() {
     
     console.log('🚀 RSVP Submit started!', { attending, email: formData.email });
     
-    // Email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    // Validate required fields
-    const newErrors = {
-      name: !formData.name.trim(),
-      email: !formData.email.trim() || !emailRegex.test(formData.email),
-      address: !formData.address.trim(),
-    };
-    
-    setErrors(newErrors);
-    
-    // Check if there are any errors
-    if (Object.values(newErrors).some(error => error)) {
-      console.log('❌ Form validation failed:', newErrors);
-      return;
+    // Only validate name, email, address when attending is 'yes'
+    // For 'perhaps' or 'no', these fields are not shown so don't validate them
+    if (attending === 'yes') {
+      // Email validation regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      // Validate required fields
+      const newErrors = {
+        name: !formData.name.trim(),
+        email: !formData.email.trim() || !emailRegex.test(formData.email),
+        address: !formData.address.trim(),
+      };
+
+      setErrors(newErrors);
+
+      // Check if there are any errors
+      if (Object.values(newErrors).some(error => error)) {
+        console.log('❌ Form validation failed:', newErrors);
+        return;
+      }
     }
     
     setIsSubmitting(true);

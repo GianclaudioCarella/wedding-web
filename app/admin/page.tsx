@@ -405,6 +405,19 @@ export default function AdminDashboard() {
               <span className="hidden sm:inline">AI Assistant</span>
             </button>
             <button
+              onClick={() => router.push('/admin/planning')}
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
+                isDarkMode
+                  ? 'border-cyan-500 text-cyan-400 hover:bg-cyan-900/30'
+                  : 'border-cyan-600 text-cyan-600 hover:bg-cyan-50'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <span className="hidden sm:inline">Planning</span>
+            </button>
+            <button
               onClick={() => setIsModalOpen(true)}
               className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 border rounded-lg transition-colors ${
                 isDarkMode
