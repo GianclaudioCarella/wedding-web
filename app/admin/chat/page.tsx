@@ -13,6 +13,7 @@ import { SearchWebTool } from './tools/search-web.tool';
 import { GuestTools } from './tools/guest.tools';
 import { EventTools } from './tools/event.tools';
 import { DocumentTools } from './tools/document.tools';
+import { MemoryTools } from './tools/memory.tools';
 import { LLMService } from './services/llm.service';
 
 export default function AdminChat() {
@@ -50,6 +51,7 @@ export default function AdminChat() {
   const chatService = new ChatSupabaseService(supabase);
   const guestTools = new GuestTools(supabase);
   const eventTools = new EventTools(supabase);
+  const memoryTools = new MemoryTools(supabase);
   const [documentTools, setDocumentTools] = useState<DocumentTools | null>(null);
 
   // Initialize document tools when github token is available
@@ -361,6 +363,11 @@ export default function AdminChat() {
     const searchWebTool = new SearchWebTool(supabase, tavilyApiKey);
     
     switch (toolName) {
+      case 'search_memories':
+        if (!userId) {
+          return 'Cannot search memories: user not authenticated.';
+        }
+        return await memoryTools.searchMemories(args.query, userId);
       case 'search_documents':
         if (!documentTools) {
           return 'Document search is not available. Please ensure your GitHub token is configured.';
@@ -441,7 +448,7 @@ export default function AdminChat() {
       }
 
       // Step 3: Build conversation messages with all context
-      let systemMessageWithContext = systemMessage || 'You are a helpful AI assistant for wedding planning. You have access to tools to search uploaded documents, query the wedding database, and search the web. IMPORTANT: When asked about costs, budgets, vendor information, or any specific wedding details, ALWAYS use the search_documents tool FIRST before responding. Use the database tools for guest and event information, and search_web for general information not in documents or the database.';
+      let systemMessageWithContext = systemMessage || 'You are a helpful AI assistant for wedding planning. You have access to multiple tools:\n\n- **search_memories**: Search saved conversation memories from previous discussions\n- **search_documents**: Search uploaded wedding documents (PDFs, contracts, etc.)\n- **search_web**: Search the internet for current information\n- **get_guest_statistics**: Get statistics about wedding guests\n- **list_guests**: List guests filtered by status\n- **list_events**: List all wedding events\n\nIMPORTANT: When asked about past discussions or decisions, use search_memories. When asked about costs, budgets, or vendor details, use search_documents FIRST. Use database tools for guest/event info, and search_web for general information.';
       
       // Prepend conversation memories if available
       if (conversationMemories) {

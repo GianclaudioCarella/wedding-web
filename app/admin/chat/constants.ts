@@ -11,6 +11,23 @@ export const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'search_memories',
+      description: 'Search through saved conversation memories/summaries from previous conversations. Use this to recall past discussions, decisions, preferences, or information that was marked as important with "Remember me". Great for finding what was discussed before about specific topics.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'What to search for in saved memories (e.g., "budget decisions", "venue preferences", "guest list")',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_documents',
       description: 'Search through uploaded wedding documents (PDFs, spreadsheets, etc.) for specific information like costs, budgets, vendor details, contracts, timelines, or any other wedding planning information that may have been uploaded. ALWAYS use this tool first when asked about specific wedding details, costs, budgets, or information that might be in documents.',
       parameters: {
