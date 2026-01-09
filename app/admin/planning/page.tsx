@@ -475,7 +475,7 @@ export default function PlanningPage() {
                 </div>
 
                 {/* Tasks layer */}
-                <div className="relative z-10 p-2 sm:p-4 min-h-[200px]">
+                <div className="relative z-10 p-2 sm:p-4 min-h-[200px] pointer-events-none">
                   {taskRows.length === 0 ? (
                     <div className={`flex items-center justify-center h-[150px] ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                       <p>No tasks yet. Click "Add Task" to create your first task.</p>
@@ -491,7 +491,7 @@ export default function PlanningPage() {
                               onDragStart={(e) => handleDragStart(e, task)}
                               onDragEnd={handleDragEnd}
                               onClick={() => handleEditTask(task)}
-                              className={`rounded-lg px-2 sm:px-3 py-2 cursor-move transition-all hover:scale-[1.02] hover:shadow-lg ${task.status === 'done' ? 'opacity-60' : ''}`}
+                              className={`rounded-lg px-2 sm:px-3 py-2 cursor-move transition-all hover:scale-[1.02] hover:shadow-lg pointer-events-auto ${task.status === 'done' ? 'opacity-60' : ''}`}
                               style={{
                                 gridColumnStart: task.start_month,
                                 gridColumnEnd: task.end_month + 1,
