@@ -12,6 +12,7 @@ import { ChatSupabaseService } from './services/supabase.service';
 import { SearchWebTool } from './tools/search-web.tool';
 import { GuestTools } from './tools/guest.tools';
 import { EventTools } from './tools/event.tools';
+import { DocumentTools } from './tools/document.tools';
 import { LLMService } from './services/llm.service';
 
 export default function AdminChat() {
@@ -49,6 +50,14 @@ export default function AdminChat() {
   const chatService = new ChatSupabaseService(supabase);
   const guestTools = new GuestTools(supabase);
   const eventTools = new EventTools(supabase);
+  const [documentTools, setDocumentTools] = useState<DocumentTools | null>(null);
+
+  // Initialize document tools when github token is available
+  useEffect(() => {
+    if (githubToken) {
+      setDocumentTools(new DocumentTools(supabase, githubToken));
+    }
+  }, [githubToken]);
 
   // Helper function to format wait time
   const formatWaitTime = (seconds: number): string => {
@@ -352,6 +361,11 @@ export default function AdminChat() {
     const searchWebTool = new SearchWebTool(supabase, tavilyApiKey);
     
     switch (toolName) {
+      case 'search_documents':
+        if (!documentTools) {
+          return 'Document search is not available. Please ensure your GitHub token is configured.';
+        }
+        return await documentTools.searchDocuments(args.query);
       case 'search_web':
         return await searchWebTool.execute(args.query);
       case 'get_guest_statistics':
@@ -427,7 +441,7 @@ export default function AdminChat() {
       }
 
       // Step 3: Build conversation messages with all context
-      let systemMessageWithContext = systemMessage || 'You are a helpful AI assistant for wedding planning. You have access to tools to query the wedding database. Use these tools to provide accurate, up-to-date information about guests, events, and statistics. Always use the tools when asked about specific data.';
+      let systemMessageWithContext = systemMessage || 'You are a helpful AI assistant for wedding planning. You have access to tools to search uploaded documents, query the wedding database, and search the web. IMPORTANT: When asked about costs, budgets, vendor information, or any specific wedding details, ALWAYS use the search_documents tool FIRST before responding. Use the database tools for guest and event information, and search_web for general information not in documents or the database.';
       
       // Prepend conversation memories if available
       if (conversationMemories) {

@@ -11,6 +11,23 @@ export const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'search_documents',
+      description: 'Search through uploaded wedding documents (PDFs, spreadsheets, etc.) for specific information like costs, budgets, vendor details, contracts, timelines, or any other wedding planning information that may have been uploaded. ALWAYS use this tool first when asked about specific wedding details, costs, budgets, or information that might be in documents.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'What to search for in the documents (e.g., "wedding cost", "venue budget", "photographer price")',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_web',
       description: 'Search the web for current information, news, facts, or any information not in your knowledge base. Use this when you need real-time or up-to-date information.',
       parameters: {
