@@ -78,6 +78,13 @@ export default function PlanningPage() {
   // Drag & Drop
   const [draggedTask, setDraggedTask] = useState<PlanningTask | null>(null);
   const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [isDraggingVertical, setIsDraggingVertical] = useState(false);
+  
+  // Column width control
+  const [columnWidth, setColumnWidth] = useState(100); // percentage
 
   useEffect(() => {
     checkAuth();
@@ -271,9 +278,24 @@ export default function PlanningPage() {
     router.push('/admin/login');
   };
 
+  const increaseColumnWidth = () => {
+    setColumnWidth(prev => Math.min(prev + 20, 200));
+  };
+
+  const decreaseColumnWidth = () => {
+    setColumnWidth(prev => Math.max(prev - 20, 60));
+  };
+
+  const resetColumnWidth = () => {
+    setColumnWidth(100);
+  };
+
   // Drag & Drop Handlers
   const handleDragStart = (e: React.DragEvent, task: PlanningTask) => {
     setDraggedTask(task);
+    setDragStartX(e.clientX);
+    setDragStartY(e.clientY);
+    setIsDraggingVertical(false);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', task.id);
 
@@ -288,6 +310,8 @@ export default function PlanningPage() {
   const handleDragEnd = (e: React.DragEvent) => {
     setDraggedTask(null);
     setDragOverMonth(null);
+    setDragOverIndex(null);
+    setIsDraggingVertical(false);
 
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '1';
@@ -334,6 +358,48 @@ export default function PlanningPage() {
   };
 
   // Group tasks into rows to avoid overlapping
+  const handleReorderTasks = async (draggedTask: PlanningTask, targetIndex: number) => {
+    const sortedTasks = [...tasks].sort((a, b) => a.position - b.position);
+    const currentIndex = sortedTasks.findIndex(t => t.id === draggedTask.id);
+    
+    if (currentIndex === targetIndex) return;
+    
+    // Remove from current position
+    const reordered = sortedTasks.filter(t => t.id !== draggedTask.id);
+    // Insert at new position
+    reordered.splice(targetIndex, 0, draggedTask);
+    
+    // Update local state immediately (optimistic update)
+    const reorderedWithPositions = reordered.map((task, index) => ({
+      ...task,
+      position: index
+    }));
+    setTasks(reorderedWithPositions);
+    
+    // Update positions in database in background
+    try {
+      // Only update positions that changed
+      const updates = reordered
+        .map((task, index) => ({ id: task.id, newPos: index, oldPos: task.position }))
+        .filter(u => u.newPos !== u.oldPos);
+      
+      // Update in parallel for speed
+      await Promise.all(
+        updates.map(update =>
+          supabase
+            .from('planning_tasks')
+            .update({ position: update.newPos })
+            .eq('id', update.id)
+        )
+      );
+    } catch (error) {
+      console.error('Error reordering tasks:', error);
+      // Revert on error
+      fetchTasks();
+      alert('Failed to reorder tasks');
+    }
+  };
+
   const getTaskRows = () => {
     // Each task gets its own row, sorted by position
     return [...tasks]
@@ -386,6 +452,44 @@ export default function PlanningPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
+            </div>
+
+            {/* Column Width Controls */}
+            <div className={`flex items-center gap-1 px-2 py-1 border rounded-lg ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+              <button
+                onClick={decreaseColumnWidth}
+                disabled={columnWidth <= 60}
+                className={`p-1 rounded transition-colors ${columnWidth <= 60 ? 'opacity-30 cursor-not-allowed' : (isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700')}`}
+                title="Decrease column width"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                </svg>
+              </button>
+              <span className={`text-xs px-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                {columnWidth}%
+              </span>
+              <button
+                onClick={increaseColumnWidth}
+                disabled={columnWidth >= 200}
+                className={`p-1 rounded transition-colors ${columnWidth >= 200 ? 'opacity-30 cursor-not-allowed' : (isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700')}`}
+                title="Increase column width"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              {columnWidth !== 100 && (
+                <button
+                  onClick={resetColumnWidth}
+                  className={`p-1 rounded transition-colors ml-1 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                  title="Reset to 100%"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <button
@@ -446,7 +550,7 @@ export default function PlanningPage() {
         <div className={`rounded-lg shadow-md border overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           {/* Month Headers */}
           <div className="overflow-x-auto">
-            <div className="min-w-[800px]">
+            <div style={{ width: `${columnWidth}%`, minWidth: '800px' }}>
               <div className="grid grid-cols-12">
                 {MONTHS.map((month, index) => (
                   <div
@@ -483,7 +587,51 @@ export default function PlanningPage() {
                   ) : (
                     <div className="space-y-2">
                       {taskRows.map((row, rowIndex) => (
-                        <div key={rowIndex} className="grid grid-cols-12 gap-1">
+                        <div 
+                          key={rowIndex} 
+                          className={`grid grid-cols-12 gap-1 transition-all ${
+                            dragOverIndex === rowIndex 
+                              ? (isDarkMode ? 'border-t-2 border-t-blue-500' : 'border-t-2 border-t-blue-600') 
+                              : ''
+                          }`}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            if (draggedTask) {
+                              // Calculate drag distance
+                              const deltaX = Math.abs(e.clientX - dragStartX);
+                              const deltaY = Math.abs(e.clientY - dragStartY);
+                              
+                              // Determine if dragging vertically (more Y movement than X)
+                              if (deltaY > deltaX && deltaY > 20) {
+                                setIsDraggingVertical(true);
+                                setDragOverIndex(rowIndex);
+                                setDragOverMonth(null);
+                              } else if (deltaX > 20) {
+                                setIsDraggingVertical(false);
+                                setDragOverIndex(null);
+                              }
+                            }
+                          }}
+                          onDragLeave={(e) => {
+                            e.stopPropagation();
+                            if (e.currentTarget === e.target) {
+                              setDragOverIndex(null);
+                            }
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            if (draggedTask && isDraggingVertical) {
+                              handleReorderTasks(draggedTask, rowIndex);
+                              setDraggedTask(null);
+                              setDragOverIndex(null);
+                              setIsDraggingVertical(false);
+                            }
+                          }}
+                        >
                           {row.map(task => (
                             <div
                               key={task.id}
@@ -491,12 +639,17 @@ export default function PlanningPage() {
                               onDragStart={(e) => handleDragStart(e, task)}
                               onDragEnd={handleDragEnd}
                               onClick={() => handleEditTask(task)}
-                              className={`rounded-lg px-2 sm:px-3 py-2 cursor-move transition-all hover:scale-[1.02] hover:shadow-lg pointer-events-auto ${task.status === 'done' ? 'opacity-60' : ''}`}
+                              className={`rounded-lg px-2 sm:px-3 py-2 cursor-move transition-all hover:scale-[1.02] hover:shadow-lg pointer-events-auto ${
+                                task.status === 'done' ? 'opacity-60' : ''
+                              } ${
+                                draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''
+                              }`}
                               style={{
                                 gridColumnStart: task.start_month,
                                 gridColumnEnd: task.end_month + 1,
                                 backgroundColor: task.color,
                               }}
+                              title="Click to edit | Drag horizontally to change months | Drag vertically to reorder"
                             >
                               <div className="flex items-center gap-2">
                                 <button
@@ -517,6 +670,47 @@ export default function PlanningPage() {
                           ))}
                         </div>
                       ))}
+                      
+                      {/* Drop zone for last position */}
+                      <div 
+                        className={`h-8 transition-all rounded ${
+                          dragOverIndex === taskRows.length
+                            ? (isDarkMode ? 'bg-blue-500/20 border-2 border-blue-500' : 'bg-blue-100 border-2 border-blue-600') 
+                            : ''
+                        }`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          
+                          if (draggedTask) {
+                            const deltaX = Math.abs(e.clientX - dragStartX);
+                            const deltaY = Math.abs(e.clientY - dragStartY);
+                            
+                            if (deltaY > deltaX && deltaY > 20) {
+                              setIsDraggingVertical(true);
+                              setDragOverIndex(taskRows.length);
+                              setDragOverMonth(null);
+                            }
+                          }
+                        }}
+                        onDragLeave={(e) => {
+                          e.stopPropagation();
+                          if (e.currentTarget === e.target) {
+                            setDragOverIndex(null);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          
+                          if (draggedTask && isDraggingVertical) {
+                            handleReorderTasks(draggedTask, taskRows.length);
+                            setDraggedTask(null);
+                            setDragOverIndex(null);
+                            setIsDraggingVertical(false);
+                          }
+                        }}
+                      />
                     </div>
                   )}
                 </div>
@@ -530,7 +724,7 @@ export default function PlanningPage() {
           <div className="flex flex-wrap items-center gap-4">
             <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Tips:</span>
             <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Drag tasks to move them between months
+              Drag horizontally to move between months, vertically to reorder
             </span>
             <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               Click on a task to edit
