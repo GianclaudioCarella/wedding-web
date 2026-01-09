@@ -335,31 +335,10 @@ export default function PlanningPage() {
 
   // Group tasks into rows to avoid overlapping
   const getTaskRows = () => {
-    const rows: PlanningTask[][] = [];
-
-    [...tasks]
+    // Each task gets its own row, sorted by position
+    return [...tasks]
       .sort((a, b) => a.position - b.position)
-      .forEach(task => {
-        let placed = false;
-        for (const row of rows) {
-          const hasOverlap = row.some(existingTask =>
-            !(task.end_month < existingTask.start_month ||
-              task.start_month > existingTask.end_month)
-          );
-
-          if (!hasOverlap) {
-            row.push(task);
-            placed = true;
-            break;
-          }
-        }
-
-        if (!placed) {
-          rows.push([task]);
-        }
-      });
-
-    return rows;
+      .map(task => [task]);
   };
 
   if (isLoading || !isAuthenticated) {
