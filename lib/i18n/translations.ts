@@ -6,6 +6,37 @@ export const translations = {
       loading: 'Loading...',
       sending: 'Sending...',
     },
+    invite: {
+      header: {
+        title: 'You Are Invited',
+      },
+      greeting: {
+        dear: 'Dear',
+        message: 'We would be honored to have you celebrate this special day with us.',
+      },
+      details: {
+        date: 'Date',
+        time: 'Time',
+        location: 'Location',
+        locationName: 'To be announced',
+      },
+      rsvp: {
+        confirmed: 'RSVP Confirmed',
+        statusYes: 'Thank you for confirming your attendance! We look forward to celebrating with you.',
+        statusMaybe: 'Thank you for your response. We hope you can make it!',
+        statusNo: 'Thank you for letting us know. You will be missed!',
+        pleaseConfirm: 'Please let us know if you can join us:',
+        confirmButton: 'Confirm Your Attendance',
+        moreDetails: 'We will send you more details soon.',
+      },
+      notFound: {
+        title: 'Invitation Not Found',
+        message: 'We could not find your invitation. Please check your invitation link.',
+      },
+      footer: {
+        lookingForward: 'We look forward to celebrating with you! 💕',
+      },
+    },
     rsvp: {
       title: 'Let us know if you can make it',
       subtitle: 'Any answer helps us plan – yes, no, or maybe.',
@@ -68,6 +99,37 @@ export const translations = {
       loading: 'Carregando...',
       sending: 'Enviando...',
     },
+    invite: {
+      header: {
+        title: 'Você Está Convidado',
+      },
+      greeting: {
+        dear: 'Querido(a)',
+        message: 'Seria uma honra tê-lo(a) celebrando este dia especial conosco.',
+      },
+      details: {
+        date: 'Data',
+        time: 'Hora',
+        location: 'Local',
+        locationName: 'A ser anunciado',
+      },
+      rsvp: {
+        confirmed: 'RSVP Confirmado',
+        statusYes: 'Obrigado por confirmar sua presença! Estamos ansiosos para celebrar com você.',
+        statusMaybe: 'Obrigado pela sua resposta. Esperamos que possa comparecer!',
+        statusNo: 'Obrigado por nos informar. Sentiremos sua falta!',
+        pleaseConfirm: 'Por favor, confirme se poderá comparecer:',
+        confirmButton: 'Confirmar Presença',
+        moreDetails: 'Enviaremos mais detalhes em breve.',
+      },
+      notFound: {
+        title: 'Convite Não Encontrado',
+        message: 'Não conseguimos encontrar o seu convite. Por favor, verifique o link do convite.',
+      },
+      footer: {
+        lookingForward: 'Estamos ansiosos para celebrar com você! 💕',
+      },
+    },
     rsvp: {
       title: 'Confirme a sua presença',
       subtitle: 'Qualquer resposta nos ajuda a planejar – sim, não ou talvez.',
@@ -129,6 +191,37 @@ export const translations = {
     common: {
       loading: 'Cargando...',
       sending: 'Enviando...',
+    },
+    invite: {
+      header: {
+        title: 'Estás Invitado',
+      },
+      greeting: {
+        dear: 'Querido(a)',
+        message: 'Sería un honor tenerte celebrando este día especial con nosotros.',
+      },
+      details: {
+        date: 'Fecha',
+        time: 'Hora',
+        location: 'Lugar',
+        locationName: 'Por anunciar',
+      },
+      rsvp: {
+        confirmed: 'RSVP Confirmado',
+        statusYes: '¡Gracias por confirmar tu asistencia! Esperamos celebrar contigo.',
+        statusMaybe: 'Gracias por tu respuesta. ¡Esperamos que puedas asistir!',
+        statusNo: '¡Gracias por informarnos. Te echaremos de menos!',
+        pleaseConfirm: 'Por favor, confírmanos si podrás asistir:',
+        confirmButton: 'Confirmar Asistencia',
+        moreDetails: 'Te enviaremos más detalles pronto.',
+      },
+      notFound: {
+        title: 'Invitación No Encontrada',
+        message: 'No pudimos encontrar tu invitación. Por favor, verifica el enlace de la invitación.',
+      },
+      footer: {
+        lookingForward: '¡Esperamos celebrar contigo! 💕',
+      },
     },
     rsvp: {
       title: 'Confirma tu asistencia',
@@ -193,6 +286,37 @@ export type TranslationKeys = {
   common: {
     loading: string;
     sending: string;
+  };
+  invite: {
+    header: {
+      title: string;
+    };
+    greeting: {
+      dear: string;
+      message: string;
+    };
+    details: {
+      date: string;
+      time: string;
+      location: string;
+      locationName: string;
+    };
+    rsvp: {
+      confirmed: string;
+      statusYes: string;
+      statusMaybe: string;
+      statusNo: string;
+      pleaseConfirm: string;
+      confirmButton: string;
+      moreDetails: string;
+    };
+    notFound: {
+      title: string;
+      message: string;
+    };
+    footer: {
+      lookingForward: string;
+    };
   };
   rsvp: {
     title: string;

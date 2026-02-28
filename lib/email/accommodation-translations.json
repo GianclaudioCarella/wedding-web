@@ -1,0 +1,239 @@
+{
+  "en": {
+    "subject": "Accommodation Options for Our Wedding Weekend 🌿💍",
+    "dear": "Dear",
+    "intro1": "We are so excited to celebrate our special day with you on October 3rd, 2026, at La Garriga de Castelladral! Thank you for confirming your attendance — it means the world to us to have you there.",
+    "intro2": "To make your planning easier, we've put together a list of nearby accommodation options for your stay. Whether you're looking for a cozy rural house or a charming hotel, we've got you covered!",
+    "accommodationTitle": "Accommodation Options",
+    "accommodations": [
+      {
+        "name": "Hotel La Garriga de Castelladral (Wedding Venue)",
+        "details": [
+          "20 boutique suites.",
+          "Special wedding rate: €178/room/night (day of the wedding), includes eco-gourmet breakfast.",
+          "Other nights: Standard rates apply, starting from €269/night.",
+          "Additional bed for adults: €52/night (includes breakfast).",
+          "Additional bed for kids under 12: €33/night (includes breakfast).",
+          "Crib: €25/night."
+        ],
+        "note": "Please note: A minimum of 12 rooms must be booked for Saturday night, so let us know as soon as possible if you'd like to reserve a room here."
+      },
+      {
+        "name": "Cal Teixidor La Fusteria (Rural House)",
+        "details": [
+          "Capacity: Up to 12 people.",
+          "Location: Village center, with private uncovered parking."
+        ],
+        "website": "calteixidorlafusteria.cat"
+      },
+      {
+        "name": "Casa Cal Pastor (Rural House)",
+        "details": [
+          "Capacity: 6–7 people.",
+          "Closed parking for two cars."
+        ],
+        "website": "casacalpastor.cat"
+      },
+      {
+        "name": "Ramon Park Hotel",
+        "details": [
+          "40 rooms available.",
+          "Location: Santpedor, 18 km from La Garriga."
+        ],
+        "website": "ramonparkhotel.com"
+      },
+      {
+        "name": "Somnis i Arrels Hostel",
+        "details": [
+          "Location: Castelladral, 5 km from La Garriga."
+        ]
+      },
+      {
+        "name": "Cal Moliner (Rural House)",
+        "details": [
+          "Newly built rural house near La Garriga.",
+          "Location: Súria, 5 km away."
+        ]
+      },
+      {
+        "name": "Hotel Bremon (Cardona – 23 km from La Garriga)",
+        "details": [
+          "Small hotel in the medieval town of Cardona.",
+          "Offers special rates for La Garriga wedding guests."
+        ],
+        "website": "hotelbremon.com"
+      }
+    ],
+    "averageCostsTitle": "Average Accommodation Costs",
+    "averageCosts": [
+      "Hotels: €178–€269 per room per night.",
+      "Rural houses: Approx. €30–€60 per person per night (depending on group size).",
+      "Cribs and additional beds: €25–€52 per night."
+    ],
+    "helpText": "Please let us know if you need help booking a room or have any questions about the options. We're happy to assist in any way we can!",
+    "closing": "We can't wait to celebrate with all of you under the stars at La Garriga de Castelladral. It's going to be magical!",
+    "withLove": "With love,",
+    "couple": "Gian & Cat 💕",
+    "automated": "This is an automated email.",
+    "questions": "If you have any questions, please reply to this email.",
+    "websiteLabel": "Website"
+  },
+  "pt": {
+    "subject": "Opções de Hospedagem para o Nosso Fim de Semana de Casamento 🌿💍",
+    "dear": "Querido(a)",
+    "intro1": "Estamos muito animados para celebrar o nosso dia especial com você em 3 de outubro de 2026, na La Garriga de Castelladral! Obrigado por confirmar sua presença — significa muito para nós tê-lo(a) lá.",
+    "intro2": "Para facilitar o seu planejamento, reunimos uma lista de opções de hospedagem próximas para a sua estadia. Seja procurando uma aconchegante casa rural ou um charmoso hotel, temos tudo o que você precisa!",
+    "accommodationTitle": "Opções de Hospedagem",
+    "accommodations": [
+      {
+        "name": "Hotel La Garriga de Castelladral (Local do Casamento)",
+        "details": [
+          "20 suítes boutique.",
+          "Tarifa especial para casamento: €178/quarto/noite (dia do casamento), inclui café da manhã eco-gourmet.",
+          "Outras noites: Tarifas padrão a partir de €269/noite.",
+          "Cama adicional para adultos: €52/noite (inclui café da manhã).",
+          "Cama adicional para crianças menores de 12 anos: €33/noite (inclui café da manhã).",
+          "Berço: €25/noite."
+        ],
+        "note": "Atenção: É necessário reservar no mínimo 12 quartos para a noite de sábado. Avise-nos o quanto antes se quiser reservar um quarto aqui."
+      },
+      {
+        "name": "Cal Teixidor La Fusteria (Casa Rural)",
+        "details": [
+          "Capacidade: Até 12 pessoas.",
+          "Localização: Centro do vilarejo, com estacionamento privativo descoberto."
+        ],
+        "website": "calteixidorlafusteria.cat"
+      },
+      {
+        "name": "Casa Cal Pastor (Casa Rural)",
+        "details": [
+          "Capacidade: 6–7 pessoas.",
+          "Estacionamento fechado para dois carros."
+        ],
+        "website": "casacalpastor.cat"
+      },
+      {
+        "name": "Ramon Park Hotel",
+        "details": [
+          "40 quartos disponíveis.",
+          "Localização: Santpedor, 18 km de La Garriga."
+        ],
+        "website": "ramonparkhotel.com"
+      },
+      {
+        "name": "Somnis i Arrels Hostel",
+        "details": [
+          "Localização: Castelladral, 5 km de La Garriga."
+        ]
+      },
+      {
+        "name": "Cal Moliner (Casa Rural)",
+        "details": [
+          "Casa rural recém-construída perto de La Garriga.",
+          "Localização: Súria, a 5 km."
+        ]
+      },
+      {
+        "name": "Hotel Bremon (Cardona – 23 km de La Garriga)",
+        "details": [
+          "Pequeno hotel na cidade medieval de Cardona.",
+          "Oferece tarifas especiais para convidados do casamento na La Garriga."
+        ],
+        "website": "hotelbremon.com"
+      }
+    ],
+    "averageCostsTitle": "Custo Médio de Hospedagem",
+    "averageCosts": [
+      "Hotéis: €178–€269 por quarto por noite.",
+      "Casas rurais: Aprox. €30–€60 por pessoa por noite (dependendo do tamanho do grupo).",
+      "Berços e camas adicionais: €25–€52 por noite."
+    ],
+    "helpText": "Avise-nos se precisar de ajuda para reservar um quarto ou tiver dúvidas sobre as opções. Estamos felizes em ajudar no que for preciso!",
+    "closing": "Mal podemos esperar para celebrar com todos vocês sob as estrelas na La Garriga de Castelladral. Vai ser mágico!",
+    "withLove": "Com amor,",
+    "couple": "Gian & Cat 💕",
+    "automated": "Este é um email automático.",
+    "questions": "Se tiver alguma dúvida, responda a este email.",
+    "websiteLabel": "Site"
+  },
+  "es": {
+    "subject": "Opciones de Alojamiento para Nuestro Fin de Semana de Boda 🌿💍",
+    "dear": "Querido/a",
+    "intro1": "¡Estamos muy emocionados de celebrar nuestro día especial contigo el 3 de octubre de 2026, en La Garriga de Castelladral! Gracias por confirmar tu asistencia — significa muchísimo para nosotros tenerte allí.",
+    "intro2": "Para facilitarte la planificación, hemos preparado una lista de opciones de alojamiento cercanas para tu estancia. ¡Ya sea que busques una acogedora casa rural o un encantador hotel, tenemos todo lo que necesitas!",
+    "accommodationTitle": "Opciones de Alojamiento",
+    "accommodations": [
+      {
+        "name": "Hotel La Garriga de Castelladral (Lugar de la Boda)",
+        "details": [
+          "20 suites boutique.",
+          "Tarifa especial boda: €178/habitación/noche (día de la boda), incluye desayuno eco-gourmet.",
+          "Otras noches: Tarifas estándar desde €269/noche.",
+          "Cama adicional para adultos: €52/noche (incluye desayuno).",
+          "Cama adicional para niños menores de 12 años: €33/noche (incluye desayuno).",
+          "Cuna: €25/noche."
+        ],
+        "note": "Nota: Se deben reservar un mínimo de 12 habitaciones para la noche del sábado, así que avisadnos lo antes posible si queréis reservar una habitación aquí."
+      },
+      {
+        "name": "Cal Teixidor La Fusteria (Casa Rural)",
+        "details": [
+          "Capacidad: Hasta 12 personas.",
+          "Ubicación: Centro del pueblo, con parking privado descubierto."
+        ],
+        "website": "calteixidorlafusteria.cat"
+      },
+      {
+        "name": "Casa Cal Pastor (Casa Rural)",
+        "details": [
+          "Capacidad: 6–7 personas.",
+          "Parking cerrado para dos coches."
+        ],
+        "website": "casacalpastor.cat"
+      },
+      {
+        "name": "Ramon Park Hotel",
+        "details": [
+          "40 habitaciones disponibles.",
+          "Ubicación: Santpedor, 18 km de La Garriga."
+        ],
+        "website": "ramonparkhotel.com"
+      },
+      {
+        "name": "Somnis i Arrels Hostel",
+        "details": [
+          "Ubicación: Castelladral, 5 km de La Garriga."
+        ]
+      },
+      {
+        "name": "Cal Moliner (Casa Rural)",
+        "details": [
+          "Casa rural de nueva construcción cerca de La Garriga.",
+          "Ubicación: Súria, a 5 km."
+        ]
+      },
+      {
+        "name": "Hotel Bremon (Cardona – 23 km de La Garriga)",
+        "details": [
+          "Pequeño hotel en la ciudad medieval de Cardona.",
+          "Ofrece tarifas especiales para invitados de la boda en La Garriga."
+        ],
+        "website": "hotelbremon.com"
+      }
+    ],
+    "averageCostsTitle": "Costos Medios de Alojamiento",
+    "averageCosts": [
+      "Hoteles: €178–€269 por habitación por noche.",
+      "Casas rurales: Aprox. €30–€60 por persona por noche (según el tamaño del grupo).",
+      "Cunas y camas adicionales: €25–€52 por noche."
+    ],
+    "helpText": "¡Avisadnos si necesitáis ayuda para reservar una habitación o tenéis alguna pregunta sobre las opciones. Estaremos encantados de ayudaros!",
+    "closing": "¡No podemos esperar para celebrar con todos vosotros bajo las estrellas en La Garriga de Castelladral. ¡Va a ser mágico!",
+    "withLove": "Con amor,",
+    "couple": "Gian & Cat 💕",
+    "automated": "Este es un correo automático.",
+    "questions": "Si tienes alguna pregunta, responde a este correo.",
+    "websiteLabel": "Web"
+  }
+}
