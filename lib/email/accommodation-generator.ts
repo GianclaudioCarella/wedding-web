@@ -9,6 +9,8 @@ interface Accommodation {
   details: string[];
   note?: string;
   website?: string;
+  address?: string;
+  distance?: string;
 }
 
 interface AccommodationTranslations {
@@ -18,15 +20,12 @@ interface AccommodationTranslations {
   intro2: string;
   accommodationTitle: string;
   accommodations: Accommodation[];
-  averageCostsTitle: string;
-  averageCosts: string[];
   helpText: string;
   closing: string;
   withLove: string;
   couple: string;
-  automated: string;
-  questions: string;
   websiteLabel: string;
+  directionsLabel: string;
 }
 
 export function getAccommodationTranslations(locale: string): AccommodationTranslations {
@@ -43,29 +42,29 @@ export function generateAccommodationEmailHtml(
 
   // Build accommodation list HTML
   const accommodationList = t.accommodations.map((acc) => {
-    const detailItems = acc.details.map(d => `<li>${d}</li>`).join('\n        ');
+    const desc = acc.details.length > 0
+      ? ` <span class="accommodation-desc">— ${acc.details.join('; ')}</span>`
+      : '';
     const noteHtml = acc.note
       ? `<div class="accommodation-note">${acc.note}</div>`
       : '';
-    const websiteHtml = acc.website
-      ? `<p class="accommodation-website">${t.websiteLabel}: <a href="https://${acc.website}">${acc.website}</a></p>`
+    const mapsUrl = acc.address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(acc.address)}`
+      : null;
+    const nameHtml = acc.website
+      ? `<a href="https://${acc.website}">${acc.name}</a>`
+      : acc.name;
+    const directionsHtml = mapsUrl
+      ? `<p class="accommodation-links"><a href="${mapsUrl}" class="directions-link">${t.directionsLabel}</a></p>`
       : '';
 
     return `
       <div class="accommodation-item">
-        <p class="accommodation-name">${acc.name}</p>
-        <ul class="accommodation-details">
-          ${detailItems}
-        </ul>
+        <p class="accommodation-name">${nameHtml}${desc}</p>
         ${noteHtml}
-        ${websiteHtml}
+        ${directionsHtml}
       </div>`;
   }).join('\n');
-
-  // Build average costs list HTML
-  const averageCostsList = t.averageCosts
-    .map(cost => `<li>${cost}</li>`)
-    .join('\n        ');
 
   html = html
     .replace('{{dear}}', t.dear)
@@ -74,14 +73,11 @@ export function generateAccommodationEmailHtml(
     .replace('{{intro2}}', t.intro2)
     .replace('{{accommodationTitle}}', t.accommodationTitle)
     .replace('{{accommodationList}}', accommodationList)
-    .replace('{{averageCostsTitle}}', t.averageCostsTitle)
-    .replace('{{averageCostsList}}', averageCostsList)
     .replace('{{helpText}}', t.helpText)
     .replace('{{closing}}', t.closing)
     .replace('{{withLove}}', t.withLove)
     .replace('{{couple}}', t.couple)
-    .replace('{{automated}}', t.automated)
-    .replace('{{questions}}', t.questions);
+    ;
 
   return html;
 }
@@ -102,17 +98,14 @@ export function generateAccommodationPlainText(
     acc.details.forEach(d => { text += `   • ${d}\n`; });
     if (acc.note) text += `   ⚠ ${acc.note}\n`;
     if (acc.website) text += `   ${t.websiteLabel}: ${acc.website}\n`;
+    if (acc.address) text += `   ${t.directionsLabel}: https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(acc.address)}${acc.distance ? ` (${acc.distance})` : ''}\n`;
     text += '\n';
   });
-
-  text += `${t.averageCostsTitle.toUpperCase()}\n${'─'.repeat(40)}\n`;
-  t.averageCosts.forEach(cost => { text += `• ${cost}\n`; });
-  text += '\n';
 
   text += `${t.helpText}\n\n`;
   text += `${t.closing}\n\n`;
   text += `${t.withLove}\n${t.couple}\n\n`;
-  text += `---\n${t.automated}\n${t.questions}\n`;
+  text += `---\n`;
 
   return text;
 }

@@ -8,63 +8,88 @@
     "accommodations": [
       {
         "name": "Hotel Bremon",
-        "details": ["From €92/night.", "Small hotel in the medieval town of Cardona."],
-        "website": "hotelbremon.com"
+        "details": ["Small hotel in the medieval town of Cardona."],
+        "website": "hotelbremon.com",
+        "address": "Carrer Cambres, 15, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "Parador de Cardona",
-        "details": ["From €160/night.", "Stunning castle hotel overlooking Cardona."],
-        "website": "parador.es/es/paradores/parador-de-cardona"
+        "details": ["Stunning castle hotel overlooking Cardona."],
+        "website": "parador.es/es/paradores/parador-de-cardona",
+        "address": "Castell de Cardona, s/n, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "AT Cardona",
-        "details": ["Price on request."],
-        "website": "atcardona.com"
+        "details": ["Tourist apartments in the village of Cardona."],
+        "website": "atcardona.com",
+        "address": "Ctra. del Miracle, 21, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "Ramon Park Hotel",
-        "details": ["Price on request."],
-        "website": "ramonparkhotel.com"
+        "details": ["Hotel in a natural park setting near Santpedor."],
+        "website": "ramonparkhotel.com",
+        "address": "Camí de Juncadella s/n, 08251 Santpedor, Barcelona",
+        "distance": "17km"
+      },
+      {
+        "name": "Dom Bosco",
+        "details": ["Rustic masia with modern amenities in Castellnou de Bages."],
+        "website": "dombosco.odoo.com",
+        "address": "Plaça l'Església, s/n, 08251 Castellnou de Bages, Barcelona",
+        "distance": "17.6km"
       },
       {
         "name": "Hostal Somnis",
         "details": ["Cozy hostel nearby."],
-        "website": "hostalsomnis.com"
-      },
-      {
-        "name": "Ca Moliner",
-        "details": ["Rural house near the venue."],
-        "website": "casaruralcalmoliner.com"
+        "website": "hostalsomnis.com",
+        "address": "C/ Diputació, nº8, Súria, Barcelona",
+        "distance": "5.5km"
       },
       {
         "name": "Restaurant Hostel Ca Fuster",
         "details": ["Charming mini castle experience."],
-        "website": "hotelcasafuster.com"
+        "website": "www.barcelonaesmoltmes.cat/es/detalle-del-viaje/-/dades/3bd3LPr67IZT/detall/17_14001_497637/restaurant-hostal-cal-fuster",
+        "address": "Carrer Cal Fuster s/n, 08673 Viver i Serrateix, Barcelona",
+        "distance": "10.3km"
       },
       {
         "name": "Casa Albareda",
-        "details": ["Highly recommended by locals."],
-        "website": "casaalbareda.com"
+        "details": ["Rural estate with pool, tennis court and full amenities."],
+        "website": "www.casaalbareda.com/index.php",
+        "address": "08673 Viver i Serrateix, Barcelona",
+        "distance": "10.2km"
       },
       {
         "name": "Camping Hostalet",
         "details": ["Glamping bungalows available — a unique and fun option!"],
-        "website": "campinghostalet.cat"
+        "website": "campinghostalet.cat",
+        "address": "Casa Rastrillo, s/n, 08673 Serrateix, Barcelona",
+        "distance": "11km"
+      },
+      {
+        "name": "La Prensa Hotel Rural",
+        "details": ["Historic rural hotel and restaurant in Cardona."],
+        "website": "www.lapremsamoli.cat",
+        "address": "Carrer de l'Església, 53, 08261 Cardona, Barcelona",
+        "distance": "19.8km"
+      },
+      {
+        "name": "Autocaravanas La Coromina",
+        "details": ["Motorhome area in La Coromina."],
+        "website": "maps.app.goo.gl/JBHNx9dFfKcmJVeu7",
+        "address": "Carrer de la Mel, 29, 08261 La Coromina, Barcelona",
+        "distance": "20.2km"
       }
-    ],
-    "averageCostsTitle": "Approximate Costs",
-    "averageCosts": [
-      "Hotels: from €92/night (Hotel Bremon) to €160/night (Parador de Cardona).",
-      "Rural houses & hostels: varies — contact directly for availability and rates.",
-      "Glamping bungalows: contact Camping Hostalet for prices."
     ],
     "helpText": "Please let us know if you need help booking or have any questions. We're happy to assist in any way we can!",
     "closing": "We can't wait to celebrate with all of you. It's going to be magical!",
     "withLove": "With love,",
     "couple": "Gian & Cat 💕",
-    "automated": "This is an automated email.",
-    "questions": "If you have any questions, please reply to this email.",
-    "websiteLabel": "Website"
+    "websiteLabel": "Website",
+    "directionsLabel": "Directions"
   },
   "pt": {
     "subject": "Opções de Hospedagem para o Nosso Fim de Semana de Casamento 🌿💍",
@@ -75,63 +100,88 @@
     "accommodations": [
       {
         "name": "Hotel Bremon",
-        "details": ["A partir de €92/noite.", "Pequeno hotel na cidade medieval de Cardona."],
-        "website": "hotelbremon.com"
+        "details": ["Pequeno hotel na cidade medieval de Cardona."],
+        "website": "hotelbremon.com",
+        "address": "Carrer Cambres, 15, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "Parador de Cardona",
-        "details": ["A partir de €160/noite.", "Deslumbrante hotel castelo com vista para Cardona."],
-        "website": "parador.es/es/paradores/parador-de-cardona"
+        "details": ["Deslumbrante hotel castelo com vista para Cardona."],
+        "website": "parador.es/es/paradores/parador-de-cardona",
+        "address": "Castell de Cardona, s/n, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "AT Cardona",
-        "details": ["Preço sob consulta."],
-        "website": "atcardona.com"
+        "details": ["Apartamentos turísticos na vila de Cardona."],
+        "website": "atcardona.com",
+        "address": "Ctra. del Miracle, 21, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "Ramon Park Hotel",
-        "details": ["Preço sob consulta."],
-        "website": "ramonparkhotel.com"
+        "details": ["Hotel em ambiente natural perto de Santpedor."],
+        "website": "ramonparkhotel.com",
+        "address": "Camí de Juncadella s/n, 08251 Santpedor, Barcelona",
+        "distance": "17km"
+      },
+      {
+        "name": "Dom Bosco",
+        "details": ["Masia rústica com comodidades modernas em Castellnou de Bages."],
+        "website": "dombosco.odoo.com",
+        "address": "Plaça l'Església, s/n, 08251 Castellnou de Bages, Barcelona",
+        "distance": "17.6km"
       },
       {
         "name": "Hostal Somnis",
         "details": ["Hostel aconchegante nas proximidades."],
-        "website": "hostalsomnis.com"
-      },
-      {
-        "name": "Ca Moliner",
-        "details": ["Casa rural perto do local do evento."],
-        "website": "casaruralcalmoliner.com"
+        "website": "hostalsomnis.com",
+        "address": "C/ Diputació, nº8, Súria, Barcelona",
+        "distance": "5.5km"
       },
       {
         "name": "Restaurant Hostel Ca Fuster",
         "details": ["Charmosa experiência em mini castelo."],
-        "website": "hotelcasafuster.com"
+        "website": "www.barcelonaesmoltmes.cat/es/detalle-del-viaje/-/dades/3bd3LPr67IZT/detall/17_14001_497637/restaurant-hostal-cal-fuster",
+        "address": "Carrer Cal Fuster s/n, 08673 Viver i Serrateix, Barcelona",
+        "distance": "10.3km"
       },
       {
         "name": "Casa Albareda",
-        "details": ["Muito recomendado pelos locais."],
-        "website": "casaalbareda.com"
+        "details": ["Casa rural com piscina, campo de ténis e comodidades completas."],
+        "website": "www.casaalbareda.com/index.php",
+        "address": "08673 Viver i Serrateix, Barcelona",
+        "distance": "10.2km"
       },
       {
         "name": "Camping Hostalet",
         "details": ["Bangalôs de glamping disponíveis — uma opção única e divertida!"],
-        "website": "campinghostalet.cat"
+        "website": "campinghostalet.cat",
+        "address": "Casa Rastrillo, s/n, 08673 Serrateix, Barcelona",
+        "distance": "11km"
+      },
+      {
+        "name": "La Prensa Hotel Rural",
+        "details": ["Hotel rural histórico com restaurante em Cardona."],
+        "website": "www.lapremsamoli.cat",
+        "address": "Carrer de l'Església, 53, 08261 Cardona, Barcelona",
+        "distance": "19.8km"
+      },
+      {
+        "name": "Autocaravanas La Coromina",
+        "details": ["Área para autocaravanas em La Coromina."],
+        "website": "maps.app.goo.gl/JBHNx9dFfKcmJVeu7",
+        "address": "Carrer de la Mel, 29, 08261 La Coromina, Barcelona",
+        "distance": "20.2km"
       }
-    ],
-    "averageCostsTitle": "Custos Aproximados",
-    "averageCosts": [
-      "Hotéis: a partir de €92/noite (Hotel Bremon) até €160/noite (Parador de Cardona).",
-      "Casas rurais e hostels: varia — entre em contato diretamente para disponibilidade e tarifas.",
-      "Bangalôs de glamping: consulte o Camping Hostalet para preços."
     ],
     "helpText": "Avise-nos se precisar de ajuda para reservar ou tiver dúvidas. Estamos felizes em ajudar no que for preciso!",
     "closing": "Mal podemos esperar para celebrar com todos vocês. Vai ser mágico!",
     "withLove": "Com amor,",
     "couple": "Gian & Cat 💕",
-    "automated": "Este é um email automático.",
-    "questions": "Se tiver alguma dúvida, responda a este email.",
-    "websiteLabel": "Site"
+    "websiteLabel": "Site",
+    "directionsLabel": "Indicações"
   },
   "es": {
     "subject": "Opciones de Alojamiento para Nuestro Fin de Semana de Boda 🌿💍",
@@ -142,62 +192,87 @@
     "accommodations": [
       {
         "name": "Hotel Bremon",
-        "details": ["Desde €92/noche.", "Pequeño hotel en la ciudad medieval de Cardona."],
-        "website": "hotelbremon.com"
+        "details": ["Pequeño hotel en la ciudad medieval de Cardona."],
+        "website": "hotelbremon.com",
+        "address": "Carrer Cambres, 15, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "Parador de Cardona",
-        "details": ["Desde €160/noche.", "Impresionante hotel castillo con vistas a Cardona."],
-        "website": "parador.es/es/paradores/parador-de-cardona"
+        "details": ["Impresionante hotel castillo con vistas a Cardona."],
+        "website": "parador.es/es/paradores/parador-de-cardona",
+        "address": "Castell de Cardona, s/n, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "AT Cardona",
-        "details": ["Precio bajo consulta."],
-        "website": "atcardona.com"
+        "details": ["Apartamentos turísticos en el pueblo de Cardona."],
+        "website": "atcardona.com",
+        "address": "Ctra. del Miracle, 21, 08261 Cardona, Barcelona",
+        "distance": "23km"
       },
       {
         "name": "Ramon Park Hotel",
-        "details": ["Precio bajo consulta."],
-        "website": "ramonparkhotel.com"
+        "details": ["Hotel en entorno natural cerca de Santpedor."],
+        "website": "ramonparkhotel.com",
+        "address": "Camí de Juncadella s/n, 08251 Santpedor, Barcelona",
+        "distance": "17km"
+      },
+      {
+        "name": "Dom Bosco",
+        "details": ["Masía rústica con comodidades modernas en Castellnou de Bages."],
+        "website": "dombosco.odoo.com",
+        "address": "Plaça l'Església, s/n, 08251 Castellnou de Bages, Barcelona",
+        "distance": "17.6km"
       },
       {
         "name": "Hostal Somnis",
         "details": ["Acogedor hostal cercano."],
-        "website": "hostalsomnis.com"
-      },
-      {
-        "name": "Ca Moliner",
-        "details": ["Casa rural cerca del lugar del evento."],
-        "website": "casaruralcalmoliner.com"
+        "website": "hostalsomnis.com",
+        "address": "C/ Diputació, nº8, Súria, Barcelona",
+        "distance": "5.5km"
       },
       {
         "name": "Restaurant Hostel Ca Fuster",
         "details": ["Encantadora experiencia en mini castillo."],
-        "website": "hotelcasafuster.com"
+        "website": "www.barcelonaesmoltmes.cat/es/detalle-del-viaje/-/dades/3bd3LPr67IZT/detall/17_14001_497637/restaurant-hostal-cal-fuster",
+        "address": "Carrer Cal Fuster s/n, 08673 Viver i Serrateix, Barcelona",
+        "distance": "10.3km"
       },
       {
         "name": "Casa Albareda",
-        "details": ["Muy recomendado por los lugareños."],
-        "website": "casaalbareda.com"
+        "details": ["Casa rural con piscina, pista de tenis y comodidades completas."],
+        "website": "www.casaalbareda.com/index.php",
+        "address": "08673 Viver i Serrateix, Barcelona",
+        "distance": "10.2km"
       },
       {
         "name": "Camping Hostalet",
         "details": ["Bungalós de glamping disponibles — ¡una opción única y divertida!"],
-        "website": "campinghostalet.cat"
+        "website": "campinghostalet.cat",
+        "address": "Casa Rastrillo, s/n, 08673 Serrateix, Barcelona",
+        "distance": "11km"
+      },
+      {
+        "name": "La Prensa Hotel Rural",
+        "details": ["Hotel rural histórico con restaurante en Cardona."],
+        "website": "www.lapremsamoli.cat",
+        "address": "Carrer de l'Església, 53, 08261 Cardona, Barcelona",
+        "distance": "19.8km"
+      },
+      {
+        "name": "Autocaravanas La Coromina",
+        "details": ["Área de autocaravanas en La Coromina."],
+        "website": "maps.app.goo.gl/JBHNx9dFfKcmJVeu7",
+        "address": "Carrer de la Mel, 29, 08261 La Coromina, Barcelona",
+        "distance": "20.2km"
       }
-    ],
-    "averageCostsTitle": "Costos Aproximados",
-    "averageCosts": [
-      "Hoteles: desde €92/noche (Hotel Bremon) hasta €160/noche (Parador de Cardona).",
-      "Casas rurales y hostales: varía — contactad directamente para disponibilidad y tarifas.",
-      "Bungalós de glamping: consultad el Camping Hostalet para precios."
     ],
     "helpText": "¡Avisadnos si necesitáis ayuda para reservar o tenéis alguna pregunta. Estaremos encantados de ayudaros!",
     "closing": "¡No podemos esperar para celebrar con todos vosotros. ¡Va a ser mágico!",
     "withLove": "Con amor,",
     "couple": "Gian & Cat 💕",
-    "automated": "Este es un correo automático.",
-    "questions": "Si tienes alguna pregunta, responde a este correo.",
-    "websiteLabel": "Web"
+    "websiteLabel": "Web",
+    "directionsLabel": "Indicaciones"
   }
 }

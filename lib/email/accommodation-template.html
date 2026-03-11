@@ -65,53 +65,46 @@
       border-bottom: 2px solid #e5e7eb;
     }
     .accommodation-item {
-      background-color: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .accommodation-item:last-child {
+      border-bottom: none;
     }
     .accommodation-name {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #111827;
-      margin: 0 0 10px;
-    }
-    .accommodation-details {
       margin: 0;
-      padding-left: 18px;
     }
-    .accommodation-details li {
-      font-size: 14px;
+    .accommodation-name a {
+      color: #111827;
+      text-decoration: underline;
+    }
+    .accommodation-desc {
+      font-weight: 400;
       color: #4b5563;
-      margin-bottom: 4px;
+    }
+    .accommodation-links {
+      margin: 3px 0 0;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .accommodation-links a {
+      color: #16a34a;
+      text-decoration: none;
+    }
+    .accommodation-links a.directions-link {
+      color: #2563eb;
     }
     .accommodation-note {
-      margin-top: 10px;
-      padding: 8px 12px;
+      margin-top: 6px;
+      padding: 6px 10px;
       background-color: #fef9c3;
       border-left: 3px solid #eab308;
       border-radius: 4px;
       font-size: 13px;
       color: #713f12;
-    }
-    .accommodation-website {
-      margin-top: 8px;
-      font-size: 13px;
-      color: #6b7280;
-    }
-    .accommodation-website a {
-      color: #16a34a;
-      text-decoration: none;
-    }
-    .costs-list {
-      margin: 0;
-      padding-left: 18px;
-    }
-    .costs-list li {
-      font-size: 14px;
-      color: #4b5563;
-      margin-bottom: 6px;
     }
     .closing-box {
       margin-top: 32px;
@@ -165,7 +158,6 @@
 <body>
   <div class="container">
     <div class="header">
-      <div class="header-emoji">🌿💍</div>
       <h1>Gian &amp; Cat — October 3rd, 2026</h1>
       <p class="header-subtitle">La Garriga de Castelladral</p>
     </div>
@@ -182,12 +174,6 @@
 
       {{accommodationList}}
 
-      <div class="section-title">{{averageCostsTitle}}</div>
-
-      <ul class="costs-list">
-        {{averageCostsList}}
-      </ul>
-
       <div class="closing-box">
         <p>{{helpText}}</p>
         <p style="margin-top: 12px; font-style: italic;">{{closing}}</p>
@@ -202,8 +188,6 @@
     </div>
 
     <div class="footer">
-      <p>{{automated}}</p>
-      <p>{{questions}}</p>
     </div>
   </div>
 </body>
