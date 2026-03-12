@@ -3,8 +3,8 @@
     "subject": "Accommodation Options for Our Wedding Weekend 🌿💍",
     "dear": "Dear",
     "intro1": "We are so excited to celebrate our special day with you on October 3rd, 2026! Thank you for confirming your attendance — it means the world to us to have you there.",
-    "intro2": "To make your planning easier, we've put together a list of nearby accommodation options for your stay. Whether you're looking for glamping, a charming hostel or a castle hotel, we've got you covered!",
-    "accommodationTitle": "Accommodation Options",
+    "intro2": "To make your planning easier, we've put together a list of nearby accommodation options for your stay. Whether you're looking for glamping, a charming hostel or a castle hotel, we've got you covered.",
+    "accommodationTitle": "Accommodation List",
     "accommodations": [
       {
         "name": "Hotel Bremon",
@@ -64,7 +64,7 @@
       },
       {
         "name": "Camping Hostalet",
-        "details": ["Glamping bungalows available — a unique and fun option!"],
+        "details": ["Glamping bungalows — great if you fancy something different."],
         "website": "campinghostalet.cat",
         "address": "Casa Rastrillo, s/n, 08673 Serrateix, Barcelona",
         "distance": "11km"
@@ -77,10 +77,11 @@
         "distance": "19.8km"
       }
     ],
-    "helpText": "Please let us know if you need help booking or have any questions. We're happy to assist in any way we can!",
+    "helpText": "Please let us know if you need help booking or have any questions. We're happy to assist in any way we can! Just reply this email.",
     "closing": "We can't wait to celebrate with all of you. It's going to be magical!",
-    "withLove": "With love,",
-    "couple": "Gian & Cat 💕",
+    "closing2": "We'll be sending good news soon.",
+    "withLove": "Thanks,",
+    "couple": "Gian & Cat",
     "websiteLabel": "Website",
     "directionsLabel": "Directions"
   },
@@ -88,8 +89,8 @@
     "subject": "Opções de Hospedagem para o Nosso Fim de Semana de Casamento 🌿💍",
     "dear": "Querido(a)",
     "intro1": "Estamos muito animados para celebrar o nosso dia especial com você em 3 de outubro de 2026! Obrigado por confirmar sua presença — significa muito para nós tê-lo(a) lá.",
-    "intro2": "Para facilitar o seu planejamento, reunimos uma lista de opções de hospedagem próximas para a sua estadia. De glamping a hostels charmosos e hotéis no castelo, temos tudo o que você precisa!",
-    "accommodationTitle": "Opções de Hospedagem",
+    "intro2": "Para facilitar o seu planejamento, reunimos uma lista de opções de hospedagem próximas para a sua estadia. De glamping a hostels charmosos e hotéis no castelo, temos tudo o que você precisa.",
+    "accommodationTitle": "Lista de Hospedagem",
     "accommodations": [
       {
         "name": "Hotel Bremon",
@@ -149,7 +150,7 @@
       },
       {
         "name": "Camping Hostalet",
-        "details": ["Bangalôs de glamping disponíveis — uma opção única e divertida!"],
+        "details": ["Bangalôs de glamping — ótimo se quiseres algo diferente."],
         "website": "campinghostalet.cat",
         "address": "Casa Rastrillo, s/n, 08673 Serrateix, Barcelona",
         "distance": "11km"
@@ -162,10 +163,11 @@
         "distance": "19.8km"
       }
     ],
-    "helpText": "Avise-nos se precisar de ajuda para reservar ou tiver dúvidas. Estamos felizes em ajudar no que for preciso!",
+    "helpText": "Avise-nos se precisar de ajuda para reservar ou tiver dúvidas. Estamos felizes em ajudar no que for preciso! Basta responder a este email.",
     "closing": "Mal podemos esperar para celebrar com todos vocês. Vai ser mágico!",
-    "withLove": "Com amor,",
-    "couple": "Gian & Cat 💕",
+    "closing2": "Em breve traremos boas notícias.",
+    "withLove": "Obrigado,",
+    "couple": "Gian & Cat",
     "websiteLabel": "Site",
     "directionsLabel": "Indicações"
   },
@@ -173,8 +175,8 @@
     "subject": "Opciones de Alojamiento para Nuestro Fin de Semana de Boda 🌿💍",
     "dear": "Querido/a",
     "intro1": "¡Estamos muy emocionados de celebrar nuestro día especial contigo el 3 de octubre de 2026! Gracias por confirmar tu asistencia — significa muchísimo para nosotros tenerte allí.",
-    "intro2": "Para facilitarte la planificación, hemos preparado una lista de opciones de alojamiento cercanas. ¡Desde glamping hasta hostales con encanto y hoteles en castillo, tenemos todo lo que necesitas!",
-    "accommodationTitle": "Opciones de Alojamiento",
+    "intro2": "Para facilitarte la planificación, hemos preparado una lista de opciones de alojamiento cercanas. Desde glamping hasta hostales con encanto y hoteles en castillo, tenemos todo lo que necesitas.",
+    "accommodationTitle": "Lista de Alojamiento",
     "accommodations": [
       {
         "name": "Hotel Bremon",
@@ -234,7 +236,7 @@
       },
       {
         "name": "Camping Hostalet",
-        "details": ["Bungalós de glamping disponibles — ¡una opción única y divertida!"],
+        "details": ["Bungalós de glamping — ideal si te apetece algo diferente."],
         "website": "campinghostalet.cat",
         "address": "Casa Rastrillo, s/n, 08673 Serrateix, Barcelona",
         "distance": "11km"
@@ -247,10 +249,11 @@
         "distance": "19.8km"
       }
     ],
-    "helpText": "¡Avisadnos si necesitáis ayuda para reservar o tenéis alguna pregunta. Estaremos encantados de ayudaros!",
+    "helpText": "¡Avisadnos si necesitáis ayuda para reservar o tenéis alguna pregunta. Estaremos encantados de ayudaros! Simplemente responded a este correo.",
     "closing": "¡No podemos esperar para celebrar con todos vosotros. ¡Va a ser mágico!",
-    "withLove": "Con amor,",
-    "couple": "Gian & Cat 💕",
+    "closing2": "Pronto os enviaremos buenas noticias.",
+    "withLove": "Gracias,",
+    "couple": "Gian & Cat",
     "websiteLabel": "Web",
     "directionsLabel": "Indicaciones"
   }

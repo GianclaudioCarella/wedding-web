@@ -22,6 +22,7 @@ interface AccommodationTranslations {
   accommodations: Accommodation[];
   helpText: string;
   closing: string;
+  closing2: string;
   withLove: string;
   couple: string;
   websiteLabel: string;
@@ -51,18 +52,18 @@ export function generateAccommodationEmailHtml(
     const mapsUrl = acc.address
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(acc.address)}`
       : null;
-    const nameHtml = acc.website
-      ? `<a href="https://${acc.website}">${acc.name}</a>`
-      : acc.name;
-    const directionsHtml = mapsUrl
-      ? `<p class="accommodation-links"><a href="${mapsUrl}" class="directions-link">${t.directionsLabel}</a></p>`
+    const links: string[] = [];
+    if (acc.website) links.push(`<a href="https://${acc.website}">${t.websiteLabel}</a>`);
+    if (mapsUrl) links.push(`<a href="${mapsUrl}" class="directions-link">${t.directionsLabel}</a>`);
+    const linksHtml = links.length > 0
+      ? `<p class="accommodation-links">${links.join(' | ')}</p>`
       : '';
 
     return `
       <div class="accommodation-item">
-        <p class="accommodation-name">${nameHtml}${desc}</p>
+        <p class="accommodation-name">${acc.name}${desc}</p>
         ${noteHtml}
-        ${directionsHtml}
+        ${linksHtml}
       </div>`;
   }).join('\n');
 
@@ -75,6 +76,7 @@ export function generateAccommodationEmailHtml(
     .replace('{{accommodationList}}', accommodationList)
     .replace('{{helpText}}', t.helpText)
     .replace('{{closing}}', t.closing)
+    .replace('{{closing2}}', t.closing2)
     .replace('{{withLove}}', t.withLove)
     .replace('{{couple}}', t.couple)
     ;
