@@ -75,13 +75,6 @@
         "website": "www.lapremsamoli.cat",
         "address": "Carrer de l'Església, 53, 08261 Cardona, Barcelona",
         "distance": "19.8km"
-      },
-      {
-        "name": "Autocaravanas La Coromina",
-        "details": ["Motorhome area in La Coromina."],
-        "website": "maps.app.goo.gl/JBHNx9dFfKcmJVeu7",
-        "address": "Carrer de la Mel, 29, 08261 La Coromina, Barcelona",
-        "distance": "20.2km"
       }
     ],
     "helpText": "Please let us know if you need help booking or have any questions. We're happy to assist in any way we can!",
@@ -167,13 +160,6 @@
         "website": "www.lapremsamoli.cat",
         "address": "Carrer de l'Església, 53, 08261 Cardona, Barcelona",
         "distance": "19.8km"
-      },
-      {
-        "name": "Autocaravanas La Coromina",
-        "details": ["Área para autocaravanas em La Coromina."],
-        "website": "maps.app.goo.gl/JBHNx9dFfKcmJVeu7",
-        "address": "Carrer de la Mel, 29, 08261 La Coromina, Barcelona",
-        "distance": "20.2km"
       }
     ],
     "helpText": "Avise-nos se precisar de ajuda para reservar ou tiver dúvidas. Estamos felizes em ajudar no que for preciso!",
@@ -259,13 +245,6 @@
         "website": "www.lapremsamoli.cat",
         "address": "Carrer de l'Església, 53, 08261 Cardona, Barcelona",
         "distance": "19.8km"
-      },
-      {
-        "name": "Autocaravanas La Coromina",
-        "details": ["Área de autocaravanas en La Coromina."],
-        "website": "maps.app.goo.gl/JBHNx9dFfKcmJVeu7",
-        "address": "Carrer de la Mel, 29, 08261 La Coromina, Barcelona",
-        "distance": "20.2km"
       }
     ],
     "helpText": "¡Avisadnos si necesitáis ayuda para reservar o tenéis alguna pregunta. Estaremos encantados de ayudaros!",
