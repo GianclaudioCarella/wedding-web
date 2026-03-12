@@ -18,6 +18,7 @@ interface AccommodationTranslations {
   dear: string;
   intro1: string;
   intro2: string;
+  intro3: string;
   accommodationTitle: string;
   accommodations: Accommodation[];
   helpText: string;
@@ -72,6 +73,7 @@ export function generateAccommodationEmailHtml(
     .replace('{{guestName}}', guestName)
     .replace('{{intro1}}', t.intro1)
     .replace('{{intro2}}', t.intro2)
+    .replace('{{intro3}}', t.intro3)
     .replace('{{accommodationTitle}}', t.accommodationTitle)
     .replace('{{accommodationList}}', accommodationList)
     .replace('{{helpText}}', t.helpText)
@@ -93,6 +95,7 @@ export function generateAccommodationPlainText(
   let text = `${t.dear} ${guestName},\n\n`;
   text += `${t.intro1}\n\n`;
   text += `${t.intro2}\n\n`;
+  text += `${t.intro3}\n\n`;
   text += `${t.accommodationTitle.toUpperCase()}\n${'─'.repeat(40)}\n\n`;
 
   t.accommodations.forEach((acc, i) => {
@@ -105,7 +108,7 @@ export function generateAccommodationPlainText(
   });
 
   text += `${t.helpText}\n\n`;
-  text += `${t.closing}\n\n`;
+  text += `${t.closing}\n${t.closing2}\n\n`;
   text += `${t.withLove}\n${t.couple}\n\n`;
   text += `---\n`;
 

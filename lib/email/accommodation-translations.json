@@ -4,6 +4,7 @@
     "dear": "Dear",
     "intro1": "We are so excited to celebrate our special day with you on October 3rd, 2026! Thank you for confirming your attendance — it means the world to us to have you there.",
     "intro2": "To make your planning easier, we've put together a list of nearby accommodation options for your stay. Whether you're looking for glamping, a charming hostel or a castle hotel, we've got you covered.",
+    "intro3": "This isn't the formal invitation but we wanted to help you plan in advance - we will be following up soon with formal invitations",
     "accommodationTitle": "Accommodation List",
     "accommodations": [
       {
@@ -77,7 +78,7 @@
         "distance": "19.8km"
       }
     ],
-    "helpText": "Please let us know if you need help booking or have any questions. We're happy to assist in any way we can! Just reply this email.",
+    "helpText": "Please let us know if you need help booking or have any questions. We're happy to assist in any way we can! Just reply to this email.",
     "closing": "We can't wait to celebrate with all of you. It's going to be magical!",
     "closing2": "We'll send good news soon.",
     "withLove": "Thanks,",
@@ -90,6 +91,7 @@
     "dear": "Querido(a)",
     "intro1": "Estamos muito animados para celebrar o nosso dia especial com você em 3 de outubro de 2026! Obrigado por confirmar sua presença — significa muito para nós tê-lo(a) lá.",
     "intro2": "Para facilitar o seu planejamento, reunimos uma lista de opções de hospedagem próximas para a sua estadia. De glamping a hostels charmosos e hotéis no castelo, temos tudo o que você precisa.",
+    "intro3": "Este não é o convite formal, mas queríamos ajudá-lo(a) a planear com antecedência - em breve enviaremos os convites formais",
     "accommodationTitle": "Lista de Hospedagem",
     "accommodations": [
       {
@@ -176,6 +178,7 @@
     "dear": "Querido/a",
     "intro1": "¡Estamos muy emocionados de celebrar nuestro día especial contigo el 3 de octubre de 2026! Gracias por confirmar tu asistencia — significa muchísimo para nosotros tenerte allí.",
     "intro2": "Para facilitarte la planificación, hemos preparado una lista de opciones de alojamiento cercanas. Desde glamping hasta hostales con encanto y hoteles en castillo, tenemos todo lo que necesitas.",
+    "intro3": "Esta no es la invitación formal, pero queríamos ayudarte a planificar con antelación - pronto os enviaremos las invitaciones formales",
     "accommodationTitle": "Lista de Alojamiento",
     "accommodations": [
       {
