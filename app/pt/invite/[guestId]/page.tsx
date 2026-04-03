@@ -1,6 +1,5 @@
-import InviteContent from '@/components/invite/InviteContent';
+import InviteContent from '@/app/invite/InviteContent';
 
-export default async function InvitePagePT({ params }: { params: Promise<{ guestId: string }> }) {
-  const { guestId } = await params;
-  return <InviteContent guestId={guestId} locale="pt" />;
+export default function InvitePagePT() {
+  return <InviteContent locale="pt" />;
 }
