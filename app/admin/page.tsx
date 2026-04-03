@@ -159,7 +159,7 @@ export default function AdminDashboard() {
               <tbody className="divide-y divide-gray-100">
                 {eventStats.map(e => (
                   <tr key={e.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-900">{e.name}</td>
+                    <td className="px-5 py-3 font-medium text-gray-900">{(e.name as any)?.en || 'Event'}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {e.event_date ? new Date(e.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBC'}
                     </td>

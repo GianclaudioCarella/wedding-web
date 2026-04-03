@@ -182,7 +182,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
     return aStr.localeCompare(bStr)
   })
 
-  const ceremonyEvent    = sortedEvents.find(e => e.slug === 'wedding') || sortedEvents.find(e => e.name.toLowerCase().includes('wedding')) || sortedEvents[Math.floor(sortedEvents.length / 2)]
+  const ceremonyEvent    = sortedEvents.find(e => e.slug === 'wedding') || sortedEvents.find(e => ((e.name as any)?.en || '').toLowerCase().includes('wedding')) || sortedEvents[Math.floor(sortedEvents.length / 2)]
   const otherEvents      = sortedEvents.filter(e => e.id !== ceremonyEvent?.id)
   const ceremonyRsvp     = ceremonyEvent ? (rsvps[ceremonyEvent.id] || { status: '' }) : null
   const ceremonyAttending = ceremonyRsvp?.status === 'attending'

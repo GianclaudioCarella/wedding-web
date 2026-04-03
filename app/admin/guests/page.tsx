@@ -113,7 +113,7 @@ export default function GuestsPage() {
     setLoading(false);
   };
 
-  const ceremonyEvent = events.find(e => e.name.toLowerCase().includes('ceremon')) || events[0];
+  const ceremonyEvent = events.find(e => ((e.name as any)?.en || '').toLowerCase().includes('ceremon')) || events[0];
   const extraEvents   = events.filter(e => e.id !== ceremonyEvent?.id);
 
   const openNew  = () => {
@@ -225,7 +225,7 @@ export default function GuestsPage() {
   const nightLabel: Record<string, string> = { thursday_night: 'Thu', friday_night: 'Fri', saturday_night: 'Sat' };
 
   const exportCSV = () => {
-    const eventNames = events.map(e => e.name);
+    const eventNames = events.map(e => (e.name as any)?.en || 'Event');
     const headers = ['Name', 'Email', 'Tags', ...eventNames, 'Dietary', 'Dietary Notes', 'Stay Nights', 'Notes'];
 
     const rows = sortedFiltered.map(g => {
@@ -335,7 +335,7 @@ export default function GuestsPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Name</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Tag</th>
                   {events.map(e => (
-                    <th key={e.id} className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">{e.name.split(' ')[0]}</th>
+                    <th key={e.id} className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">{((e.name as any)?.en || 'Event').split(' ')[0]}</th>
                   ))}
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Dietary</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Stay</th>
@@ -610,7 +610,7 @@ export default function GuestsPage() {
                   {extraEvents.map(e => (
                     <label key={e.id} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={form.event_ids.includes(e.id)} onChange={ev => setForm(f => ({ ...f, event_ids: ev.target.checked ? [...f.event_ids, e.id] : f.event_ids.filter(id => id !== e.id) }))} className="rounded border-gray-300" />
-                      <span className="text-sm text-gray-700">{e.name}</span>
+                      <span className="text-sm text-gray-700">{(e.name as any)?.en || 'Event'}</span>
                     </label>
                   ))}
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -712,7 +712,7 @@ export default function GuestsPage() {
                       const invited = viewingGuest.events.includes(event.id);
                       return (
                         <div key={event.id} className="text-sm border border-gray-100 rounded p-3">
-                          <p className="font-medium text-gray-900">{event.name}</p>
+                          <p className="font-medium text-gray-900">{(event.name as any)?.en || 'Event'}</p>
                           {invited ? (
                             <p className={`text-xs mt-1 ${
                               rsvp?.status === 'attending' ? 'text-green-600' :
