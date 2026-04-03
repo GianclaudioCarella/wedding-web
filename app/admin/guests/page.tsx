@@ -161,8 +161,9 @@ export default function GuestsPage() {
     setDeleteConfirm(null); await fetchAll();
   };
 
-  const copyLink = (token: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/invite?guest=${token}`);
+  const copyLink = (token: string, language: string = 'en') => {
+    const localePrefix = language === 'en' ? '' : `/${language}`;
+    navigator.clipboard.writeText(`${window.location.origin}${localePrefix}/invite?guest=${token}`);
     setCopied(token); setTimeout(() => setCopied(null), 2000);
   };
 
@@ -689,22 +690,30 @@ export default function GuestsPage() {
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-xs font-medium text-gray-500 uppercase mb-2">Invite Link</p>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/invite?guest=${viewingGuest.invite_token}`}
-                    className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded bg-gray-50 font-mono"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/invite?guest=${viewingGuest.invite_token}`);
-                      setCopied(viewingGuest.id);
-                      setTimeout(() => setCopied(null), 2000);
-                    }}
-                    className="text-xs px-3 py-2 border border-gray-200 rounded hover:bg-gray-50 font-medium"
-                  >
-                    {copied === viewingGuest.id ? '✓ Copied' : 'Copy'}
-                  </button>
+                  {(() => {
+                    const localePrefix = viewingGuest.language === 'en' ? '' : `/${viewingGuest.language}`;
+                    const inviteLink = `${typeof window !== 'undefined' ? window.location.origin : ''}${localePrefix}/invite?guest=${viewingGuest.invite_token}`;
+                    return (
+                      <>
+                        <input
+                          type="text"
+                          readOnly
+                          value={inviteLink}
+                          className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded bg-gray-50 font-mono"
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(inviteLink);
+                            setCopied(viewingGuest.id);
+                            setTimeout(() => setCopied(null), 2000);
+                          }}
+                          className="text-xs px-3 py-2 border border-gray-200 rounded hover:bg-gray-50 font-medium"
+                        >
+                          {copied === viewingGuest.id ? '✓ Copied' : 'Copy'}
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
