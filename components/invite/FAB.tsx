@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { WaveText } from '@/components/WaveText'
 
 interface NavLink {
   label: string
@@ -29,9 +30,9 @@ export default function FAB({ links }: FABProps) {
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="fab-item"
+              className={l.href === '#rsvp' ? 'btn btn-primary' : 'btn btn-secondary'}
             >
-              {l.label}
+              <WaveText text={l.label} />
             </a>
           ))}
         </div>
