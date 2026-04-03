@@ -407,8 +407,8 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 8, lineHeight: 'var(--leading-normal)' }}>
                 {t.anyOtherQuestions}
               </p>
-              <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                hello@example.com
+              <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                hello@giancat.com
               </a>
             </div>
           </div>

@@ -400,8 +400,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         {/* Contact */}
         <div style={{ marginTop: 64 }}>
           <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 4 }}>{t.anyQuestions}</p>
-          <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-            hello@example.com
+          <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            hello@giancat.com
           </a>
         </div>
 
