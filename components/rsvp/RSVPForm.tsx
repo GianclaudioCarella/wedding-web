@@ -47,7 +47,7 @@ const NIGHTS = [
   { key: 'saturday_night', label: 'Saturday night' },
 ];
 
-interface Event { id: string; name: string; slug: string | null; event_date: string | null; event_time: string | null }
+interface Event { id: string; name: { en: string; pt: string; es: string }; slug: string | null; event_date: string | null; event_time: string | null }
 interface RSVPState { status: string }
 
 function DietaryPicker({
@@ -84,11 +84,17 @@ function DietaryPicker({
   );
 }
 
+const getLocaleDateString = (locale: string) => {
+  const localeMap: Record<string, string> = { en: 'en-GB', pt: 'pt-BR', es: 'es-ES' };
+  return localeMap[locale] || 'en-GB';
+};
+
 export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const t = getTranslation(locale);
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('guest');
+  const dateLocale = getLocaleDateString(locale);
 
   const [loading, setLoading]       = useState(true);
   const [notFound, setNotFound]     = useState(false);
@@ -252,8 +258,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
 
         {/* Back link */}
         <div style={{ marginBottom: 32 }}>
-          <a href={`/invite?guest=${token}`} className="btn btn-secondary">
-            ← Back to invitation
+          <a href={`${locale === 'en' ? '/invite' : `/${locale}/invite`}?guest=${token}`} className="btn btn-secondary">
+            ← {t.confirmation.backToInvitation}
           </a>
         </div>
 
@@ -275,11 +281,11 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             return (
               <div style={sectionStyle}>
                 <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                  {ceremonyEvent.name}
+                  {(ceremonyEvent.name as any)?.[locale] || (ceremonyEvent.name as any)?.en}
                 </p>
                 {ceremonyEvent.event_date && (
                   <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                    {new Date(ceremonyEvent.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {new Date(ceremonyEvent.event_date).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
                     {ceremonyEvent.event_time ? ` · ${ceremonyEvent.event_time.slice(0, 5)}` : ''}
                   </p>
                 )}
@@ -303,11 +309,11 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             return (
               <div key={event.id} style={sectionStyle}>
                 <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                  {event.name}
+                  {(event.name as any)?.[locale] || (event.name as any)?.en}
                 </p>
                 {event.event_date && (
                   <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                    {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {new Date(event.event_date).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
                     {event.event_time ? ` · ${event.event_time.slice(0, 5)}` : ''}
                   </p>
                 )}

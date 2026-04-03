@@ -43,6 +43,8 @@ export const translations = {
     stayLabel: 'Where to stay',
     hotelsTitle: 'Hotels & accommodation',
     bookNow: 'Book now →',
+    website: 'Website',
+    directions: 'Directions',
     venueStayTitle: 'Accommodation is on us!',
     venueStayText: 'We\'ve invited a special few guests to stay in the venue from Friday to Monday, and you\'re one of them. Let us know in the RSVP form what you think. We\'ll be in touch with more info.',
     checkIn: '• Check-in',
@@ -154,8 +156,8 @@ export const translations = {
     venueMapsLink: 'Indicações no Google Maps',
     venueCarLabel: '• De carro',
     venueCarText: 'Detalhes de estacionamento serão confirmados.',
-    venueBusLabel: '• De ônibus',
-    venueBusText: 'Estamos organizando um ônibus do centro da cidade. Avise-nos no RSVP se quiser um lugar.',
+    venueBusLabel: '• Transporte',
+    venueBusText: 'Estamos organizando o transporte a partir de Barcelona — os detalhes serão confirmados em breve, entraremos em contato.',
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
@@ -166,6 +168,8 @@ export const translations = {
     stayLabel: 'Onde ficar',
     hotelsTitle: 'Hotéis e hospedagem',
     bookNow: 'Reservar agora →',
+    website: 'Website',
+    directions: 'Ver mapa',
     venueStayTitle: 'A hospedagem é por nossa conta!',
     venueStayText: 'Convidamos alguns convidados especiais para ficarem no venue de sexta a segunda-feira, e você é um deles. Avise-nos no formulário RSVP o que acha.',
     checkIn: '• Check-in',
@@ -179,7 +183,7 @@ export const translations = {
     registryLabel: 'Lista de Presentes',
     registryTitle: 'Compartilhar nosso dia de casamento com você é o que mais nos importa.',
     registryText: 'Se quiser oferecer um presente, uma contribuição para nossa lua de mel seria muito apreciada.',
-    honeymoonFund: 'Ver Fundo de Lua de Mel →',
+    honeymoonFund: 'Mais detalhes em breve.',
 
     // Invite FAQ
     faqLabel: 'Perguntas Frequentes',
@@ -288,8 +292,8 @@ export const translations = {
     venueMapsLink: 'Indicaciones en Google Maps',
     venueCarLabel: '• En coche',
     venueCarText: 'Los detalles del aparcamiento se confirmarán.',
-    venueBusLabel: '• En autobús',
-    venueBusText: 'Estamos organizando un autobús desde el centro de la ciudad. Avísanos en tu RSVP si deseas un asiento.',
+    venueBusLabel: '• Transporte',
+    venueBusText: 'Estamos organizando el transporte desde Barcelona; los detalles se confirmarán próximamente, nos pondremos en contacto con ustedes.',
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
@@ -300,6 +304,8 @@ export const translations = {
     stayLabel: 'Dónde alojarse',
     hotelsTitle: 'Hoteles y alojamiento',
     bookNow: 'Reservar ahora →',
+    website: 'Sitio web',
+    directions: 'Ver mapa',
     venueStayTitle: '¡El alojamiento corre por nuestra cuenta!',
     venueStayText: 'Hemos invitado a algunos invitados especiales a quedarse en el venue de viernes a lunes, y tú eres uno de ellos. Avísanos en el formulario RSVP qué opinas.',
     checkIn: '• Check-in',
@@ -313,7 +319,7 @@ export const translations = {
     registryLabel: 'Lista de Bodas',
     registryTitle: 'Compartir nuestro día de boda contigo es lo más importante para nosotros.',
     registryText: 'Si deseas hacer un regalo, una contribución hacia nuestra luna de miel sería muy apreciada.',
-    honeymoonFund: 'Ver Fondo de Luna de Miel →',
+    honeymoonFund: 'Próximamente más detalles.',
 
     // Invite FAQ
     faqLabel: 'Preguntas frecuentes',

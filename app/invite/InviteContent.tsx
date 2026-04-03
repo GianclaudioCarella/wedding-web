@@ -9,11 +9,11 @@ import Countdown from '@/components/invite/Countdown'
 import { getTranslation } from '@/lib/translations'
 
 interface Event {
-  id: string; name: string; slug: string | null; event_date: string | null
-  event_time: string | null; location: string | null; description: string | null
+  id: string; name: { en: string; pt: string; es: string }; slug: string | null; event_date: string | null
+  event_time: string | null; location: string | null; description: { en: string; pt: string; es: string }
 }
 interface Transport { id: string; name: string; direction: string; departure_location: string | null; departure_time: string | null; notes: string | null }
-interface ExternalAccom { id: string; name: string; description: string | null; url: string | null; directions_url: string | null; distance_from_venue: string | null }
+interface ExternalAccom { id: string; name: string; description: { en: string; pt: string; es: string } | null; url: string | null; directions_url: string | null; distance_from_venue: string | null }
 interface RegistryItem { id: string; title: string; description: string | null; url: string | null; store_name: string | null; price: number | null; currency: string }
 interface FaqItem { id: string; question: string; answer: string | null }
 
@@ -214,14 +214,15 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
                       'the wedding':   '/event-wedding.png',
                       'the aftermath': '/event-sunday.png',
                     }
-                    const src = (event.slug && slugImgs[event.slug]) || nameImgs[event.name.toLowerCase().trim()] || null
-                    return src ? <img src={src} alt={event.name} className="timeline-image" /> : null
+                    const eventName = (event.name as any)?.[locale] || (event.name as any)?.en || ''
+                    const src = (event.slug && slugImgs[event.slug]) || nameImgs[eventName.toLowerCase().trim()] || null
+                    return src ? <img src={src} alt={eventName} className="timeline-image" /> : null
                   })()}
                   <div className="timeline-header">
-                    <p className="timeline-name">{event.name}</p>
-                    {(event.location || event.description) && (
+                    <p className="timeline-name">{(event.name as any)?.[locale] || (event.name as any)?.en}</p>
+                    {(event.location || (event.description as any)?.[locale] || (event.description as any)?.en) && (
                       <p className="timeline-meta">
-                        {[event.location, event.description].filter(Boolean).join(' · ')}
+                        {[event.location, (event.description as any)?.[locale] || (event.description as any)?.en].filter(Boolean).join(' · ')}
                       </p>
                     )}
                   </div>
@@ -328,7 +329,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
                   }}>
                     <div>
                       <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 400 }}>{a.name}</p>
-                      {a.description && <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{a.description}</p>}
+                      {(a.description as any)?.[locale] && <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{(a.description as any)?.[locale] || (a.description as any)?.en}</p>}
                     </div>
                     {a.distance_from_venue && (
                       <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0 }}>{a.distance_from_venue}</p>
@@ -336,12 +337,12 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
                     <div style={{ display: 'flex', gap: 16, marginTop: 'auto', flexWrap: 'wrap' as const }}>
                       {a.url && (
                         <a href={a.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ display: 'inline-flex' }}>
-                          <WaveText text="Website" />
+                          <WaveText text={t.website} />
                         </a>
                       )}
                       {a.directions_url && (
                         <a href={a.directions_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ display: 'inline-flex' }}>
-                          <WaveText text="Directions" />
+                          <WaveText text={t.directions} />
                         </a>
                       )}
                     </div>
@@ -391,10 +392,10 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
 
       {/* ── FAQ ── */}
       {(() => {
-        const translationFaqs = (t as any).faqs as { question: string; answer: string }[] | undefined
-        const displayFaqs: { question: string; answer: string }[] = translationFaqs?.length
-          ? translationFaqs
-          : faqs.map(f => ({ question: f.question, answer: f.answer || '—' }))
+        const displayFaqs: { question: string; answer: string }[] = faqs.map(f => ({
+          question: (f.question as any)?.[locale] || (f.question as any)?.en || '',
+          answer: (f.answer as any)?.[locale] || (f.answer as any)?.en || '—'
+        })).filter(f => f.question.trim())
         return (
           <section id="faq" className="schedule faq-section">
             <div className="schedule-inner" style={{ alignItems: 'start' }}>

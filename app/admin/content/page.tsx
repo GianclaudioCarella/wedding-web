@@ -4,9 +4,20 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface ContentRow { id: string; key: string; value: string | null; content_type: string; label: string | null }
-interface FaqItem { id: string; question: string; answer: string | null; sort_order: number; is_active: boolean }
+interface FaqItem {
+  id: string;
+  question: { en: string; pt: string; es: string };
+  answer: { en: string; pt: string; es: string };
+  sort_order: number;
+  is_active: boolean
+}
 
-const EMPTY_FAQ = { question: '', answer: '', sort_order: 0, is_active: true };
+const EMPTY_FAQ = {
+  question: { en: '', pt: '', es: '' },
+  answer: { en: '', pt: '', es: '' },
+  sort_order: 0,
+  is_active: true
+};
 
 export default function ContentPage() {
   const [tab, setTab] = useState<'content' | 'faq'>('content');
@@ -22,6 +33,7 @@ export default function ContentPage() {
   const [showFaqForm, setShowFaqForm] = useState(false);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [faqForm, setFaqForm] = useState(EMPTY_FAQ);
+  const [faqTab, setFaqTab] = useState<'en' | 'pt' | 'es'>('en');
   const [faqSaving, setFaqSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -63,15 +75,16 @@ export default function ContentPage() {
   };
 
   const openEditFaq = (faq: FaqItem) => {
-    setFaqForm({ question: faq.question, answer: faq.answer || '', sort_order: faq.sort_order, is_active: faq.is_active });
+    setFaqForm({ question: faq.question, answer: faq.answer, sort_order: faq.sort_order, is_active: faq.is_active });
     setEditingFaq(faq);
+    setFaqTab('en');
     setShowFaqForm(true);
   };
 
   const saveFaq = async () => {
-    if (!faqForm.question.trim()) return;
+    if (!faqForm.question.en.trim() && !faqForm.question.pt.trim() && !faqForm.question.es.trim()) return;
     setFaqSaving(true);
-    const payload = { question: faqForm.question, answer: faqForm.answer || null, sort_order: faqForm.sort_order, is_active: faqForm.is_active };
+    const payload = { question: faqForm.question, answer: faqForm.answer, sort_order: faqForm.sort_order, is_active: faqForm.is_active };
     if (editingFaq) {
       await supabase.from('faq_items').update(payload).eq('id', editingFaq.id);
     } else {
@@ -155,11 +168,11 @@ export default function ContentPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs text-gray-400 font-mono w-5 shrink-0">{i + 1}</span>
-                    <p className="text-sm font-medium text-gray-900">{faq.question}</p>
+                    <p className="text-sm font-medium text-gray-900">{faq.question.en || faq.question.pt || faq.question.es || '(no translation)'}</p>
                     {!faq.is_active && <span className="text-xs text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">Hidden</span>}
                   </div>
-                  {faq.answer && <p className="text-sm text-gray-500 ml-7 line-clamp-2">{faq.answer}</p>}
-                  {!faq.answer && <p className="text-sm text-gray-300 ml-7 italic">No answer yet</p>}
+                  {(faq.answer.en || faq.answer.pt || faq.answer.es) && <p className="text-sm text-gray-500 ml-7 line-clamp-2">{faq.answer.en || faq.answer.pt || faq.answer.es}</p>}
+                  {!faq.answer.en && !faq.answer.pt && !faq.answer.es && <p className="text-sm text-gray-300 ml-7 italic">No answer yet</p>}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <button onClick={() => toggleActive(faq)} className="text-xs text-gray-400 hover:text-gray-700">{faq.is_active ? 'Hide' : 'Show'}</button>
@@ -178,13 +191,24 @@ export default function ContentPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
             <div className="px-6 py-5 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">{editingFaq ? 'Edit question' : 'Add question'}</h2>
+              <div className="flex gap-1 mt-4 border-b border-gray-200">
+                {(['en', 'pt', 'es'] as const).map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setFaqTab(lang)}
+                    className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${faqTab === lang ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="px-6 py-5 space-y-4">
               <Field label="Question *">
-                <input type="text" value={faqForm.question} onChange={e => setFaqForm(f => ({ ...f, question: e.target.value }))} className="input" placeholder="Is there a dress code?" />
+                <input type="text" value={faqForm.question[faqTab]} onChange={e => setFaqForm(f => ({ ...f, question: { ...f.question, [faqTab]: e.target.value } }))} className="input" placeholder="Is there a dress code?" />
               </Field>
               <Field label="Answer">
-                <textarea value={faqForm.answer} onChange={e => setFaqForm(f => ({ ...f, answer: e.target.value }))} className="input resize-none" rows={4} placeholder="Your answer…" />
+                <textarea value={faqForm.answer[faqTab]} onChange={e => setFaqForm(f => ({ ...f, answer: { ...f.answer, [faqTab]: e.target.value } }))} className="input resize-none" rows={4} placeholder="Your answer…" />
               </Field>
               <div className="flex items-center gap-2">
                 <Field label="Sort order">
@@ -198,7 +222,7 @@ export default function ContentPage() {
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setShowFaqForm(false)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
-              <button onClick={saveFaq} disabled={faqSaving || !faqForm.question.trim()} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">{faqSaving ? 'Saving…' : editingFaq ? 'Save changes' : 'Add question'}</button>
+              <button onClick={saveFaq} disabled={faqSaving || (!faqForm.question.en.trim() && !faqForm.question.pt.trim() && !faqForm.question.es.trim())} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">{faqSaving ? 'Saving…' : editingFaq ? 'Save changes' : 'Add question'}</button>
             </div>
           </div>
         </div>

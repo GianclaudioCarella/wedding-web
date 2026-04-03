@@ -17,7 +17,8 @@ export default function AccommodationPage() {
   const [editingExt, setEditingExt] = useState<any>(null);
   const [roomForm, setRoomForm] = useState({ name: '', room_type: 'private', capacity: 2, floor: '', notes: '' });
   const [assignForm, setAssignForm] = useState({ guest_id: '', bed_label: '', notes: '' });
-  const [extForm, setExtForm] = useState({ name: '', description: '', url: '', directions_url: '', distance_from_venue: '', image_url: '' });
+  const [extForm, setExtForm] = useState({ name: '', description: { en: '', pt: '', es: '' }, url: '', directions_url: '', distance_from_venue: '', image_url: '' });
+  const [extTab, setExtTab] = useState<'en' | 'pt' | 'es'>('en');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
@@ -185,7 +186,7 @@ export default function AccommodationPage() {
       ) : (
         <>
           <div className="flex justify-end mb-4">
-            <button onClick={() => { setEditingExt(null); setExtForm({ name: '', description: '', url: '', directions_url: '', distance_from_venue: '', image_url: '' }); setShowExtModal(true); }} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add link</button>
+            <button onClick={() => { setEditingExt(null); setExtForm({ name: '', description: { en: '', pt: '', es: '' }, url: '', directions_url: '', distance_from_venue: '', image_url: '' }); setExtTab('en'); setShowExtModal(true); }} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add link</button>
           </div>
           <div className="grid gap-4">
             {external.map(ext => (
@@ -193,7 +194,7 @@ export default function AccommodationPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">{ext.name}</h3>
-                    {ext.description && <p className="text-sm text-gray-600 mt-1">{ext.description}</p>}
+                    {(ext.description as any)?.en && <p className="text-sm text-gray-600 mt-1">{(ext.description as any).en}</p>}
                     <div className="flex gap-4 mt-2 text-sm text-gray-500">
                       {ext.price_range && <span>{ext.price_range}</span>}
                       {ext.distance_from_venue && <span>{ext.distance_from_venue} from venue</span>}
@@ -201,7 +202,7 @@ export default function AccommodationPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 ml-4">
-                    <button onClick={() => { setEditingExt(ext); setExtForm({ name: ext.name, description: ext.description || '', url: ext.url || '', directions_url: ext.directions_url || '', distance_from_venue: ext.distance_from_venue || '', image_url: ext.image_url || '' }); setShowExtModal(true); }} className="text-xs text-gray-400 hover:text-gray-700">Edit</button>
+                    <button onClick={() => { setEditingExt(ext); setExtForm({ name: ext.name, description: (ext.description as any) || { en: '', pt: '', es: '' }, url: ext.url || '', directions_url: ext.directions_url || '', distance_from_venue: ext.distance_from_venue || '', image_url: ext.image_url || '' }); setExtTab('en'); setShowExtModal(true); }} className="text-xs text-gray-400 hover:text-gray-700">Edit</button>
                     <button onClick={() => deleteExt(ext.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                   </div>
                 </div>
@@ -265,10 +266,23 @@ export default function AccommodationPage() {
       {showExtModal && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
-            <div className="px-6 py-5 border-b border-gray-200"><h2 className="text-lg font-semibold text-gray-900">{editingExt ? 'Edit link' : 'Add link'}</h2></div>
+            <div className="px-6 py-5 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">{editingExt ? 'Edit link' : 'Add link'}</h2>
+              <div className="flex gap-1 mt-4 border-b border-gray-200">
+                {(['en', 'pt', 'es'] as const).map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setExtTab(lang)}
+                    className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${extTab === lang ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="px-6 py-5 space-y-4">
               <Field label="Name"><input type="text" value={extForm.name} onChange={e => setExtForm(f => ({ ...f, name: e.target.value }))} className="input" /></Field>
-              <Field label="Description"><textarea value={extForm.description} onChange={e => setExtForm(f => ({ ...f, description: e.target.value }))} className="input resize-none" rows={2} /></Field>
+              <Field label="Description"><textarea value={extForm.description[extTab]} onChange={e => setExtForm(f => ({ ...f, description: { ...f.description, [extTab]: e.target.value } }))} className="input resize-none" rows={2} /></Field>
               <Field label="Website URL"><input type="url" value={extForm.url} onChange={e => setExtForm(f => ({ ...f, url: e.target.value }))} className="input" placeholder="https://…" /></Field>
               <Field label="Directions URL (Google Maps)"><input type="url" value={extForm.directions_url} onChange={e => setExtForm(f => ({ ...f, directions_url: e.target.value }))} className="input" placeholder="https://www.google.com/maps/…" /></Field>
               <Field label="Distance from venue"><input type="text" value={extForm.distance_from_venue} onChange={e => setExtForm(f => ({ ...f, distance_from_venue: e.target.value }))} className="input" placeholder="2km from venue" /></Field>

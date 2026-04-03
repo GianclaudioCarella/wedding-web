@@ -5,12 +5,12 @@ import { supabase } from '@/lib/supabase';
 
 interface Event {
   id: string;
-  name: string;
+  name: { en: string; pt: string; es: string };
   slug: string | null;
   event_date: string | null;
   event_time: string | null;
   location: string | null;
-  description: string | null;
+  description: { en: string; pt: string; es: string };
   sort_order: number;
 }
 
@@ -31,6 +31,7 @@ export default function EventsPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [guestPopupEventId, setGuestPopupEventId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Event>>({});
+  const [eventTab, setEventTab] = useState<'en' | 'pt' | 'es'>('en');
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -137,7 +138,7 @@ export default function EventsPage() {
           <p className="text-sm text-gray-500">{loading ? '…' : `${events.length} event${events.length !== 1 ? 's' : ''}`}</p>
         </div>
         <button
-          onClick={() => { setForm({}); setIsAdding(true); }}
+          onClick={() => { setForm({ name: { en: '', pt: '', es: '' }, description: { en: '', pt: '', es: '' } }); setEventTab('en'); setIsAdding(true); }}
           className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700"
         >+ Add event</button>
       </div>
@@ -149,7 +150,7 @@ export default function EventsPage() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-gray-900">{event.name}</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">{(event.name as any)?.en || event.name}</h2>
                     {event.slug && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-0.5 rounded">{event.slug}</span>}
                   </div>
                   <p className="text-sm text-gray-500">
@@ -163,11 +164,11 @@ export default function EventsPage() {
                     <button onClick={() => handleMove(i, 'up')} disabled={i === 0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 leading-none text-xs">▲</button>
                     <button onClick={() => handleMove(i, 'down')} disabled={i === events.length - 1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 leading-none text-xs">▼</button>
                   </div>
-                  <button onClick={() => { setForm({ ...event }); setEditingId(event.id); }} className="text-sm text-gray-400 hover:text-gray-700">Edit</button>
+                  <button onClick={() => { setForm({ ...event }); setEventTab('en'); setEditingId(event.id); }} className="text-sm text-gray-400 hover:text-gray-700">Edit</button>
                   <button onClick={() => setDeleteConfirm(event.id)} className="text-sm text-red-400 hover:text-red-600">Delete</button>
                 </div>
               </div>
-              {event.description && <p className="text-sm text-gray-600 mb-4">{event.description}</p>}
+              {((event.description as any)?.en || event.description) && <p className="text-sm text-gray-600 mb-4">{(event.description as any)?.en || event.description}</p>}
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex gap-6">
                   {[
@@ -199,7 +200,7 @@ export default function EventsPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{popupEvent?.name}</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{(popupEvent?.name as any)?.en || popupEvent?.name}</h2>
                 <p className="text-xs text-gray-400 mt-0.5">{popupGuests.length} invited</p>
               </div>
               <button onClick={() => setGuestPopupEventId(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
@@ -232,24 +233,33 @@ export default function EventsPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
             <div className="px-6 py-5 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">{isAdding ? 'Add event' : 'Edit event'}</h2>
+              <div className="flex gap-1 mt-4 border-b border-gray-200">
+                {(['en', 'pt', 'es'] as const).map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setEventTab(lang)}
+                    className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${eventTab === lang ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Name *"><input type="text" value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" /></Field>
-                <Field label="Slug">
-                  <input type="text" value={form.slug || ''} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className="input" placeholder="e.g. wedding, pre-party, aftermath" />
-                </Field>
-              </div>
+              <Field label="Name *"><input type="text" value={(form.name as any)?.[eventTab] || ''} onChange={e => setForm(f => ({ ...f, name: { ...(f.name as any), [eventTab]: e.target.value } }))} className="input" /></Field>
+              <Field label="Slug">
+                <input type="text" value={form.slug || ''} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className="input" placeholder="e.g. wedding, pre-party, aftermath" />
+              </Field>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Date"><input type="date" value={form.event_date || ''} onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))} className="input" /></Field>
                 <Field label="Time"><input type="time" value={form.event_time || ''} onChange={e => setForm(f => ({ ...f, event_time: e.target.value }))} className="input" /></Field>
               </div>
               <Field label="Location"><input type="text" value={form.location || ''} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="input" /></Field>
-              <Field label="Description"><textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="input resize-none" rows={3} /></Field>
+              <Field label="Description"><textarea value={(form.description as any)?.[eventTab] || ''} onChange={e => setForm(f => ({ ...f, description: { ...(f.description as any), [eventTab]: e.target.value } }))} className="input resize-none" rows={3} /></Field>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => { setEditingId(null); setIsAdding(false); }} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
+              <button onClick={handleSave} disabled={saving || !((form.name as any)?.[eventTab]?.trim?.())} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
