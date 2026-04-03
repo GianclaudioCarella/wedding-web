@@ -23,7 +23,7 @@ interface Guest {
 }
 
 const EMPTY_FORM = {
-  name: '', email: '', phone: '', tags: [], language: 'en', notes: '',
+  name: '', email: '', phone: '', tags: [] as string[], language: 'en', notes: '',
   party_role: 'primary', party_leader_id: '', venue_stay_invited: false, attending: '',
   event_ids: [] as string[],
 };
