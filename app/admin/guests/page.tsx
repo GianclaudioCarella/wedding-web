@@ -424,9 +424,11 @@ export default function GuestsPage() {
 
                       {/* Invite link */}
                       <td className="px-4 py-3">
-                        <button onClick={() => copyLink(guest.invite_token)} className="text-xs text-gray-400 hover:text-gray-700 font-mono whitespace-nowrap">
-                          {copied === guest.invite_token ? '✓ Copied' : guest.invite_token.slice(0, 8) + '…'}
-                        </button>
+                        {!guest.party_leader_id && (
+                          <button onClick={() => copyLink(guest.invite_token)} className="text-xs text-gray-400 hover:text-gray-700 font-mono whitespace-nowrap">
+                            {copied === guest.invite_token ? '✓ Copied' : guest.invite_token.slice(0, 8) + '…'}
+                          </button>
+                        )}
                       </td>
 
                       {/* Actions */}
@@ -463,7 +465,9 @@ export default function GuestsPage() {
             </div>
             <div className="px-6 py-5 space-y-4">
               <Field label="Name *"><input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" /></Field>
-              <Field label="Email"><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="input" /></Field>
+              {form.party_role === 'primary' && (
+                <Field label="Email"><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="input" /></Field>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Tags</label>

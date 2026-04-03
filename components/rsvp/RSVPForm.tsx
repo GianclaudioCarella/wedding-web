@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { WaveText } from '@/components/WaveText';
 
 const TEXT  = 'var(--color-text)'
 const MUTED = 'var(--color-muted)'
@@ -14,9 +15,8 @@ const inputStyle = {
   fontFamily: SANS,
   fontSize: 'var(--text-base)',
   color: TEXT,
-  background: 'transparent',
-  border: '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-card)',
+  background: 'var(--color-surface)',
+  border: 'none',
   padding: '12px 16px',
   outline: 'none',
   boxSizing: 'border-box' as const,
@@ -25,8 +25,7 @@ const inputStyle = {
 }
 
 const sectionStyle = {
-  paddingBlock: 32,
-  borderTop: '1px solid var(--color-border)',
+  paddingBlock: 28,
 }
 
 const DIETARY_OPTIONS = [
@@ -55,18 +54,18 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const router = useRouter();
   const token = searchParams.get('guest');
 
-  const [loading, setLoading]     = useState(true);
-  const [notFound, setNotFound]   = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [notFound, setNotFound]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [guest, setGuest]         = useState<{ id: string; name: string; email: string; venue_stay_invited: boolean } | null>(null);
-  const [events, setEvents]       = useState<Event[]>([]);
-  const [rsvps, setRsvps]         = useState<Record<string, RSVPState>>({});
-  const [dietary, setDietary]     = useState<string[]>([]);
+  const [guest, setGuest]           = useState<{ id: string; name: string; email: string; venue_stay_invited: boolean } | null>(null);
+  const [events, setEvents]         = useState<Event[]>([]);
+  const [rsvps, setRsvps]           = useState<Record<string, RSVPState>>({});
+  const [dietary, setDietary]       = useState<string[]>([]);
   const [dietaryNotes, setDietaryNotes] = useState('');
   const [stayNights, setStayNights] = useState({ thursday_night: true, friday_night: true, saturday_night: true });
-  const [notes, setNotes]         = useState('');
-  const [plusOne, setPlusOne]     = useState(false);
+  const [notes, setNotes]           = useState('');
+  const [plusOne, setPlusOne]       = useState(false);
   const [plusOneName, setPlusOneName] = useState('');
   const [plusOneEmail, setPlusOneEmail] = useState('');
 
@@ -87,7 +86,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           if (r.notes) setNotes(r.notes);
         }
         setRsvps(rsvpMap);
-        if (data.guest.plus_one_name) { setPlusOne(true); setPlusOneName(data.guest.plus_one_name); }
+        if (data.guest.plus_one_name)  { setPlusOne(true); setPlusOneName(data.guest.plus_one_name); }
         if (data.guest.plus_one_email) setPlusOneEmail(data.guest.plus_one_email);
 
         if (data.stayRequest) {
@@ -113,28 +112,20 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
     });
   };
 
-  // Sort events by date+time
   const sortedEvents = [...events].sort((a, b) => {
     const aStr = `${a.event_date || ''}T${a.event_time || '00:00:00'}`
     const bStr = `${b.event_date || ''}T${b.event_time || '00:00:00'}`
     return aStr.localeCompare(bStr)
   })
 
-  // Ceremony gates everything — identified by name, fallback to middle event
-  const ceremonyEvent = sortedEvents.find(e =>
-    e.name.toLowerCase().includes('ceremon')
-  ) || sortedEvents[Math.floor(sortedEvents.length / 2)]
-
-  const otherEvents = sortedEvents.filter(e => e.id !== ceremonyEvent?.id)
-
+  const ceremonyEvent    = sortedEvents.find(e => e.name.toLowerCase().includes('ceremon')) || sortedEvents[Math.floor(sortedEvents.length / 2)]
+  const otherEvents      = sortedEvents.filter(e => e.id !== ceremonyEvent?.id)
   const ceremonyRsvp     = ceremonyEvent ? (rsvps[ceremonyEvent.id] || { status: '' }) : null
   const ceremonyAttending = ceremonyRsvp?.status === 'attending'
   const ceremonyDeclined  = ceremonyRsvp?.status === 'declined'
-
-  const anyAttending = ceremonyAttending
-  const dietaryAnswered = !anyAttending || dietary.length > 0
-  // allAnswered: ceremony must be answered; if attending, other events + dietary must also be answered
-  const allAnswered = !!ceremonyEvent && !!rsvps[ceremonyEvent.id]?.status && (
+  const anyAttending      = ceremonyAttending
+  const dietaryAnswered   = !anyAttending || dietary.length > 0
+  const allAnswered       = !!ceremonyEvent && !!rsvps[ceremonyEvent.id]?.status && (
     ceremonyDeclined || (otherEvents.every(e => rsvps[e.id]?.status) && dietaryAnswered)
   )
 
@@ -160,7 +151,6 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
       }),
     });
 
-    // Send confirmation email (fire and forget — don't block redirect)
     fetch('/api/send-rsvp-confirmation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -185,13 +175,26 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
     </div>
   );
 
+  const toggleBtn = (selected: boolean) => ({
+    flex: 1,
+    fontFamily: SANS,
+    fontSize: 'var(--text-sm)',
+    padding: '10px 12px',
+    borderRadius: 'var(--radius-pill)',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'background var(--transition)',
+    background: selected ? 'var(--color-pink)' : 'var(--color-surface)',
+    color: TEXT,
+  } as React.CSSProperties)
+
   return (
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 'var(--space-section)' }}>
       <div style={{ width: '100%', maxWidth: 520 }}>
 
         {/* Header */}
         <div style={{ marginBottom: 48 }}>
-          <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
+          <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: 'var(--color-green)', margin: 0, marginBottom: 12 }}>
             RSVP
           </p>
           <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
@@ -204,7 +207,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
 
-          {/* Ceremony — always shown first, gates everything */}
+          {/* Ceremony */}
           {ceremonyEvent && (() => {
             const rsvp = ceremonyRsvp!
             return (
@@ -223,19 +226,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                     { value: 'attending', label: "I'll be there" },
                     { value: 'declined',  label: "Can't make it" },
                   ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setEventRsvp(ceremonyEvent.id, opt.value)}
-                      style={{
-                        flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)',
-                        padding: '10px 12px', borderRadius: 'var(--radius-pill)',
-                        border: 'none', cursor: 'pointer',
-                        transition: 'background var(--transition), color var(--transition)',
-                        background: rsvp.status === opt.value ? TEXT : 'var(--color-surface)',
-                        color: rsvp.status === opt.value ? '#ffffff' : TEXT,
-                      }}
-                    >
+                    <button key={opt.value} type="button" onClick={() => setEventRsvp(ceremonyEvent.id, opt.value)} style={toggleBtn(rsvp.status === opt.value)}>
                       {opt.label}
                     </button>
                   ))}
@@ -244,7 +235,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             )
           })()}
 
-          {/* Other events — only shown if attending the ceremony */}
+          {/* Other events */}
           {ceremonyAttending && otherEvents.map(event => {
             const rsvp = rsvps[event.id] || { status: '' }
             return (
@@ -263,19 +254,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                     { value: 'attending', label: "I'll be there" },
                     { value: 'declined',  label: "Can't make it" },
                   ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setEventRsvp(event.id, opt.value)}
-                      style={{
-                        flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)',
-                        padding: '10px 12px', borderRadius: 'var(--radius-pill)',
-                        border: 'none', cursor: 'pointer',
-                        transition: 'background var(--transition), color var(--transition)',
-                        background: rsvp.status === opt.value ? TEXT : 'var(--color-surface)',
-                        color: rsvp.status === opt.value ? '#ffffff' : TEXT,
-                      }}
-                    >
+                    <button key={opt.value} type="button" onClick={() => setEventRsvp(event.id, opt.value)} style={toggleBtn(rsvp.status === opt.value)}>
                       {opt.label}
                     </button>
                   ))}
@@ -320,11 +299,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
                 {DIETARY_OPTIONS.map(opt => (
                   <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={dietary.includes(opt.id)}
-                      onChange={() => toggleDietary(opt.id)}
-                    />
+                    <input type="checkbox" checked={dietary.includes(opt.id)} onChange={() => toggleDietary(opt.id)} />
                     <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{opt.label}</span>
                   </label>
                 ))}
@@ -332,13 +307,13 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               <textarea
                 value={dietaryNotes}
                 onChange={e => setDietaryNotes(e.target.value)}
-                placeholder="Anything else we should know about allergies or requirements…"
+                placeholder="Anything else we should know…"
                 rows={2}
                 style={inputStyle}
               />
               {!dietaryAnswered && (
-                <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: 'var(--color-muted)', margin: 0, marginTop: 12 }}>
-                  Please select at least one option above, including "No requirements" if none apply.
+                <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginTop: 12 }}>
+                  Please select at least one option, including "No requirements" if none apply.
                 </p>
               )}
             </div>
@@ -401,7 +376,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {!!ceremonyRsvp?.status && (
             <div style={{ paddingTop: 32 }}>
               {!allAnswered && (
-                <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: 'var(--color-muted)', margin: 0, marginBottom: 16 }}>
+                <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
                   {!dietaryAnswered
                     ? 'Please select your dietary requirements above.'
                     : 'Please respond to all events above to continue.'}
@@ -410,23 +385,10 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               <button
                 type="submit"
                 disabled={!allAnswered || submitting}
-                style={{
-                  fontFamily: SANS,
-                  fontSize: 'var(--text-sm)',
-                  color: '#ffffff',
-                  background: TEXT,
-                  border: 'none',
-                  padding: '14px 36px',
-                  borderRadius: 'var(--radius-pill)',
-                  cursor: (!allAnswered || submitting) ? 'not-allowed' : 'pointer',
-                  opacity: (!allAnswered || submitting) ? 0.4 : 1,
-                  letterSpacing: 'var(--tracking-wide)',
-                  textTransform: 'uppercase' as const,
-                  fontWeight: 500,
-                  transition: 'background var(--transition), opacity var(--transition)',
-                }}
+                className="btn btn-primary"
+                style={{}}
               >
-                {submitting ? 'Sending…' : 'Send my RSVP'}
+                <WaveText text={submitting ? 'Sending…' : 'Send my RSVP'} />
               </button>
             </div>
           )}
@@ -434,7 +396,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         </form>
 
         {/* Contact */}
-        <div style={{ marginTop: 64, paddingTop: 32, borderTop: '1px solid var(--color-border)' }}>
+        <div style={{ marginTop: 64 }}>
           <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 4 }}>Any questions?</p>
           <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             hello@example.com

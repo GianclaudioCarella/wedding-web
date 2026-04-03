@@ -7,16 +7,24 @@
 :root {
 
   /* Colours */
-  --color-bg:        #fafafa;      /* page background */
-  --color-bg-alt:    #ffffff;      /* alternate section background */
-  --color-text:      #222222;      /* primary text */
-  --color-muted:     #888888;      /* secondary / label text */
-  --color-border:    rgba(0,0,0,0.10); /* subtle borders */
-  --color-surface:   rgba(0,0,0,0.08); /* pill / card backgrounds */
+  --color-bg:            #FFFFFF;          /* page background              */
+  --color-text:          #262626;          /* primary text                 */
+  --color-muted:         #595959;          /* descriptions / metadata      */
+  --color-border:        rgba(0,0,0,0.10); /* subtle borders               */
+  --color-surface:       #F7F7F5;          /* card / surface bg            */
+  --color-card:          #F7F7F5;          /* large card sections          */
+  --color-green:         #2D6B52;          /* accent / button text         */
+  --color-pink:          #FFB3F0;          /* primary button bg            */
+  --color-btn-secondary: #EDECEA;          /* secondary button resting     */
+  --color-btn-secondary-hover: #E4E3E0;    /* secondary button hover       */
+  --color-label:         var(--color-green);/* section / category labels   */
 
-  /* Typography */
-  --font-serif:      var(--font-hedvig-serif, 'Georgia', serif);
-  --font-sans:       var(--font-hedvig-sans,  'Helvetica Neue', Arial, sans-serif);
+  /* Typography
+     To swap fonts, change the font name in quotes below.
+     Available: 'Söhne'  |  'Overused Grotesk'
+     To add a new font: drop the .woff2 into /public/fonts/ and add an @font-face at the bottom of this file. */
+  --font-sans:       'Söhne', 'Helvetica Neue', Arial, sans-serif;
+  --font-serif:      'Söhne', 'Helvetica Neue', Arial, sans-serif;
 
   --text-xs:         11px;
   --text-sm:         13px;
@@ -27,18 +35,18 @@
   --text-display:    clamp(28px, 3vw, 42px);
 
   --leading-tight:   1.2;
-  --leading-normal:  1.6;
+  --leading-normal:  1.4;
   --tracking-wide:   0.05em;
   --tracking-widest: 0.18em;
 
   /* Spacing */
-  --space-section:   96px;   /* vertical padding between sections */
+  --space-section:   180px;   /* vertical padding between sections */
   --space-page:      16px;   /* outer page margin — mobile first */
 
   /* Radius */
   --radius-pill:     100px;
-  --radius-card:     12px;
-  --radius-image:    16px;
+  --radius-card:     0px;
+  --radius-image:    0px;
 
   /* Transitions */
   --transition:      0.15s ease;
@@ -49,12 +57,69 @@
    UI COMPONENTS
 ───────────────────────────────────────── */
 
+/* ── Button system ── */
+@keyframes wave-letter {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  font-weight: 500;
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--transition), color var(--transition);
+}
+
+.btn-primary {
+  background: var(--color-pink);
+  color: var(--color-text);
+}
+.btn-primary:hover {
+  background: var(--color-pink);
+  color: var(--color-text);
+}
+.btn-primary:disabled {
+  background: var(--color-btn-secondary);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--color-btn-secondary);
+  color: var(--color-green);
+}
+.btn-secondary:hover {
+  background: var(--color-btn-secondary-hover);
+  color: var(--color-green);
+}
+
+.btn-letter {
+  display: inline-block;
+  font-weight: inherit;
+}
+
+.btn:hover .btn-letter {
+  animation: wave-letter 0.4s ease both;
+  animation-delay: calc(var(--i, 0) * 0.03s);
+}
+
+/* FAB toggle button */
 .fab-btn {
   width: 44px;
   height: 44px;
   border-radius: 50%;
   border: none;
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
   display: flex;
@@ -63,30 +128,16 @@
   transition: background var(--transition), color var(--transition);
 }
 .fab-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--color-pink);
+  color: var(--color-text);
 }
 .fab-btn--open {
-  background: var(--color-text);
-  color: #ffffff;
+  background: var(--color-pink);
+  color: var(--color-text);
 }
 .fab-btn--open:hover {
-  background: #444444;
-}
-
-.fab-item {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  background: var(--color-pink);
   color: var(--color-text);
-  text-decoration: none;
-  padding: 8px 16px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  display: inline-block;
-  white-space: nowrap;
-  transition: background var(--transition);
-}
-.fab-item:hover {
-  background: rgba(0, 0, 0, 0.12);
 }
 
 
@@ -139,8 +190,8 @@
 }
 
 .pill--active {
-  background: var(--color-text);
-  color: #ffffff;
+  background: var(--color-pink);
+  color: var(--color-text);
 }
 
 /* Schedule section */
@@ -167,7 +218,7 @@
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--color-label);
   margin: 0 0 16px 0;
 }
 
@@ -192,7 +243,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--color-border);
+  background: var(--color-btn-secondary);
   overflow: hidden;
 }
 
@@ -202,7 +253,7 @@
   left: 0;
   right: 0;
   width: 100%;
-  background: var(--color-text);
+  background: var(--color-pink);
   transition: height 0.1s linear;
 }
 
@@ -289,14 +340,14 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--color-border);
+  background: var(--color-btn-secondary);
   overflow: hidden;
 }
 
 .timeline-spine-fill {
   position: absolute;
   top: 0; left: 0; right: 0; width: 100%;
-  background: var(--color-text);
+  background: var(--color-pink);
   transition: height 0.1s linear;
 }
 
@@ -328,6 +379,10 @@
 
 /* Mobile — all two-column layouts stack, text first */
 @media (max-width: 800px) {
+  body {
+    padding-inline: 16px;
+    overflow-x: hidden;
+  }
   .schedule-inner {
     grid-template-columns: 1fr;
     gap: 48px;
@@ -397,18 +452,43 @@
 /* ─────────────────────────────────────────
    BASE STYLES
 ───────────────────────────────────────── */
+/* ─────────────────────────────────────────
+   CUSTOM FONTS
+   All fonts live in /public/fonts/
+   Register new ones here, then reference the
+   font-family name in --font-sans / --font-serif above.
+───────────────────────────────────────── */
+
+/* Söhne */
 @font-face {
   font-family: 'Söhne';
   src: url('/fonts/soehne-buch.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
-
 @font-face {
   font-family: 'Söhne';
   src: url('/fonts/soehne-kraftig.woff2') format('woff2');
-  font-weight: 700;
+  font-weight: 500;
   font-style: normal;
+  font-display: swap;
+}
+
+/* Overused Grotesk */
+@font-face {
+  font-family: 'Overused Grotesk';
+  src: url('/fonts/OverusedGrotesk-Book.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Overused Grotesk';
+  src: url('/fonts/OverusedGrotesk-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
 }
 
 html {
