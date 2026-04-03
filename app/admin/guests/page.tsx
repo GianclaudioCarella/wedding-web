@@ -15,16 +15,16 @@ interface StayRequest {
 }
 interface Guest {
   id: string; name: string; email: string | null; phone: string | null;
-  group_name: string | null; language: string; notes: string | null;
+  tags: string[]; language: string; notes: string | null;
   invite_token: string; party_role: string; party_leader_id: string | null;
-  venue_stay_invited: boolean; invited_at: string | null; events: string[];
+  venue_stay_invited: boolean; invited_at: string | null; attending: string | null; events: string[];
   rsvps: Record<string, RsvpDetail>;
   stayRequest: StayRequest | null;
 }
 
 const EMPTY_FORM = {
-  name: '', email: '', phone: '', group_name: '', language: 'en', notes: '',
-  party_role: 'primary', party_leader_id: '', venue_stay_invited: false,
+  name: '', email: '', phone: '', tags: [], language: 'en', notes: '',
+  party_role: 'primary', party_leader_id: '', venue_stay_invited: false, attending: '',
   event_ids: [] as string[],
 };
 
@@ -33,12 +33,39 @@ const STATUS_STYLE: Record<string, React.CSSProperties> = {
   declined:  { background: '#fee2e2', color: '#dc2626' },
 };
 
+const getTagColor = (tag: string) => {
+  const colors = [
+    'border-blue-400 text-blue-400 bg-blue-400/10',
+    'border-green-400 text-green-400 bg-green-400/10',
+    'border-purple-400 text-purple-400 bg-purple-400/10',
+    'border-pink-400 text-pink-400 bg-pink-400/10',
+    'border-indigo-400 text-indigo-400 bg-indigo-400/10',
+    'border-yellow-400 text-yellow-400 bg-yellow-400/10',
+    'border-teal-400 text-teal-400 bg-teal-400/10',
+    'border-orange-400 text-orange-400 bg-orange-400/10',
+    'border-cyan-400 text-cyan-400 bg-cyan-400/10',
+    'border-rose-400 text-rose-400 bg-rose-400/10',
+    'border-lime-400 text-lime-400 bg-lime-400/10',
+    'border-amber-400 text-amber-400 bg-amber-400/10',
+    'border-emerald-400 text-emerald-400 bg-emerald-400/10',
+    'border-violet-400 text-violet-400 bg-violet-400/10',
+    'border-fuchsia-400 text-fuchsia-400 bg-fuchsia-400/10',
+    'border-sky-400 text-sky-400 bg-sky-400/10',
+    'border-red-400 text-red-400 bg-red-400/10',
+  ];
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export default function GuestsPage() {
   const [guests, setGuests]             = useState<Guest[]>([]);
   const [events, setEvents]             = useState<Event[]>([]);
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
-  const [groupFilter, setGroupFilter]   = useState('');
+  const [groupFilter, setGroupFilter]   = useState<string[]>([]);
   const [rsvpFilter, setRsvpFilter]     = useState('');
   const [showForm, setShowForm]         = useState(false);
   const [form, setForm]                 = useState(EMPTY_FORM);
@@ -95,7 +122,7 @@ export default function GuestsPage() {
   };
   const openEdit = (g: Guest) => {
     setForm({ name: g.name, email: g.email || '', phone: g.phone || '',
-      group_name: g.group_name || '', language: g.language, notes: g.notes || '',
+      tags: g.tags || [], language: g.language, notes: g.notes || '', attending: g.attending || '',
       party_role: g.party_role || 'primary', party_leader_id: g.party_leader_id || '',
       venue_stay_invited: g.venue_stay_invited || false, event_ids: g.events });
     setEditingId(g.id); setShowForm(true);
@@ -107,7 +134,8 @@ export default function GuestsPage() {
     try {
       const payload = {
         name: form.name, email: form.email || null, phone: form.phone || null,
-        group_name: form.group_name || null, language: form.language, notes: form.notes || null,
+        tags: form.tags && form.tags.length > 0 ? form.tags : null, language: form.language, notes: form.notes || null,
+        attending: form.attending || null,
         party_role: form.party_role, party_leader_id: form.party_leader_id || null,
         venue_stay_invited: form.venue_stay_invited,
       };
@@ -158,11 +186,11 @@ export default function GuestsPage() {
     await fetchAll();
   };
 
-  const tags          = Array.from(new Set(guests.map(g => g.group_name).filter(Boolean))) as string[];
+  const tags          = Array.from(new Set(guests.flatMap(g => g.tags || []))) as string[];
   const primaryGuests = guests.filter(g => !g.party_leader_id);
   const filtered      = guests.filter(g => {
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase()) || (g.email || '').toLowerCase().includes(search.toLowerCase());
-    const matchTag    = !groupFilter || g.group_name === groupFilter;
+    const matchTag    = groupFilter.length === 0 || (g.tags || []).some(t => groupFilter.includes(t));
     const hasRsvp     = Object.values(g.rsvps).some(r => r.status);
     const isAttending = Object.values(g.rsvps).some(r => r.status === 'attending');
     const isDeclined  = Object.values(g.rsvps).every(r => !r.status || r.status === 'declined') && Object.values(g.rsvps).some(r => r.status === 'declined');
@@ -196,7 +224,7 @@ export default function GuestsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Guests</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {guests.length} guests · {Object.values(guests.flatMap(g => Object.values(g.rsvps))).filter((r: any) => r.status === 'attending').length} attending · {guests.filter(g => g.invited_at).length} invited
+            {sortedFiltered.length} guests · {sortedFiltered.filter(g => g.attending === 'yes').length} save the date yes · {sortedFiltered.filter(g => Object.values(g.rsvps).some((r: any) => r.status === 'attending')).length} formal RSVP · {sortedFiltered.filter(g => g.invited_at).length} invited
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -212,13 +240,35 @@ export default function GuestsPage() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-5">
+      <div className="flex gap-3 mb-5 flex-wrap items-center">
         <input type="text" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-64 focus:outline-none focus:border-gray-400" />
-        <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-gray-400">
-          <option value="">All tags</option>
-          {tags.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select value={rsvpFilter} onChange={e => setRsvpFilter(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-gray-400">
+
+        <div className="flex flex-wrap gap-2">
+          {tags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => setGroupFilter(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+              className={`px-3 py-2 text-xs rounded-md font-medium transition-colors ${
+                groupFilter.includes(tag)
+                  ? `${getTagColor(tag)} border`
+                  : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+
+        {groupFilter.length > 0 && (
+          <button
+            onClick={() => setGroupFilter([])}
+            className="text-xs text-gray-400 hover:text-gray-600 font-medium"
+          >
+            Clear filters
+          </button>
+        )}
+
+        <select value={rsvpFilter} onChange={e => setRsvpFilter(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-gray-400 ml-auto">
           <option value="">All RSVPs</option>
           <option value="responded">Responded</option>
           <option value="pending">Pending</option>
@@ -240,6 +290,7 @@ export default function GuestsPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Dietary</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Stay</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Notes</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Save the Date</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Invited</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Link</th>
                   <th className="px-4 py-3"></th>
@@ -276,8 +327,20 @@ export default function GuestsPage() {
                         </div>
                       </td>
 
-                      {/* Group */}
-                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{guest.group_name || '—'}</td>
+                      {/* Tags */}
+                      <td className="px-4 py-3 text-xs whitespace-nowrap">
+                        {guest.tags?.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {guest.tags.map(tag => (
+                              <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">—</span>
+                        )}
+                      </td>
 
                       {/* Per-event RSVP */}
                       {events.map(e => {
@@ -324,6 +387,21 @@ export default function GuestsPage() {
                         <span className="line-clamp-2">{guest.notes || <span className="text-gray-300">—</span>}</span>
                       </td>
 
+                      {/* Save the Date status */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {guest.attending ? (
+                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                            guest.attending === 'yes' ? 'bg-green-100 text-green-700' :
+                            guest.attending === 'no' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {guest.attending === 'yes' ? '✓ Yes' : guest.attending === 'no' ? '✗ No' : '? Maybe'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300 text-xs">—</span>
+                        )}
+                      </td>
+
                       {/* Invited status */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         {guest.invited_at ? (
@@ -357,7 +435,7 @@ export default function GuestsPage() {
                           {!guest.party_leader_id && (
                             <button
                               onClick={() => {
-                                setForm({ ...EMPTY_FORM, group_name: guest.group_name || '', language: guest.language, party_role: 'partner', party_leader_id: guest.id, event_ids: guest.events, venue_stay_invited: guest.venue_stay_invited });
+                                setForm({ ...EMPTY_FORM, tags: guest.tags || [], language: guest.language, party_role: 'partner', party_leader_id: guest.id, event_ids: guest.events, venue_stay_invited: guest.venue_stay_invited });
                                 setEditingId(null); setShowForm(true);
                               }}
                               className="text-xs text-gray-400 hover:text-gray-700"
@@ -387,12 +465,58 @@ export default function GuestsPage() {
               <Field label="Name *"><input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" /></Field>
               <Field label="Email"><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="input" /></Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Tag"><input type="text" value={form.group_name} onChange={e => setForm(f => ({ ...f, group_name: e.target.value }))} className="input" list="tags-list" /><datalist id="tags-list">{tags.map(t => <option key={t} value={t} />)}</datalist></Field>
+                <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Tags</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Type and press Enter"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const newTag = (e.target as HTMLInputElement).value.trim();
+                        if (newTag && !form.tags?.includes(newTag)) {
+                          setForm(f => ({ ...f, tags: [...(f.tags || []), newTag] }));
+                        }
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }}
+                    list="tags-list"
+                    className="input flex-1"
+                  />
+                  <datalist id="tags-list">
+                    {tags.filter(t => !form.tags?.includes(t)).map(t => <option key={t} value={t} />)}
+                  </datalist>
+                </div>
+                {form.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {form.tags.map(tag => (
+                      <span key={tag} className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, tags: f.tags?.filter(t => t !== tag) || [] }))}
+                          className="hover:opacity-70"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
                 <Field label="Language">
                   <select value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))} className="input">
                     <option value="en">English</option>
                     <option value="pt">Portuguese</option>
                     <option value="es">Spanish</option>
+                  </select>
+                </Field>
+                <Field label="Save the Date">
+                  <select value={form.attending} onChange={e => setForm(f => ({ ...f, attending: e.target.value }))} className="input">
+                    <option value="">No answer</option>
+                    <option value="yes">Yes, attending</option>
+                    <option value="no">No, not attending</option>
+                    <option value="perhaps">Maybe</option>
                   </select>
                 </Field>
               </div>

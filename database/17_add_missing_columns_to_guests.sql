@@ -1,0 +1,8 @@
+-- Add missing columns to guests table
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS invited_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS invite_token TEXT UNIQUE;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS party_role TEXT DEFAULT 'primary';
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS party_leader_id UUID;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS plus_one_name TEXT;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS plus_one_email TEXT;
+ALTER TABLE guests ADD COLUMN IF NOT EXISTS venue_stay_invited BOOLEAN DEFAULT false;
