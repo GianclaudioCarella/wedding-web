@@ -134,8 +134,9 @@ export async function POST(request: NextRequest) {
 
   const baseUrl  = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const locale   = guest.language || 'en'
-  const inviteUrl = `${baseUrl}/invite?guest=${guest.invite_token}`
-  const rsvpUrl   = `${baseUrl}/rsvp?guest=${guest.invite_token}`
+  const localePath = locale === 'en' ? '' : `/${locale}`
+  const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
+  const rsvpUrl   = `${baseUrl}${localePath}/rsvp?guest=${guest.invite_token}`
 
   const subjects: Record<string, { yes: string; no: string }> = {
     en: { yes: 'See you there — RSVP confirmed',          no: "We'll miss you — RSVP confirmed" },

@@ -122,8 +122,9 @@ export async function POST(request: NextRequest) {
       continue
     }
 
-    const inviteUrl = `${baseUrl}/invite?guest=${guest.invite_token}`
     const locale = guest.language || 'en'
+    const localePath = locale === 'en' ? '' : `/${locale}`
+    const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
     const subjectMap: Record<string, string> = {
       en: "You're invited — Gian & Cat, 4 October 2026",
       pt: 'Estás convidado/a — Gian & Cat, 4 de outubro de 2026',
