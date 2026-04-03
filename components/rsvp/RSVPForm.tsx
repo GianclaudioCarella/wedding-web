@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { WaveText } from '@/components/WaveText';
+import { getTranslation } from '@/lib/translations';
 
 const TEXT  = 'var(--color-text)'
 const MUTED = 'var(--color-muted)'
@@ -50,6 +51,7 @@ interface Event { id: string; name: string; event_date: string | null; event_tim
 interface RSVPState { status: string }
 
 export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
+  const t = getTranslation(locale);
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('guest');
@@ -162,15 +164,15 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>Loading…</p>
+      <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>{t.loading}</p>
     </div>
   );
 
   if (notFound) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 8, fontWeight: 400 }}>Invitation not found</h1>
-        <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED }}>Please check your invitation link.</p>
+        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 8, fontWeight: 400 }}>{t.invitationNotFound}</h1>
+        <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED }}>{t.checkLink}</p>
       </div>
     </div>
   );
@@ -198,10 +200,10 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             RSVP
           </p>
           <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
-            {guest?.name ? `${guest.name},` : 'Let us know'}
+            {t.rsvpGreeting(guest?.name)}
           </h1>
           <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.5vw, 30px)', color: TEXT, margin: 0, marginTop: 8, fontWeight: 400, lineHeight: 1.3 }}>
-            will you be joining us?
+            {t.rsvpQuestion}
           </p>
         </div>
 
@@ -223,8 +225,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
-                    { value: 'attending', label: "I'll be there" },
-                    { value: 'declined',  label: "Can't make it" },
+                    { value: 'attending', label: t.attending },
+                    { value: 'declined',  label: t.notAttending },
                   ].map(opt => (
                     <button key={opt.value} type="button" onClick={() => setEventRsvp(ceremonyEvent.id, opt.value)} style={toggleBtn(rsvp.status === opt.value)}>
                       {opt.label}
@@ -251,8 +253,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
-                    { value: 'attending', label: "I'll be there" },
-                    { value: 'declined',  label: "Can't make it" },
+                    { value: 'attending', label: t.attending },
+                    { value: 'declined',  label: t.notAttending },
                   ].map(opt => (
                     <button key={opt.value} type="button" onClick={() => setEventRsvp(event.id, opt.value)} style={toggleBtn(rsvp.status === opt.value)}>
                       {opt.label}
@@ -267,13 +269,13 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {guest?.venue_stay_invited && anyAttending && (
             <div style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                Staying with us
+                {t.stayingWithUs}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16, lineHeight: 'var(--leading-normal)' }}>
-                You've been invited to stay at the venue — let us know if any nights don't work.
+                {t.stayDescription}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {NIGHTS.map(night => (
+                {t.nights.map(night => (
                   <label key={night.key} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                     <input
                       type="checkbox"
@@ -291,13 +293,13 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {anyAttending && (
             <div style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                Dietary requirements
+                {t.dietaryRequirements}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                Select all that apply.
+                {t.dietarySelectAll}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-                {DIETARY_OPTIONS.map(opt => (
+                {t.dietaryOptions.map(opt => (
                   <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                     <input type="checkbox" checked={dietary.includes(opt.id)} onChange={() => toggleDietary(opt.id)} />
                     <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{opt.label}</span>
@@ -307,13 +309,13 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               <textarea
                 value={dietaryNotes}
                 onChange={e => setDietaryNotes(e.target.value)}
-                placeholder="Anything else we should know…"
+                placeholder={t.dietaryPlaceholder}
                 rows={2}
                 style={inputStyle}
               />
               {!dietaryAnswered && (
                 <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginTop: 12 }}>
-                  Please select at least one option, including "No requirements" if none apply.
+                  {t.dietaryError}
                 </p>
               )}
             </div>
@@ -323,14 +325,14 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {anyAttending && (
             <div style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                Bringing a +1?
+                {t.plusOneTitle}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                Let us know and we'll send them an invitation.
+                {t.plusOneDescription}
               </p>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                 <input type="checkbox" checked={plusOne} onChange={e => setPlusOne(e.target.checked)} />
-                <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>Yes, I'm bringing a +1</span>
+                <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{t.plusOneCheckbox}</span>
               </label>
               {plusOne && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
@@ -338,14 +340,14 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                     type="text"
                     value={plusOneName}
                     onChange={e => setPlusOneName(e.target.value)}
-                    placeholder="Their name"
+                    placeholder={t.plusOneName}
                     style={inputStyle}
                   />
                   <input
                     type="email"
                     value={plusOneEmail}
                     onChange={e => setPlusOneEmail(e.target.value)}
-                    placeholder="Their email (optional)"
+                    placeholder={t.plusOneEmail}
                     style={inputStyle}
                   />
                 </div>
@@ -357,16 +359,16 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {!!ceremonyRsvp?.status && (
             <div style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                Anything else?
+                {t.anythingElse}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16, lineHeight: 'var(--leading-normal)' }}>
-                Accessibility needs, questions, or anything you'd like us to know.
+                {t.anythingElseDescription}
               </p>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={3}
-                placeholder="Let us know…"
+                placeholder={t.notesPlaceholder}
                 style={inputStyle}
               />
             </div>
@@ -378,8 +380,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               {!allAnswered && (
                 <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
                   {!dietaryAnswered
-                    ? 'Please select your dietary requirements above.'
-                    : 'Please respond to all events above to continue.'}
+                    ? t.dietaryErrorMessage
+                    : t.eventsErrorMessage}
                 </p>
               )}
               <button
@@ -388,7 +390,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                 className="btn btn-primary"
                 style={{}}
               >
-                <WaveText text={submitting ? 'Sending…' : 'Send my RSVP'} />
+                <WaveText text={submitting ? t.submitting : t.submitButton} />
               </button>
             </div>
           )}
@@ -397,9 +399,9 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
 
         {/* Contact */}
         <div style={{ marginTop: 64 }}>
-          <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 4 }}>Any questions?</p>
-          <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-            hello@example.com
+          <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 4 }}>{t.anyQuestions}</p>
+          <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            hello@giancat.com
           </a>
         </div>
 

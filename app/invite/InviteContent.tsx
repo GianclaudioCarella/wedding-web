@@ -407,8 +407,8 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 8, lineHeight: 'var(--leading-normal)' }}>
                 {t.anyOtherQuestions}
               </p>
-              <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                hello@example.com
+              <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                hello@giancat.com
               </a>
             </div>
           </div>
@@ -454,7 +454,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
           <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, lineHeight: 'var(--leading-normal)' }}>
             {t.rsvpVenue}
           </p>
-          <Link href={`/${locale === 'en' ? '' : locale}/rsvp?guest=${token}`} className="btn btn-primary">
+          <Link href={`${locale === 'en' ? '/rsvp' : `/${locale}/rsvp`}?guest=${token}`} className="btn btn-primary">
             <WaveText text={t.rsvpButton} />
           </Link>
         </div>
