@@ -1,430 +1,446 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Locale } from '@/lib/i18n/locales';
-import { getTranslation } from '@/lib/i18n/translations';
 
-interface RSVPFormProps {
-  locale: Locale;
+const TEXT  = 'var(--color-text)'
+const MUTED = 'var(--color-muted)'
+const SERIF = 'var(--font-serif)'
+const SANS  = 'var(--font-sans)'
+
+const inputStyle = {
+  display: 'block',
+  width: '100%',
+  fontFamily: SANS,
+  fontSize: 'var(--text-base)',
+  color: TEXT,
+  background: 'transparent',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-card)',
+  padding: '12px 16px',
+  outline: 'none',
+  boxSizing: 'border-box' as const,
+  marginTop: 8,
+  resize: 'vertical' as const,
 }
 
-export default function RSVPForm({ locale }: RSVPFormProps) {
-  const t = getTranslation(locale);
+const sectionStyle = {
+  paddingBlock: 32,
+  borderTop: '1px solid var(--color-border)',
+}
+
+const DIETARY_OPTIONS = [
+  { id: 'none',              label: 'No requirements' },
+  { id: 'vegetarian',        label: 'Vegetarian' },
+  { id: 'vegan',             label: 'Vegan' },
+  { id: 'gluten_free',       label: 'Gluten-free' },
+  { id: 'dairy_free',        label: 'Dairy-free' },
+  { id: 'nut_allergy',       label: 'Nut allergy' },
+  { id: 'shellfish_allergy', label: 'Shellfish allergy' },
+  { id: 'halal',             label: 'Halal' },
+  { id: 'kosher',            label: 'Kosher' },
+];
+
+const NIGHTS = [
+  { key: 'thursday_night', label: 'Thursday night' },
+  { key: 'friday_night',   label: 'Friday night' },
+  { key: 'saturday_night', label: 'Saturday night' },
+];
+
+interface Event { id: string; name: string; event_date: string | null; event_time: string | null }
+interface RSVPState { status: string }
+
+export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const guestId = searchParams.get('guest');
-  
-  const [attending, setAttending] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    address: '',
-    notes: '',
-  });
-  const [errors, setErrors] = useState({
-    name: false,
-    email: false,
-    address: false,
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [guestNotFound, setGuestNotFound] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [submitStatus, setSubmitStatus] = useState<{
-    type: 'success' | 'error' | null;
-    message: string;
-  }>({ type: null, message: '' });
+  const token = searchParams.get('guest');
+
+  const [loading, setLoading]     = useState(true);
+  const [notFound, setNotFound]   = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [guest, setGuest]         = useState<{ id: string; name: string; email: string; venue_stay_invited: boolean } | null>(null);
+  const [events, setEvents]       = useState<Event[]>([]);
+  const [rsvps, setRsvps]         = useState<Record<string, RSVPState>>({});
+  const [dietary, setDietary]     = useState<string[]>([]);
+  const [dietaryNotes, setDietaryNotes] = useState('');
+  const [stayNights, setStayNights] = useState({ thursday_night: true, friday_night: true, saturday_night: true });
+  const [notes, setNotes]         = useState('');
+  const [plusOne, setPlusOne]     = useState(false);
+  const [plusOneName, setPlusOneName] = useState('');
+  const [plusOneEmail, setPlusOneEmail] = useState('');
 
   useEffect(() => {
-    if (!guestId) {
-      setGuestNotFound(true);
-      setIsLoading(false);
-    } else {
-      fetchGuestData(guestId);
-    }
-  }, [guestId]);
+    if (!token) { setNotFound(true); setLoading(false); return; }
+    fetch(`/api/rsvp?token=${token}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) { setNotFound(true); return; }
+        setGuest(data.guest);
+        setEvents(data.events);
 
-  const fetchGuestData = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('guests')
-        .select('name, email, address, attending')
-        .eq('id', id)
-        .single();
+        const rsvpMap: Record<string, RSVPState> = {};
+        for (const r of data.existingRsvps) {
+          rsvpMap[r.event_id] = { status: r.status };
+          if (r.dietary_requirements?.length) setDietary(r.dietary_requirements);
+          if (r.dietary_notes) setDietaryNotes(r.dietary_notes);
+          if (r.notes) setNotes(r.notes);
+        }
+        setRsvps(rsvpMap);
+        if (data.guest.plus_one_name) { setPlusOne(true); setPlusOneName(data.guest.plus_one_name); }
+        if (data.guest.plus_one_email) setPlusOneEmail(data.guest.plus_one_email);
 
-      if (error || !data) {
-        setGuestNotFound(true);
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          name: data.name || '',
-          email: data.email || '',
-          address: data.address || '',
-        }));
-        setAttending(data.attending || '');
-      }
-    } catch (error) {
-      console.error('Error fetching guest:', error);
-      setGuestNotFound(true);
-    } finally {
-      setIsLoading(false);
-    }
+        if (data.stayRequest) {
+          setStayNights({
+            thursday_night: data.stayRequest.thursday_night,
+            friday_night:   data.stayRequest.friday_night,
+            saturday_night: data.stayRequest.saturday_night,
+          });
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  const setEventRsvp = (eventId: string, status: string) => {
+    setRsvps(prev => ({ ...prev, [eventId]: { status } }));
   };
+
+  const toggleDietary = (id: string) => {
+    if (id === 'none') { setDietary(['none']); return; }
+    setDietary(prev => {
+      const without = prev.filter(d => d !== 'none');
+      return without.includes(id) ? without.filter(d => d !== id) : [...without, id];
+    });
+  };
+
+  // Sort events by date+time
+  const sortedEvents = [...events].sort((a, b) => {
+    const aStr = `${a.event_date || ''}T${a.event_time || '00:00:00'}`
+    const bStr = `${b.event_date || ''}T${b.event_time || '00:00:00'}`
+    return aStr.localeCompare(bStr)
+  })
+
+  // Ceremony gates everything — identified by name, fallback to middle event
+  const ceremonyEvent = sortedEvents.find(e =>
+    e.name.toLowerCase().includes('ceremon')
+  ) || sortedEvents[Math.floor(sortedEvents.length / 2)]
+
+  const otherEvents = sortedEvents.filter(e => e.id !== ceremonyEvent?.id)
+
+  const ceremonyRsvp     = ceremonyEvent ? (rsvps[ceremonyEvent.id] || { status: '' }) : null
+  const ceremonyAttending = ceremonyRsvp?.status === 'attending'
+  const ceremonyDeclined  = ceremonyRsvp?.status === 'declined'
+
+  const anyAttending = ceremonyAttending
+  const dietaryAnswered = !anyAttending || dietary.length > 0
+  // allAnswered: ceremony must be answered; if attending, other events + dietary must also be answered
+  const allAnswered = !!ceremonyEvent && !!rsvps[ceremonyEvent.id]?.status && (
+    ceremonyDeclined || (otherEvents.every(e => rsvps[e.id]?.status) && dietaryAnswered)
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('🚀 RSVP Submit started!', { attending, email: formData.email, locale });
-    
-    // Only validate name, email, address when attending is 'yes'
-    // For 'perhaps' or 'no', these fields are not shown so don't validate them
-    if (attending === 'yes') {
-      // Email validation regex
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!allAnswered || !token) return;
+    setSubmitting(true);
 
-      // Validate required fields
-      const newErrors = {
-        name: !formData.name.trim(),
-        email: !formData.email.trim() || !emailRegex.test(formData.email),
-        address: !formData.address.trim(),
-      };
+    const responses = events.map(ev => ({ event_id: ev.id, status: rsvps[ev.id]?.status }));
 
-      setErrors(newErrors);
+    await fetch('/api/rsvp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        responses,
+        dietary_requirements: dietary,
+        dietary_notes:        dietaryNotes,
+        stay_request:         guest?.venue_stay_invited && anyAttending ? stayNights : null,
+        notes,
+        plus_one_name:  plusOne ? plusOneName : '',
+        plus_one_email: plusOne ? plusOneEmail : '',
+      }),
+    });
 
-      // Check if there are any errors
-      if (Object.values(newErrors).some(error => error)) {
-        console.log('❌ Form validation failed:', newErrors);
-        return;
-      }
-    }
-    
-    setIsSubmitting(true);
-    setSubmitStatus({ type: null, message: '' });
-    
-    console.log('✅ Form validated, saving to database...');
+    // Send confirmation email (fire and forget — don't block redirect)
+    fetch('/api/send-rsvp-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, attending: anyAttending }),
+    }).catch(() => {});
 
-    try {
-      if (guestId) {
-        console.log('📝 Updating existing guest:', guestId);
-        // Update existing guest
-        const { error } = await supabase
-          .from('guests')
-          .update({
-            name: formData.name,
-            email: formData.email,
-            address: formData.address,
-            attending: attending,
-            notes: formData.notes,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', guestId);
-
-        if (error) throw error;
-        console.log('✅ Guest updated successfully');
-      } else {
-        console.log('➕ Creating new guest');
-        // Insert new guest
-        const { error } = await supabase.from('guests').insert([
-          {
-            name: formData.name,
-            email: formData.email,
-            address: formData.address,
-            attending: attending,
-            notes: formData.notes,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-
-        if (error) throw error;
-        console.log('✅ Guest created successfully');
-      }
-
-      // Send confirmation email only for yes responses
-      if (attending === 'yes') {
-        try {
-          console.log('Sending confirmation email to:', formData.email);
-          
-          // Localized event dates
-          const eventDates: Record<string, string> = {
-            'en': 'Saturday, October 3, 2026',
-            'es': 'Sábado, 3 de octubre de 2026',
-            'pt': 'Sábado, 3 de outubro de 2026'
-          };
-          
-          const response = await fetch('/api/send-rsvp-email', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              guestName: formData.name,
-              guestEmail: formData.email,
-              attending: attending,
-              eventDate: eventDates[locale] || eventDates['en'],
-              eventLocation: 'La Garriga de Castelladral, Barcelona',
-              locale: locale,
-            }),
-          });
-          
-          const result = await response.json();
-          console.log('Email API response:', response.status, result);
-          
-          if (!response.ok) {
-            console.error('Email API error:', result);
-          }
-        } catch (emailError) {
-          // Don't fail the RSVP if email fails
-          console.error('Failed to send confirmation email:', emailError);
-        }
-      }
-
-      // Redirect to confirmation page with locale prefix
-      const baseUrl = locale === 'en' ? '' : `/${locale}`;
-      const confirmationUrl = guestId 
-        ? `${baseUrl}/rsvp/confirmation?guest=${guestId}` 
-        : `${baseUrl}/rsvp/confirmation`;
-      router.push(confirmationUrl);
-    } catch (error) {
-      console.error('Error submitting RSVP:', error);
-      setSubmitStatus({
-        type: 'error',
-        message: t.rsvp.submit.error,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    router.push(`/rsvp/confirmation?guest=${token}`);
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [name]: false }));
-    }
-  };
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>Loading…</p>
+    </div>
+  );
 
-  if (isLoading) {
-    return (
-      <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#fafafa' }}>
-        <div className="max-w-md mx-auto text-center">
-          <p className="text-gray-900">{t.common.loading}</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (guestNotFound) {
-    return (
-      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
-        <div className="max-w-md text-center space-y-4">
-          <h1 className="text-4xl font-bold text-gray-900" style={{ letterSpacing: '0.05em' }}>
-            {t.rsvp.notFound.title}
-          </h1>
-          <p className="text-lg text-gray-700">
-            {t.rsvp.notFound.message}
-          </p>
-        </div>
-      </main>
-    );
-  }
-
-  const homeUrl = locale === 'en' 
-    ? (guestId ? `/?guest=${guestId}` : "/")
-    : (guestId ? `/${locale}?guest=${guestId}` : `/${locale}`);
+  if (notFound) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 8, fontWeight: 400 }}>Invitation not found</h1>
+        <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED }}>Please check your invitation link.</p>
+      </div>
+    </div>
+  );
 
   return (
-    <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8 flex items-center justify-center" style={{ backgroundColor: '#fafafa' }}>
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg p-6">
-          <div className="text-center space-y-2 mb-6">
-            <Link href={homeUrl} className="inline-block w-[98%] mx-auto">
-              <img
-                src="/save-the-date-gif.gif"
-                alt="Save the Date"
-                className="rounded-lg w-full h-auto"
-              />
-            </Link>
-          </div>
+    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 'var(--space-section)' }}>
+      <div style={{ width: '100%', maxWidth: 520 }}>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-6">
-            <div className="text-center mb-4">
-              <h1 className="text-base md:text-md text-gray-900 font-semibold">{t.rsvp.title}</h1>
-              <p className="text-base text-sm text-gray-700">{t.rsvp.subtitle}</p>
-            </div>
+        {/* Header */}
+        <div style={{ marginBottom: 48 }}>
+          <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
+            RSVP
+          </p>
+          <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
+            {guest?.name ? `${guest.name},` : 'Let us know'}
+          </h1>
+          <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.5vw, 30px)', color: TEXT, margin: 0, marginTop: 8, fontWeight: 400, lineHeight: 1.3 }}>
+            will you be joining us?
+          </p>
+        </div>
 
-            {/* Attending Question with Segmented Buttons */}
-            <div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAttending('yes')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'yes'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  {t.rsvp.attending.yes}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttending('perhaps')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'perhaps'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  {t.rsvp.attending.maybe}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttending('no')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'no'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  {t.rsvp.attending.no}
-                </button>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+          {/* Ceremony — always shown first, gates everything */}
+          {ceremonyEvent && (() => {
+            const rsvp = ceremonyRsvp!
+            return (
+              <div style={sectionStyle}>
+                <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
+                  {ceremonyEvent.name}
+                </p>
+                {ceremonyEvent.event_date && (
+                  <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
+                    {new Date(ceremonyEvent.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {ceremonyEvent.event_time ? ` · ${ceremonyEvent.event_time.slice(0, 5)}` : ''}
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[
+                    { value: 'attending', label: "I'll be there" },
+                    { value: 'declined',  label: "Can't make it" },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setEventRsvp(ceremonyEvent.id, opt.value)}
+                      style={{
+                        flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)',
+                        padding: '10px 12px', borderRadius: 'var(--radius-pill)',
+                        border: 'none', cursor: 'pointer',
+                        transition: 'background var(--transition), color var(--transition)',
+                        background: rsvp.status === opt.value ? TEXT : 'var(--color-surface)',
+                        color: rsvp.status === opt.value ? '#ffffff' : TEXT,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Other events — only shown if attending the ceremony */}
+          {ceremonyAttending && otherEvents.map(event => {
+            const rsvp = rsvps[event.id] || { status: '' }
+            return (
+              <div key={event.id} style={sectionStyle}>
+                <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
+                  {event.name}
+                </p>
+                {event.event_date && (
+                  <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
+                    {new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    {event.event_time ? ` · ${event.event_time.slice(0, 5)}` : ''}
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[
+                    { value: 'attending', label: "I'll be there" },
+                    { value: 'declined',  label: "Can't make it" },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setEventRsvp(event.id, opt.value)}
+                      style={{
+                        flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)',
+                        padding: '10px 12px', borderRadius: 'var(--radius-pill)',
+                        border: 'none', cursor: 'pointer',
+                        transition: 'background var(--transition), color var(--transition)',
+                        background: rsvp.status === opt.value ? TEXT : 'var(--color-surface)',
+                        color: rsvp.status === opt.value ? '#ffffff' : TEXT,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Venue stay */}
+          {guest?.venue_stay_invited && anyAttending && (
+            <div style={sectionStyle}>
+              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
+                Staying with us
+              </p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16, lineHeight: 'var(--leading-normal)' }}>
+                You've been invited to stay at the venue — let us know if any nights don't work.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {NIGHTS.map(night => (
+                  <label key={night.key} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={stayNights[night.key as keyof typeof stayNights]}
+                      onChange={e => setStayNights(prev => ({ ...prev, [night.key]: e.target.checked }))}
+                    />
+                    <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{night.label}</span>
+                  </label>
+                ))}
               </div>
             </div>
+          )}
 
-            {/* Conditional Fields: Show only if "Yes" */}
-            {attending === 'yes' && (
-              <>
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-900">
-                    {t.rsvp.form.name.label} {t.rsvp.form.name.required && '*'}
+          {/* Dietary */}
+          {anyAttending && (
+            <div style={sectionStyle}>
+              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
+                Dietary requirements
+              </p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
+                Select all that apply.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                {DIETARY_OPTIONS.map(opt => (
+                  <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={dietary.includes(opt.id)}
+                      onChange={() => toggleDietary(opt.id)}
+                    />
+                    <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{opt.label}</span>
                   </label>
+                ))}
+              </div>
+              <textarea
+                value={dietaryNotes}
+                onChange={e => setDietaryNotes(e.target.value)}
+                placeholder="Anything else we should know about allergies or requirements…"
+                rows={2}
+                style={inputStyle}
+              />
+              {!dietaryAnswered && (
+                <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: 'var(--color-muted)', margin: 0, marginTop: 12 }}>
+                  Please select at least one option above, including "No requirements" if none apply.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* +1 */}
+          {anyAttending && (
+            <div style={sectionStyle}>
+              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
+                Bringing a +1?
+              </p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
+                Let us know and we'll send them an invitation.
+              </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={plusOne} onChange={e => setPlusOne(e.target.checked)} />
+                <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>Yes, I'm bringing a +1</span>
+              </label>
+              {plusOne && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
                   <input
                     type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder={t.rsvp.form.name.placeholder}
+                    value={plusOneName}
+                    onChange={e => setPlusOneName(e.target.value)}
+                    placeholder="Their name"
+                    style={inputStyle}
                   />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{t.rsvp.form.name.error}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-                    {t.rsvp.form.email.label} {t.rsvp.form.email.required && '*'}
-                  </label>
                   <input
                     type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder={t.rsvp.form.email.placeholder}
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{t.rsvp.form.email.error}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-900">
-                    {t.rsvp.form.address.label} {t.rsvp.form.address.required && '*'}
-                  </label>
-                  <textarea
-                    id="address"
-                    name="address"
-                    rows={2}
-                    required
-                    value={formData.address}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.address ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder={t.rsvp.form.address.placeholder}
-                  />
-                  {errors.address && (
-                    <p className="mt-1 text-sm text-red-600">{t.rsvp.form.address.error}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                    {t.rsvp.form.notes.label}
-                    <span className="text-gray-500 text-xs ml-2">{t.rsvp.form.notes.counter(formData.notes.length)}</span>
-                  </label>
-                  <textarea
-                    id="notes"
-                    name="notes"
-                    rows={2}
-                    maxLength={500}
-                    value={formData.notes}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                    placeholder={t.rsvp.form.notes.placeholder.yes}
+                    value={plusOneEmail}
+                    onChange={e => setPlusOneEmail(e.target.value)}
+                    placeholder="Their email (optional)"
+                    style={inputStyle}
                   />
                 </div>
-              </>
-            )}
+              )}
+            </div>
+          )}
 
-            {/* Notes field for "No" or "Maybe" response */}
-            {(attending === 'no' || attending === 'perhaps') && (
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                  {t.rsvp.form.notes.label}
-                  <span className="text-gray-500 text-xs ml-2">{t.rsvp.form.notes.counter(formData.notes.length)}</span>
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  rows={2}
-                  maxLength={500}
-                  value={formData.notes}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                  placeholder={t.rsvp.form.notes.placeholder.default}
-                />
-              </div>
-            )}
+          {/* Notes */}
+          {!!ceremonyRsvp?.status && (
+            <div style={sectionStyle}>
+              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
+                Anything else?
+              </p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16, lineHeight: 'var(--leading-normal)' }}>
+                Accessibility needs, questions, or anything you'd like us to know.
+              </p>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={3}
+                placeholder="Let us know…"
+                style={inputStyle}
+              />
+            </div>
+          )}
 
-            {submitStatus.type && (
-              <div
-                className={`p-4 rounded-md ${
-                  submitStatus.type === 'success'
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}
-              >
-                {submitStatus.message}
-              </div>
-            )}
-
-            {submitStatus.type !== 'success' && attending && (
+          {/* Submit */}
+          {!!ceremonyRsvp?.status && (
+            <div style={{ paddingTop: 32 }}>
+              {!allAnswered && (
+                <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: 'var(--color-muted)', margin: 0, marginBottom: 16 }}>
+                  {!dietaryAnswered
+                    ? 'Please select your dietary requirements above.'
+                    : 'Please respond to all events above to continue.'}
+                </p>
+              )}
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                disabled={!allAnswered || submitting}
+                style={{
+                  fontFamily: SANS,
+                  fontSize: 'var(--text-sm)',
+                  color: '#ffffff',
+                  background: TEXT,
+                  border: 'none',
+                  padding: '14px 36px',
+                  borderRadius: 'var(--radius-pill)',
+                  cursor: (!allAnswered || submitting) ? 'not-allowed' : 'pointer',
+                  opacity: (!allAnswered || submitting) ? 0.4 : 1,
+                  letterSpacing: 'var(--tracking-wide)',
+                  textTransform: 'uppercase' as const,
+                  fontWeight: 500,
+                  transition: 'background var(--transition), opacity var(--transition)',
+                }}
               >
-                {isSubmitting ? t.rsvp.submit.sending : t.rsvp.submit.button}
+                {submitting ? 'Sending…' : 'Send my RSVP'}
               </button>
-            )}
-          </form>
+            </div>
+          )}
+
+        </form>
+
+        {/* Contact */}
+        <div style={{ marginTop: 64, paddingTop: 32, borderTop: '1px solid var(--color-border)' }}>
+          <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 4 }}>Any questions?</p>
+          <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            hello@example.com
+          </a>
         </div>
+
       </div>
     </main>
   );

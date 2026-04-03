@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { Hedvig_Letters_Sans, Hedvig_Letters_Serif } from 'next/font/google'
 import "./globals.css";
+
+const hedvigSans = Hedvig_Letters_Sans({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+})
+
+const hedvigSerif = Hedvig_Letters_Serif({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-serif',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: "Gian & Cat Wedding",
@@ -15,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${hedvigSans.variable} ${hedvigSerif.variable}`}>
       <body className="antialiased" suppressHydrationWarning>
         {children}
       </body>
