@@ -3,14 +3,40 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
+
+const TEXT  = 'var(--color-text)'
+const MUTED = 'var(--color-muted)'
+const SERIF = 'var(--font-serif)'
+const SANS  = 'var(--font-sans)'
+
+const inputStyle = {
+  display: 'block',
+  width: '100%',
+  fontFamily: SANS,
+  fontSize: 'var(--text-base)',
+  color: TEXT,
+  background: 'transparent',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-card)',
+  padding: '12px 16px',
+  outline: 'none',
+  boxSizing: 'border-box' as const,
+  marginTop: 8,
+}
+
+const labelStyle = {
+  fontFamily: SANS,
+  fontSize: 'var(--text-sm)',
+  color: TEXT,
+  display: 'block',
+}
 
 export default function RSVPContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const guestId = searchParams.get('guest');
-  
+
   const [attending, setAttending] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -69,42 +95,23 @@ export default function RSVPContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('🚀 RSVP Submit started!', { attending, email: formData.email });
-    
-    // Only validate name, email, address when attending is 'yes'
-    // For 'perhaps' or 'no', these fields are not shown so don't validate them
-    if (attending === 'yes') {
-      // Email validation regex
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-      // Validate required fields
+    if (attending === 'yes') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const newErrors = {
         name: !formData.name.trim(),
         email: !formData.email.trim() || !emailRegex.test(formData.email),
         address: !formData.address.trim(),
       };
-
       setErrors(newErrors);
-
-      // Check if there are any errors
-      if (Object.values(newErrors).some(error => error)) {
-        console.log('❌ Form validation failed:', newErrors);
-        return;
-      }
+      if (Object.values(newErrors).some(error => error)) return;
     }
-    
+
     setIsSubmitting(true);
     setSubmitStatus({ type: null, message: '' });
-    
-    console.log('✅ Form validated, saving to database...');
-
-    console.log('✅ Form validated, saving to database...');
 
     try {
       if (guestId) {
-        console.log('📝 Updating existing guest:', guestId);
-        // Update existing guest
         const { error } = await supabase
           .from('guests')
           .update({
@@ -116,36 +123,24 @@ export default function RSVPContent() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', guestId);
-
         if (error) throw error;
-        console.log('✅ Guest updated successfully');
       } else {
-        console.log('➕ Creating new guest');
-        // Insert new guest
-        const { error } = await supabase.from('guests').insert([
-          {
-            name: formData.name,
-            email: formData.email,
-            address: formData.address,
-            attending: attending,
-            notes: formData.notes,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-
+        const { error } = await supabase.from('guests').insert([{
+          name: formData.name,
+          email: formData.email,
+          address: formData.address,
+          attending: attending,
+          notes: formData.notes,
+          created_at: new Date().toISOString(),
+        }]);
         if (error) throw error;
-        console.log('✅ Guest created successfully');
       }
 
-      // Send confirmation email only for yes responses
       if (attending === 'yes') {
         try {
-          console.log('Sending confirmation email to:', formData.email);
-          const response = await fetch('/api/send-rsvp-email', {
+          await fetch('/api/send-rsvp-email', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               guestName: formData.name,
               guestEmail: formData.email,
@@ -155,20 +150,11 @@ export default function RSVPContent() {
               locale: 'en',
             }),
           });
-          
-          const result = await response.json();
-          console.log('Email API response:', response.status, result);
-          
-          if (!response.ok) {
-            console.error('Email API error:', result);
-          }
         } catch (emailError) {
-          // Don't fail the RSVP if email fails
           console.error('Failed to send confirmation email:', emailError);
         }
       }
 
-      // Redirect to confirmation page
       const confirmationUrl = guestId ? `/rsvp/confirmation?guest=${guestId}` : '/rsvp/confirmation';
       router.push(confirmationUrl);
     } catch (error) {
@@ -187,186 +173,127 @@ export default function RSVPContent() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: false }));
     }
   };
 
-  if (isLoading) {
-    return (
-      <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#fafafa' }}>
-        <div className="max-w-md mx-auto text-center">
-          <p className="text-gray-900">Loading...</p>
-        </div>
-      </main>
-    );
-  }
+  if (isLoading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>Loading…</p>
+    </div>
+  );
 
-  if (guestNotFound) {
-    return (
-      <main className="flex h-screen flex-col items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
-        <div className="max-w-md text-center space-y-4">
-          <h1 className="text-4xl font-bold text-gray-900" style={{ letterSpacing: '0.05em' }}>
-            Not Found
-          </h1>
-          <p className="text-lg text-gray-700">
-            We couldn't find your invitation. Please check your invitation link.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  if (guestNotFound) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 8, fontWeight: 400 }}>Invitation not found</h1>
+        <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED }}>Please check your invitation link.</p>
+      </div>
+    </div>
+  );
 
   return (
-    <main className="min-h-screen pt-[30px] pb-[30px] px-4 sm:px-6 lg:px-8 flex items-center justify-center" style={{ backgroundColor: '#fafafa' }}>
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-lg p-6">
-          <div className="text-center space-y-2 mb-6">
-            <Link href={guestId ? `/?guest=${guestId}` : "/"} className="inline-block w-[98%] mx-auto">
-              <img
-                src="/save-the-date-gif.gif"
-                alt="Save the Date"
-                className="rounded-lg w-full h-auto"
-              />
-            </Link>
+    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 'var(--space-section)' }}>
+      <div style={{ width: '100%', maxWidth: 480 }}>
+
+        {/* Back link */}
+        <Link
+          href={guestId ? `/invite?guest=${guestId}` : '/invite'}
+          style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, textDecoration: 'none', display: 'inline-block', marginBottom: 48 }}
+        >
+          ← Back to invitation
+        </Link>
+
+        {/* Header */}
+        <div style={{ marginBottom: 48 }}>
+          <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
+            RSVP
+          </p>
+          <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
+            Let us know if you&rsquo;ll be joining us.
+          </h1>
+        </div>
+
+        <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+
+          {/* Attending toggle */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['yes', 'perhaps', 'no'] as const).map((val) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setAttending(val)}
+                style={{
+                  flex: 1,
+                  fontFamily: SANS,
+                  fontSize: 'var(--text-sm)',
+                  padding: '10px 16px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background var(--transition), color var(--transition)',
+                  background: attending === val ? TEXT : 'var(--color-surface)',
+                  color: attending === val ? '#ffffff' : TEXT,
+                }}
+              >
+                {val === 'yes' ? 'Yes' : val === 'perhaps' ? 'Maybe' : 'No'}
+              </button>
+            ))}
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-6">
-            <div className="text-center mb-4">
-              <h1 className="text-base md:text-md text-gray-900 font-semibold">Let us know if you can make it</h1>
-              <p className="text-base text-sm text-gray-700">Any answer helps us plan – yes, no, or maybe.</p>
-            </div>
-            {/* First: Attending Question with Segmented Buttons */}
-            <div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAttending('yes')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'yes'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttending('perhaps')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'perhaps'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  Maybe
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAttending('no')}
-                  className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-                    attending === 'no'
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  }`}
-                >
-                  No
-                </button>
-              </div>
-            </div>
-
-            {/* Conditional Fields: Show only if "Yes" */}
-            {attending === 'yes' && (
-              <>
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-900">
-                    Your Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder="John Doe"
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">How you’d like us to address you. It's required.</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-900">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder="Your email address"
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">Please enter a valid email address</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-900">
-                    Postal address *
-                  </label>
-                  <textarea
-                    id="address"
-                    name="address"
-                    rows={2}
-                    required
-                    value={formData.address}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-gray-500 text-gray-900 ${
-                      errors.address ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-gray-500'
-                    }`}
-                    placeholder="So we can send you a formal invitation."
-                  />
-                  {errors.address && (
-                    <p className="mt-1 text-sm text-red-600">Address is required</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                    Notes (Optional)
-                    <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
-                  </label>
-                  <textarea
-                    id="notes"
-                    name="notes"
-                    rows={2}
-                    maxLength={500}
-                    value={formData.notes}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                    placeholder="Any special requests or comments..."
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Notes field for "No" or "Maybe" response */}
-            {(attending === 'no' || attending === 'perhaps') && (
+          {/* Fields for Yes */}
+          {attending === 'yes' && (
+            <>
               <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-900">
-                  Notes (Optional)
-                  <span className="text-gray-500 text-xs ml-2">{formData.notes.length}/500</span>
+                <label htmlFor="name" style={labelStyle}>Your name *</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Full name"
+                  style={{ ...inputStyle, borderColor: errors.name ? '#cc0000' : 'var(--color-border)' }}
+                />
+                {errors.name && <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', color: '#cc0000', margin: '6px 0 0' }}>Name is required.</p>}
+              </div>
+
+              <div>
+                <label htmlFor="email" style={labelStyle}>Email address *</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="your@email.com"
+                  style={{ ...inputStyle, borderColor: errors.email ? '#cc0000' : 'var(--color-border)' }}
+                />
+                {errors.email && <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', color: '#cc0000', margin: '6px 0 0' }}>Please enter a valid email address.</p>}
+              </div>
+
+              <div>
+                <label htmlFor="address" style={labelStyle}>Postal address *</label>
+                <textarea
+                  id="address"
+                  name="address"
+                  rows={2}
+                  required
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="So we can send you a formal invitation."
+                  style={{ ...inputStyle, resize: 'vertical' as const, borderColor: errors.address ? '#cc0000' : 'var(--color-border)' }}
+                />
+                {errors.address && <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', color: '#cc0000', margin: '6px 0 0' }}>Address is required.</p>}
+              </div>
+
+              <div>
+                <label htmlFor="notes" style={labelStyle}>
+                  Notes <span style={{ color: MUTED }}>— optional</span>
+                  <span style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', color: MUTED, marginLeft: 8 }}>{formData.notes.length}/500</span>
                 </label>
                 <textarea
                   id="notes"
@@ -375,35 +302,76 @@ export default function RSVPContent() {
                   maxLength={500}
                   value={formData.notes}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500 text-gray-900"
-                  placeholder="Let us know if there's anything you'd like to share..."
+                  placeholder="Dietary requirements, questions, anything at all…"
+                  style={{ ...inputStyle, resize: 'vertical' as const }}
                 />
               </div>
-            )}
+            </>
+          )}
 
-            {submitStatus.type && (
-              <div
-                className={`p-4 rounded-md ${
-                  submitStatus.type === 'success'
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}
-              >
-                {submitStatus.message}
-              </div>
-            )}
+          {/* Notes for No / Maybe */}
+          {(attending === 'no' || attending === 'perhaps') && (
+            <div>
+              <label htmlFor="notes" style={labelStyle}>
+                Notes <span style={{ color: MUTED }}>— optional</span>
+                <span style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', color: MUTED, marginLeft: 8 }}>{formData.notes.length}/500</span>
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows={2}
+                maxLength={500}
+                value={formData.notes}
+                onChange={handleChange}
+                placeholder="Let us know if there's anything you'd like to share…"
+                style={{ ...inputStyle, resize: 'vertical' as const }}
+              />
+            </div>
+          )}
 
-            {submitStatus.type !== 'success' && attending && (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-4 bg-gray-900 text-white font-semibold rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                {isSubmitting ? 'Sending...' : 'Send response'}
-              </button>
-            )}
-          </form>
+          {/* Error banner */}
+          {submitStatus.type === 'error' && (
+            <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: '#cc0000', margin: 0 }}>
+              {submitStatus.message}
+            </p>
+          )}
+
+          {/* Submit */}
+          {attending && (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                fontFamily: SANS,
+                fontSize: 'var(--text-sm)',
+                color: '#ffffff',
+                background: TEXT,
+                border: 'none',
+                padding: '14px 36px',
+                borderRadius: 'var(--radius-pill)',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: isSubmitting ? 0.5 : 1,
+                letterSpacing: 'var(--tracking-wide)',
+                textTransform: 'uppercase' as const,
+                fontWeight: 500,
+                transition: 'background var(--transition)',
+                alignSelf: 'flex-start',
+              }}
+            >
+              {isSubmitting ? 'Sending…' : 'Send response'}
+            </button>
+          )}
+
+        </form>
+
+        {/* Contact */}
+        <div style={{ marginTop: 64, paddingTop: 32, borderTop: '1px solid var(--color-border)' }}>
+          <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 4 }}>Any questions?</p>
+          <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            hello@example.com
+          </a>
         </div>
+
       </div>
     </main>
   );

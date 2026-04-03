@@ -1,42 +1,35 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
 export default function HomeContent() {
   const searchParams = useSearchParams();
-  const guestId = searchParams.get('guest');
+  const token = searchParams.get('guest');
   const [guestName, setGuestName] = useState<string | null>(null);
   const [guestNotFound, setGuestNotFound] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!guestId) {
+    if (!token) {
       setGuestNotFound(true);
       setIsLoading(false);
     } else {
-      fetchGuestName(guestId);
+      fetchGuest(token);
     }
-  }, [guestId]);
+  }, [token]);
 
-  const fetchGuestName = async (id: string) => {
+  const fetchGuest = async (t: string) => {
     try {
-      const { data, error } = await supabase
-        .from('guests')
-        .select('name')
-        .eq('id', id)
-        .single();
-
-      if (error || !data) {
+      const res = await fetch(`/api/guest?token=${t}`)
+      if (!res.ok) {
         setGuestNotFound(true);
       } else {
+        const data = await res.json();
         setGuestName(data.name);
       }
-    } catch (error) {
-      console.error('Error fetching guest:', error);
+    } catch {
       setGuestNotFound(true);
     } finally {
       setIsLoading(false);
@@ -90,7 +83,7 @@ export default function HomeContent() {
         </div>
 
         <Link
-          href={`/rsvp?guest=${guestId}`}
+          href={`/rsvp?guest=${token}`}
           className="inline-block text-black underline underline-offset-4 hover:text-gray-600 transition-colors"
         >
           Let us know as soon as you can →

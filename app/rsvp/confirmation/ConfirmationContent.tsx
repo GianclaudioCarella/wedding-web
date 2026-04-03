@@ -1,89 +1,86 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+const TEXT  = 'var(--color-text)'
+const MUTED = 'var(--color-muted)'
+const SERIF = 'var(--font-serif)'
+const SANS  = 'var(--font-sans)'
+
 export default function ConfirmationContent() {
   const searchParams = useSearchParams();
   const guestId = searchParams.get('guest');
   const [attending, setAttending] = useState<string>('');
-  
-  const rsvpUrl = guestId ? `/rsvp?guest=${guestId}` : '/rsvp';
-  const homeUrl = guestId ? `/?guest=${guestId}` : '/';
+
+  const rsvpUrl  = guestId ? `/rsvp?guest=${guestId}` : '/rsvp';
+  const inviteUrl = guestId ? `/invite?guest=${guestId}` : '/invite';
 
   useEffect(() => {
-    if (guestId) {
-      fetchAttendingStatus(guestId);
-    }
+    if (!guestId) return;
+    supabase
+      .from('guests')
+      .select('attending')
+      .eq('id', guestId)
+      .single()
+      .then(({ data }) => { if (data) setAttending(data.attending || '') });
   }, [guestId]);
 
-  const fetchAttendingStatus = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('guests')
-        .select('attending')
-        .eq('id', id)
-        .single();
+  const title = attending === 'no' ? "We'll miss you."
+    : attending === 'perhaps' ? "Hope you can make it."
+    : "See you there.";
 
-      if (error) throw error;
-      if (data) {
-        setAttending(data.attending || '');
-      }
-    } catch (error) {
-      console.error('Error fetching attending status:', error);
-    }
-  };
-
-  const getTitle = () => {
-    if (attending === 'no') return 'We\'ll Miss You!';
-    if (attending === 'perhaps') return 'Hope to See You!';
-    return 'Thank You!';
-  };
-
-  const getMessage = () => {
-    if (attending === 'no') return 'We understand and hope to celebrate with you another time!';
-    if (attending === 'perhaps') return 'We hope you can make it!';
-    return 'We look forward to seeing you soon!';
-  };
+  const message = attending === 'no'
+    ? "We're sorry you can't join us. We hope to celebrate with you another time."
+    : attending === 'perhaps'
+    ? "We'll keep our fingers crossed. You can update your response any time."
+    : "Your RSVP is confirmed. We can't wait to celebrate with you.";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#f5f7fd' }}>
-      <div className="max-w-md w-full text-center space-y-8">
-        <div className="flex justify-center">
-          <img
-            src="/save-the-date-gif.gif"
-            alt="Save the Date"
-            className="rounded-lg w-[200px] h-auto"
-          />
-        </div>
-        
-        <div className="space-y-4">
-          <h1 className="text-4xl font-bold text-gray-900" style={{ letterSpacing: '0.05em' }}>
-            {getTitle()}
-          </h1>
-          <p className="text-xl text-gray-900">
-            {getMessage()}
-          </p>
-        </div>
+    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 'var(--space-section)' }}>
+      <div style={{ width: '100%', maxWidth: 480, textAlign: 'center' }}>
 
-        <div className="flex flex-col gap-4 mt-8">
-          <Link 
+        {/* Heading */}
+        <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
+          RSVP Received
+        </p>
+        <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, marginBottom: 16, fontWeight: 400, lineHeight: 1.2 }}>
+          {title}
+        </h1>
+        <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 48, maxWidth: 360, lineHeight: 'var(--leading-normal)' }}>
+          {message}
+        </p>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <Link
+            href={inviteUrl}
+            style={{
+              fontFamily: SANS,
+              fontSize: 'var(--text-sm)',
+              color: '#ffffff',
+              background: TEXT,
+              padding: '14px 36px',
+              borderRadius: 'var(--radius-pill)',
+              textDecoration: 'none',
+              letterSpacing: 'var(--tracking-wide)',
+              textTransform: 'uppercase',
+              fontWeight: 500,
+            }}
+          >
+            Back to invitation
+          </Link>
+          <Link
             href={rsvpUrl}
-            className="inline-block px-6 py-3 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+            style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
             Edit RSVP
           </Link>
-          <Link 
-            href={homeUrl}
-            className="inline-block text-gray-900 hover:text-gray-600 transition-colors"
-          >
-            ← Back to home
-          </Link>
         </div>
+
       </div>
-    </div>
+    </main>
   );
 }

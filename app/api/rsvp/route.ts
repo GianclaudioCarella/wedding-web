@@ -1,0 +1,148 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+
+export async function GET(request: NextRequest) {
+  const token = request.nextUrl.searchParams.get('token')
+  if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+
+  const { data: guest, error: guestError } = await supabaseAdmin
+    .from('guests')
+    .select('id, name, email, venue_stay_invited, party_role, party_leader_id, plus_one_name, plus_one_email')
+    .eq('invite_token', token)
+    .single()
+
+  if (guestError || !guest) {
+    console.error('Guest fetch error:', guestError?.message, '| token:', token)
+    return NextResponse.json({ error: guestError?.message || 'Guest not found' }, { status: 404 })
+  }
+
+  const { data: guestEvents } = await supabaseAdmin
+    .from('guest_events')
+    .select('event_id, events(id, name, event_date, event_time, sort_order)')
+    .eq('guest_id', guest.id)
+    .order('event_id')
+
+  const events = (guestEvents || [])
+    .map((ge: any) => ge.events)
+    .filter(Boolean)
+    .sort((a: any, b: any) => a.sort_order - b.sort_order)
+
+  const { data: existingRsvps } = await supabaseAdmin
+    .from('rsvp_responses')
+    .select('event_id, status, dietary_requirements, dietary_notes, notes')
+    .eq('guest_id', guest.id)
+
+  const { data: stayRequest } = await supabaseAdmin
+    .from('guest_stay_requests')
+    .select('thursday_night, friday_night, saturday_night, notes')
+    .eq('guest_id', guest.id)
+    .single()
+
+  return NextResponse.json({
+    guest: {
+      id: guest.id, name: guest.name, email: guest.email,
+      venue_stay_invited: guest.venue_stay_invited,
+      plus_one_name: guest.plus_one_name || '',
+      plus_one_email: guest.plus_one_email || '',
+    },
+    events,
+    existingRsvps: existingRsvps || [],
+    stayRequest: stayRequest || null,
+  })
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+  const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email } = body
+
+  if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+
+  const { data: guest } = await supabaseAdmin
+    .from('guests')
+    .select('id, language, venue_stay_invited')
+    .eq('invite_token', token)
+    .single()
+
+  if (!guest) return NextResponse.json({ error: 'Guest not found' }, { status: 404 })
+
+  // Upsert RSVP responses per event
+  for (const r of responses) {
+    const { error: rsvpError } = await supabaseAdmin.from('rsvp_responses').upsert({
+      guest_id: guest.id,
+      event_id: r.event_id,
+      status: r.status,
+      dietary_requirements: dietary_requirements || [],
+      dietary_notes: dietary_notes || null,
+      responded_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'guest_id,event_id' })
+    if (rsvpError) {
+      console.error('RSVP upsert error:', rsvpError)
+      return NextResponse.json({ error: 'Failed to save RSVP', detail: rsvpError.message }, { status: 500 })
+    }
+  }
+
+  // Upsert stay request if applicable
+  if (stay_request) {
+    const { error: stayError } = await supabaseAdmin.from('guest_stay_requests').upsert({
+      guest_id: guest.id,
+      thursday_night: stay_request.thursday_night,
+      friday_night: stay_request.friday_night,
+      saturday_night: stay_request.saturday_night,
+      notes: stay_request.notes || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'guest_id' })
+    if (stayError) console.error('Stay upsert error:', stayError)
+  }
+
+  // Update guest notes + plus one fields
+  const guestUpdate: Record<string, unknown> = {}
+  if (notes !== undefined) guestUpdate.notes = notes
+  if (plus_one_name !== undefined) guestUpdate.plus_one_name = plus_one_name || null
+  if (plus_one_email !== undefined) guestUpdate.plus_one_email = plus_one_email || null
+  if (Object.keys(guestUpdate).length > 0) {
+    await supabaseAdmin.from('guests').update(guestUpdate).eq('id', guest.id)
+  }
+
+  // Auto-create +1 as a party member if name provided and not already exists
+  if (plus_one_name) {
+    const { data: existingParty } = await supabaseAdmin
+      .from('guests')
+      .select('id')
+      .eq('party_leader_id', guest.id)
+      .maybeSingle()
+
+    if (!existingParty) {
+      const { data: newGuest, error: insertError } = await supabaseAdmin
+        .from('guests')
+        .insert({
+          name: plus_one_name,
+          email: plus_one_email || null,
+          party_leader_id: guest.id,
+          party_role: 'partner',
+          language: guest.language || 'en',
+          venue_stay_invited: guest.venue_stay_invited || false,
+          invite_token: crypto.randomUUID(),
+        })
+        .select('id')
+        .single()
+      if (insertError) console.error('+1 insert error:', insertError)
+
+      // Assign +1 to the same events as the primary guest
+      if (newGuest) {
+        const { data: guestEventsList } = await supabaseAdmin
+          .from('guest_events')
+          .select('event_id')
+          .eq('guest_id', guest.id)
+
+        if (guestEventsList?.length) {
+          await supabaseAdmin.from('guest_events').insert(
+            guestEventsList.map((ge: any) => ({ guest_id: newGuest.id, event_id: ge.event_id }))
+          )
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ success: true })
+}
