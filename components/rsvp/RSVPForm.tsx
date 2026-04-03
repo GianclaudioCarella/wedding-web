@@ -315,7 +315,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               />
               {!dietaryAnswered && (
                 <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginTop: 12 }}>
-                  Please select at least one option, including "No requirements" if none apply.
+                  {t.dietaryError}
                 </p>
               )}
             </div>
