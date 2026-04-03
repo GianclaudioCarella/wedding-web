@@ -185,7 +185,7 @@ export default function AccommodationPage() {
       ) : (
         <>
           <div className="flex justify-end mb-4">
-            <button onClick={() => { setEditingExt(null); setExtForm({ name: '', description: '', url: '', price_range: '', distance_from_venue: '', image_url: '' }); setShowExtModal(true); }} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add link</button>
+            <button onClick={() => { setEditingExt(null); setExtForm({ name: '', description: '', url: '', directions_url: '', distance_from_venue: '', image_url: '' }); setShowExtModal(true); }} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add link</button>
           </div>
           <div className="grid gap-4">
             {external.map(ext => (
