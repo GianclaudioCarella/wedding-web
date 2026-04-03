@@ -454,7 +454,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
           <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, lineHeight: 'var(--leading-normal)' }}>
             {t.rsvpVenue}
           </p>
-          <Link href={`/${locale === 'en' ? '' : locale}/rsvp?guest=${token}`} className="btn btn-primary">
+          <Link href={`${locale === 'en' ? '/rsvp' : `/${locale}/rsvp`}?guest=${token}`} className="btn btn-primary">
             <WaveText text={t.rsvpButton} />
           </Link>
         </div>
