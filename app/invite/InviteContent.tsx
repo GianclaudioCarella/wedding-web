@@ -9,11 +9,11 @@ import Countdown from '@/components/invite/Countdown'
 import { getTranslation } from '@/lib/translations'
 
 interface Event {
-  id: string; name: string; event_date: string | null
+  id: string; name: string; slug: string | null; event_date: string | null
   event_time: string | null; location: string | null; description: string | null
 }
 interface Transport { id: string; name: string; direction: string; departure_location: string | null; departure_time: string | null; notes: string | null }
-interface ExternalAccom { id: string; name: string; description: string | null; url: string | null; price_range: string | null; distance_from_venue: string | null }
+interface ExternalAccom { id: string; name: string; description: string | null; url: string | null; directions_url: string | null; distance_from_venue: string | null }
 interface RegistryItem { id: string; title: string; description: string | null; url: string | null; store_name: string | null; price: number | null; currency: string }
 interface FaqItem { id: string; question: string; answer: string | null }
 
@@ -32,6 +32,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
   const [notFound, setNotFound] = useState(false)
 
   const [guest, setGuest] = useState<{ id: string; name: string; venue_stay_invited: boolean } | null>(null)
+  const [hasRsvped, setHasRsvped] = useState(false)
   const [events, setEvents] = useState<Event[]>([])
   const [transport, setTransport] = useState<Transport[]>([])
   const [externalAccom, setExternalAccom] = useState<ExternalAccom[]>([])
@@ -81,6 +82,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
       .then(data => {
         if (!data) { setNotFound(true); return }
         setGuest(data.guest)
+        setHasRsvped(!!data.hasRsvped)
         setEvents(data.events || [])
         setTransport(data.transport)
         setExternalAccom(data.externalAccommodations)
@@ -99,7 +101,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
   if (notFound) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 8 }}>{t.invitationNotFound}</h1>
+        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 4 }}>{t.invitationNotFound}</h1>
         <p style={{ fontFamily: SANS, color: MUTED, fontSize: 15 }}>{t.checkLink}</p>
       </div>
     </div>
@@ -109,8 +111,8 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
 
   const navLinks = [
     { label: t.navAbout, href: '#about' },
-    { label: t.navLocation, href: '#venue' },
     { label: t.navSchedule, href: '#events' },
+    { label: t.navLocation, href: '#venue' },
     ...(hasStay ? [{ label: t.navStay, href: '#stay' }] : []),
     ...(registry.length > 0 ? [{ label: t.navRegistry, href: '#registry' }] : []),
     { label: t.navFaq, href: '#faq' },
@@ -132,7 +134,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
       {/* ── Hero ── */}
       <section className="hero">
         {/* Image */}
-        <div className="hero-image" style={{ background: 'var(--color-surface)' }} />
+        <img src="/hero-image.gif" alt="Hero" className="hero-image" style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
 
         {/* Text */}
         <div className="hero-text" style={{
@@ -143,7 +145,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
         }}>
           {/* Center: label + countdown */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, justifyContent: 'center', alignItems: 'center', textAlign: 'center' as const, gap: 20 }}>
-            <p style={{ fontFamily: SERIF, fontSize: 'clamp(18px, 2vw, 26px)', color: TEXT, margin: 0, fontWeight: 400 }}>
+            <p style={{ fontFamily: SERIF, fontSize: 'clamp(14px, 2vw, 16px)', textTransform: 'uppercase', letterSpacing: '0.1em', color: TEXT, margin: 0, fontWeight: 400 }}>
               Gian &amp; Cat
             </p>
             <Countdown />
@@ -168,42 +170,11 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
         margin: '0 auto',
         textAlign: 'center' as const,
       }}>
+        <img src="/about.png" alt="About" style={{ width: 100, height: 100, objectFit: 'contain', display: 'block', margin: '0 auto 32px' }} />
         <p className="schedule-label" style={{ marginBottom: 24 }}>{t.aboutLabel}</p>
         <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.2vw, 28px)', color: TEXT, lineHeight: 'var(--leading-normal)', margin: 0, fontWeight: 400 }}>
           {t.aboutText}
         </p>
-      </section>
-
-      {/* ── Venue ── */}
-      <section id="venue" className="venue-section" style={{ paddingBlock: 'var(--space-section)', gap: 24, minHeight: '100vh' }}>
-        <div style={{ display: 'flex', flexDirection: 'column' as const, paddingTop: 8 }}>
-          <p className="schedule-label">{t.locationLabel}</p>
-          <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 3vw, 42px)', color: TEXT, margin: 0, marginBottom: 48, lineHeight: 1.2, fontWeight: 400 }}>
-            {t.venueName}
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 28, marginTop: 'auto' }}>
-            <div>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueAddressLabel}</p>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>
-                {t.venueAddress}<br />{t.venueCity}
-              </p>
-              <a href="#" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, display: 'inline-block', marginTop: 4, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                {t.venueMapsLink}
-              </a>
-            </div>
-            <div>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueCarLabel}</p>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{t.venueCarText}</p>
-            </div>
-            <div>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueBusLabel}</p>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>
-                {t.venueBusText}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="venue-image" style={{ background: 'var(--color-surface)' }} />
       </section>
 
       {/* ── Schedule ── */}
@@ -220,7 +191,6 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
             <div className="timeline-track">
               <div className="timeline-fill" style={{ height: `${lineProgress}%` }} />
             </div>
-
             {events.map((event, i) => (
               <div key={event.id} className="timeline-event">
                 <div className="timeline-pill-col"
@@ -232,6 +202,21 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
                   </span>
                 </div>
                 <div className="timeline-content">
+                  {(() => {
+                    // Prefer slug-based lookup, fall back to name-based for backwards compat
+                    const slugImgs: Record<string, string> = {
+                      'pre-party': '/event-thursday.png',
+                      'wedding':   '/event-wedding.png',
+                      'aftermath': '/event-sunday.png',
+                    }
+                    const nameImgs: Record<string, string> = {
+                      'the pre-party': '/event-thursday.png',
+                      'the wedding':   '/event-wedding.png',
+                      'the aftermath': '/event-sunday.png',
+                    }
+                    const src = (event.slug && slugImgs[event.slug]) || nameImgs[event.name.toLowerCase().trim()] || null
+                    return src ? <img src={src} alt={event.name} className="timeline-image" /> : null
+                  })()}
                   <div className="timeline-header">
                     <p className="timeline-name">{event.name}</p>
                     {(event.location || event.description) && (
@@ -240,7 +225,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
                       </p>
                     )}
                   </div>
-                  <div className="timeline-image" />
+
                 </div>
               </div>
             ))}
@@ -252,115 +237,125 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
         </div>
       </section>
 
-      {/* ── Where to stay ── */}
-      {hasStay && (
-        <section id="stay" style={{ paddingBlock: 'var(--space-section)' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: externalAccom.length > 0 && guest?.venue_stay_invited ? '1fr 1fr' : '1fr',
-            gap: 'calc(var(--space-page) * 2)',
-            alignItems: 'start',
-          }}>
-
-            {/* Hotel carousel */}
-            {externalAccom.length > 0 && (
-              <div>
-                {/* Heading */}
-                <div style={{ marginBottom: 24 }}>
-                  <p className="schedule-label">{t.stayLabel}</p>
-                  <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 2.5vw, 36px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
-                    {t.hotelsTitle}
-                  </h2>
-                </div>
-
-                {/* Buttons aligned to top of slider */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
-                  {[{ dir: 'prev' as const, label: '←' }, { dir: 'next' as const, label: '→' }].map(({ dir, label }) => (
-                    <button
-                      key={dir}
-                      onClick={() => scrollCarousel(dir)}
-                      aria-label={dir === 'prev' ? 'Previous' : 'Next'}
-                      style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-btn-secondary)', border: 'none', cursor: 'pointer', fontFamily: SANS, fontSize: 16, color: TEXT, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background var(--transition)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-btn-secondary-hover)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-btn-secondary)')}
-                    >{label}</button>
-                  ))}
-                </div>
-
-                {/* Scrollable cards */}
-                <div
-                  ref={carouselRef}
-                  style={{
-                    display: 'flex',
-                    gap: 16,
-                    overflowX: 'auto',
-                    scrollBehavior: 'smooth',
-                    scrollbarWidth: 'none',
-                    msOverflowStyle: 'none',
-                  } as React.CSSProperties}
-                >
-                  {externalAccom.map(a => (
-                    <div key={a.id} style={{
-                      minWidth: '85%',
-                      background: 'var(--color-surface)',
-                      padding: 24,
-                      flexShrink: 0,
-                      display: 'flex',
-                      flexDirection: 'column' as const,
-                      gap: 12,
-                    }}>
-                      <div>
-                        <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 400 }}>{a.name}</p>
-                        {a.description && <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{a.description}</p>}
-                      </div>
-                      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' as const }}>
-                        {a.price_range && <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>{a.price_range}</span>}
-                        {a.distance_from_venue && <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>{a.distance_from_venue}</span>}
-                      </div>
-                      {a.url && (
-                        <div style={{ marginTop: 'auto' }}>
-                          <a href={a.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ display: 'inline-flex' }}>
-                            <WaveText text={t.bookNow} />
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Venue stay */}
-            {guest?.venue_stay_invited && (
-              <div>
-                <p className="schedule-label">{t.stayLabel}</p>
-                <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 2.5vw, 36px)', color: TEXT, margin: 0, marginBottom: 40, fontWeight: 400, lineHeight: 1.2 }}>
-                  {t.venueStayTitle}
-                </h2>
-                <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: 0, marginBottom: 32, lineHeight: 'var(--leading-normal)' }}>
-                  {t.venueStayText}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 20 }}>
-                  {[
-                    { label: t.checkIn,  detail: t.checkInDetail },
-                    { label: t.checkOut, detail: t.checkOutDetail },
-                    { label: t.breakfast, detail: t.breakfastDetail },
-                  ].map(item => (
-                    <div key={item.label}>
-                      <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 500 }}>{item.label}</p>
-                      <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{item.detail}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+      {/* ── Venue ── */}
+      <section id="venue" className="venue-section" style={{ paddingBlock: 'var(--space-section)', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column' as const, paddingTop: 8 }}>
+          <p className="schedule-label">{t.locationLabel}</p>
+          <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 3vw, 42px)', color: TEXT, margin: 0, marginBottom: 48, lineHeight: 1.2, fontWeight: 400 }}>
+            {t.venueName}
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 28, marginTop: 'auto' }}>
+            <div>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueAddressLabel}</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>
+                {t.venueAddress}<br />{t.venueCity}
+              </p>
+              <a href="https://maps.app.goo.gl/zNDhFwwmm89yHLPv8" target="_blank" rel="noopener noreferrer" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, display: 'inline-block', marginTop: 4, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                {t.venueMapsLink}
+              </a>
+            </div>
+            <div>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueBusLabel}</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{t.venueBusText}</p>
+            </div>
 
           </div>
+        </div>
+        <img src="/venue-image.jpg" alt="Venue" className="venue-image" />
+      </section>
+
+      {/* ── Where to stay ── */}
+      {hasStay && (
+        <section id="stay" style={{ paddingBlock: '96px 80px' }}>
+
+          {/* Venue stay — shown only to guests invited to stay at the venue */}
+          {guest?.venue_stay_invited ? (
+            <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' as const }}>
+              <p className="schedule-label" style={{ marginBottom: 24 }}>{t.stayLabel}</p>
+              <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 3vw, 42px)', color: TEXT, margin: '0 auto', marginBottom: 28, fontWeight: 400, lineHeight: 1.2 }}>
+                {t.venueStayTitle}
+              </h2>
+              <p style={{ fontFamily: SANS, fontSize: 'clamp(16px, 1.5vw, 19px)', color: MUTED, margin: '0 auto', lineHeight: 'var(--leading-normal)' }}>
+                {t.venueStayText}
+              </p>
+            </div>
+
+          ) : externalAccom.length > 0 ? (
+            /* Hotel carousel — shown to guests NOT staying at the venue */
+            <div>
+              <div style={{ marginBottom: 24 }}>
+                <p className="schedule-label">{t.stayLabel}</p>
+                <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 2.5vw, 36px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
+                  {t.hotelsTitle}
+                </h2>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 8, marginBottom: 12 }}>
+                {[{ dir: 'prev' as const, label: '←' }, { dir: 'next' as const, label: '→' }].map(({ dir, label }) => (
+                  <button
+                    key={dir}
+                    onClick={() => scrollCarousel(dir)}
+                    aria-label={dir === 'prev' ? 'Previous' : 'Next'}
+                    style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-btn-secondary)', border: 'none', cursor: 'pointer', fontFamily: SANS, fontSize: 16, color: TEXT, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background var(--transition)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-btn-secondary-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-btn-secondary)')}
+                  >{label}</button>
+                ))}
+              </div>
+
+              <div
+                ref={carouselRef}
+                style={{
+                  display: 'flex',
+                  gap: 16,
+                  overflowX: 'auto',
+                  scrollBehavior: 'smooth',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                } as React.CSSProperties}
+              >
+                {externalAccom.map(a => (
+                  <div key={a.id} style={{
+                    width: 380,
+                    minWidth: 380,
+                    minHeight: 280,
+                    background: 'var(--color-surface)',
+                    padding: 24,
+                    flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column' as const,
+                    gap: 12,
+                  }}>
+                    <div>
+                      <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 400 }}>{a.name}</p>
+                      {a.description && <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{a.description}</p>}
+                    </div>
+                    {a.distance_from_venue && (
+                      <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0 }}>{a.distance_from_venue}</p>
+                    )}
+                    <div style={{ display: 'flex', gap: 16, marginTop: 'auto', flexWrap: 'wrap' as const }}>
+                      {a.url && (
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ display: 'inline-flex' }}>
+                          <WaveText text="Website" />
+                        </a>
+                      )}
+                      {a.directions_url && (
+                        <a href={a.directions_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ display: 'inline-flex' }}>
+                          <WaveText text="Directions" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
         </section>
       )}
 
       {/* ── Registry ── */}
-      {registry.length > 0 && (
+      {true && (
         <section id="registry" style={{
           paddingBlock: 'var(--space-section)',
           display: 'flex',
@@ -379,7 +374,7 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
             textAlign: 'center' as const,
             padding: '48px 40px',
           }}>
-            <div style={{ width: 160, height: 160, background: 'var(--color-btn-secondary)', margin: '0 auto 40px' }} />
+            <img src="/registry.png" alt="Registry" style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 40 }} />
             <p className="schedule-label" style={{ marginBottom: 16 }}>{t.registryLabel}</p>
             <p style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 2.5vw, 34px)', color: TEXT, margin: '0 auto', marginBottom: 16, lineHeight: 'var(--leading-normal)', maxWidth: 520, fontWeight: 400 }}>
               {t.registryTitle}
@@ -387,45 +382,52 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
             <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, maxWidth: 420, lineHeight: 'var(--leading-normal)' }}>
               {t.registryText}
             </p>
-            <a href="#" className="btn btn-secondary">
+            <button disabled className="btn btn-primary">
               <WaveText text={t.honeymoonFund} />
-            </a>
+            </button>
           </div>
         </section>
       )}
 
       {/* ── FAQ ── */}
-      <section id="faq" className="schedule faq-section">
-        <div className="schedule-inner" style={{ alignItems: 'start' }}>
-          <div className="schedule-left" style={{ display: 'flex', flexDirection: 'column' as const, gap: 24 }}>
-            <div>
-              <p className="schedule-label">{t.faqLabel}</p>
-              <p className="schedule-intro" style={{ margin: 0 }}>{t.faqIntro}</p>
-            </div>
-            <div style={{ width: 250, height: 250, background: 'var(--color-surface)' }} />
-            <div id="contact">
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 8, lineHeight: 'var(--leading-normal)' }}>
-                {t.anyOtherQuestions}
-              </p>
-              <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                hello@giancat.com
-              </a>
-            </div>
-          </div>
-
-          <div style={{ paddingTop: 28 }}>
-            {faqs.map((faq, i) => (
-              <div key={faq.id} style={{ paddingBlock: 28, borderBottom: i < faqs.length - 1 ? `1px solid var(--color-border)` : undefined }}>
-                <p style={{ fontFamily: SERIF, fontSize: 'var(--text-md)', color: TEXT, margin: 0, marginBottom: 8, fontWeight: 400 }}>{faq.question}</p>
-                <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{faq.answer || '—'}</p>
+      {(() => {
+        const translationFaqs = (t as any).faqs as { question: string; answer: string }[] | undefined
+        const displayFaqs: { question: string; answer: string }[] = translationFaqs?.length
+          ? translationFaqs
+          : faqs.map(f => ({ question: f.question, answer: f.answer || '—' }))
+        return (
+          <section id="faq" className="schedule faq-section">
+            <div className="schedule-inner" style={{ alignItems: 'start' }}>
+              <div className="schedule-left" style={{ display: 'flex', flexDirection: 'column' as const, gap: 24 }}>
+                <div>
+                  <p className="schedule-label">{t.faqLabel}</p>
+                  <p className="schedule-intro" style={{ margin: 0 }}>{t.faqIntro}</p>
+                </div>
+                <div id="contact">
+                  <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 8, lineHeight: 'var(--leading-normal)' }}>
+                    {t.anyOtherQuestions}
+                  </p>
+                  <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                    hello@giancat.com
+                  </a>
+                </div>
               </div>
-            ))}
-            {faqs.length === 0 && (
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>{t.faqComingSoon}</p>
-            )}
-          </div>
-        </div>
-      </section>
+
+              <div style={{ paddingTop: 28 }}>
+                {displayFaqs.map((faq, i) => (
+                  <div key={i} style={{ paddingBlock: 28, borderBottom: i < displayFaqs.length - 1 ? `1px solid var(--color-border)` : undefined }}>
+                    <p style={{ fontFamily: SERIF, fontSize: 'var(--text-md)', color: TEXT, margin: 0, marginBottom: 8, fontWeight: 400 }}>{faq.question}</p>
+                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{faq.answer}</p>
+                  </div>
+                ))}
+                {displayFaqs.length === 0 && (
+                  <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>{t.faqComingSoon}</p>
+                )}
+              </div>
+            </div>
+          </section>
+        )
+      })()}
 
       {/* ── RSVP CTA ── */}
       <section id="rsvp" style={{
@@ -434,7 +436,8 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
         flexDirection: 'column' as const,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingBlock: 'var(--space-section)',
+        paddingTop: 'var(--space-section)',
+        paddingBottom: 48,
         boxSizing: 'border-box' as const,
       }}>
         {/* Box — centred in the vh */}
@@ -442,21 +445,29 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
           width: '100%',
           maxWidth: 500,
           background: 'var(--color-surface)',
-          padding: '164px 40px',
+          padding: '100px 40px',
           textAlign: 'center' as const,
           boxSizing: 'border-box' as const,
         }}>
-          <div style={{ width: 160, height: 160, background: 'var(--color-btn-secondary)', margin: '0 auto 40px' }} />
+          <img src="/rsvp.png" alt="RSVP" style={{ width: 100, height: 100, objectFit: 'contain', display: 'block', margin: '0 auto 40px' }} />
           <p className="schedule-label" style={{ marginBottom: 24 }}>{t.rsvpDeadline}</p>
-          <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 48px)', color: TEXT, margin: '0 auto', marginBottom: 16, lineHeight: 1.2, fontWeight: 400 }}>
+          <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 4vw, 32px)', color: TEXT, margin: '0 auto', marginBottom: 16, lineHeight: 1.1, fontWeight: 400 }}>
             {t.rsvpQuestion}
           </h2>
           <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, lineHeight: 'var(--leading-normal)' }}>
             {t.rsvpVenue}
           </p>
-          <Link href={`${locale === 'en' ? '/rsvp' : `/${locale}/rsvp`}?guest=${token}`} className="btn btn-primary">
-            <WaveText text={t.rsvpButton} />
+          <Link
+            href={`${locale === 'en' ? '/rsvp' : `/${locale}/rsvp`}?guest=${token}`}
+            className={hasRsvped ? 'btn btn-secondary' : 'btn btn-primary'}
+          >
+            <WaveText text={hasRsvped ? (t.rsvpSent || 'RSVP Sent ✓') : t.rsvpButton} />
           </Link>
+          {hasRsvped && (
+            <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginTop: 12 }}>
+              {t.rsvpEditNote || 'Want to update your response? Click above.'}
+            </p>
+          )}
         </div>
 
         {/* Back to top — pinned to bottom of section */}

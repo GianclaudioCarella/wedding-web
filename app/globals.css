@@ -9,7 +9,7 @@
   /* Colours */
   --color-bg:            #FFFFFF;          /* page background              */
   --color-text:          #262626;          /* primary text                 */
-  --color-muted:         #595959;          /* descriptions / metadata      */
+  --color-muted:         #262626;          /* descriptions / metadata      */
   --color-border:        rgba(0,0,0,0.10); /* subtle borders               */
   --color-surface:       #F7F7F5;          /* card / surface bg            */
   --color-card:          #F7F7F5;          /* large card sections          */
@@ -70,8 +70,7 @@
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   letter-spacing: var(--tracking-wide);
-  font-weight: 500;
-  padding: 10px 22px;
+  font-weight: 400;
   border-radius: var(--radius-pill);
   border: none;
   cursor: pointer;
@@ -83,6 +82,7 @@
 .btn-primary {
   background: var(--color-pink);
   color: var(--color-text);
+  padding: 8px 14px;
 }
 .btn-primary:hover {
   background: var(--color-pink);
@@ -90,13 +90,15 @@
 }
 .btn-primary:disabled {
   background: var(--color-btn-secondary);
-  color: var(--color-muted);
+  color: #aaaaaa;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .btn-secondary {
   background: var(--color-btn-secondary);
   color: var(--color-green);
+  padding: 4px 12px;
 }
 .btn-secondary:hover {
   background: var(--color-btn-secondary-hover);
@@ -237,12 +239,13 @@
   position: relative;
 }
 
+
 .timeline-track {
   position: absolute;
-  left: 30px;   /* centre of the pill (~70px wide) */
+  left: 27px;
   top: 0;
   bottom: 0;
-  width: 2px;
+  width: 3px;
   background: var(--color-btn-secondary);
   overflow: hidden;
 }
@@ -260,7 +263,7 @@
 .timeline-event {
   position: relative;
   padding-left: 100px;
-  padding-bottom: 80px;
+  padding-bottom: 60px;
 }
 
 .timeline-event:last-child {
@@ -276,9 +279,9 @@
 
 .timeline-content {
   width: 100%;
+  padding-right: 40px;
 }
 
-/* Pill and name sit on the same row */
 .timeline-header {
   min-height: 30px;
   display: flex;
@@ -290,13 +293,13 @@
   font-family: var(--font-serif);
   font-size: var(--text-lg);
   color: var(--color-text);
-  margin: 0;
+  margin: 16px 0 16px 0;
   font-weight: 400;
   line-height: 1;
 }
 
 .timeline-meta {
-  margin-top: 6px;
+  margin: 6px 0 80px 0;
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   color: var(--color-muted);
@@ -305,20 +308,25 @@
 
 /* Image floats loosely below — no card border, no radius */
 .timeline-image {
-  width: 100%;
-  max-width: 320px;
-  aspect-ratio: 4 / 3;
-  background: var(--color-surface);
+  height: 100px;
+  width: auto;
   display: block;
-  margin-top: 24px;
-  border-radius: var(--radius-card);
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* Venue section */
 .venue-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+.venue-image {
+  min-height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
 /* Center spine timeline */
@@ -391,15 +399,19 @@
     position: static;
   }
   .timeline-image {
-    max-width: 100%;
-    aspect-ratio: 4 / 3;
+    height: 80px;
+    width: auto;
+    max-width: unset;
+    aspect-ratio: unset;
   }
   .venue-section {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    min-height: unset;
     padding: 16px;
   }
   .venue-image {
-    min-height: 60vw;
+    min-height: 90vw;
     order: 2;
   }
   .schedule-top {

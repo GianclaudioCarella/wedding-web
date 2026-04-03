@@ -205,14 +205,17 @@ export default function GuestsPage() {
     return matchSearch && matchTag && matchRsvp;
   });
 
-  // Sort so party members appear directly below their primary guest
+  // Sort so party members always appear directly below their primary guest,
+  // even if the party member itself doesn't match the filter.
   const sortedFiltered = (() => {
     const primaries = filtered.filter(g => !g.party_leader_id);
     const result: Guest[] = [];
     for (const p of primaries) {
       result.push(p);
-      result.push(...filtered.filter(g => g.party_leader_id === p.id));
+      // Always include all party members of a matching primary, regardless of filter
+      result.push(...guests.filter(g => g.party_leader_id === p.id));
     }
+    // Party members whose primary didn't match the filter — still include them if they matched
     const inResult = new Set(result.map(g => g.id));
     filtered.filter(g => !inResult.has(g.id)).forEach(g => result.push(g));
     return result;
@@ -220,6 +223,44 @@ export default function GuestsPage() {
 
   const roleLabel: Record<string, string> = { primary: '', partner: 'Partner', child: 'Child', other: 'Other' };
   const nightLabel: Record<string, string> = { thursday_night: 'Thu', friday_night: 'Fri', saturday_night: 'Sat' };
+
+  const exportCSV = () => {
+    const eventNames = events.map(e => e.name);
+    const headers = ['Name', 'Email', 'Tags', ...eventNames, 'Dietary', 'Dietary Notes', 'Stay Nights', 'Notes'];
+
+    const rows = sortedFiltered.map(g => {
+      const allDietary = [...new Set(
+        Object.values(g.rsvps).flatMap(r => Array.isArray(r.dietary_requirements) ? r.dietary_requirements : []).filter(d => d && d !== 'none')
+      )];
+      const allDietaryNotes = Object.values(g.rsvps).map(r => r.dietary_notes).filter(Boolean).join('; ');
+      const stayNightsList = g.stayRequest
+        ? (['thursday_night', 'friday_night', 'saturday_night'] as const).filter(n => g.stayRequest![n]).map(n => ({ thursday_night: 'Thu', friday_night: 'Fri', saturday_night: 'Sat' })[n])
+        : [];
+      const eventStatuses = events.map(e => {
+        if (!g.events.includes(e.id)) return 'not invited';
+        return g.rsvps[e.id]?.status || 'pending';
+      });
+      return [
+        g.name,
+        g.email || '',
+        (g.tags || []).join(', '),
+        ...eventStatuses,
+        allDietary.join(', '),
+        allDietaryNotes,
+        stayNightsList.join(', '),
+        g.notes || '',
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `guests-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
@@ -238,6 +279,12 @@ export default function GuestsPage() {
             className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-40"
           >
             {bulkSending ? 'Sending…' : `Send all (${guests.filter(g => g.email && !g.invited_at).length} unsent)`}
+          </button>
+          <button
+            onClick={exportCSV}
+            className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50"
+          >
+            Export CSV
           </button>
           <button onClick={openNew} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add guest</button>
         </div>
@@ -292,7 +339,7 @@ export default function GuestsPage() {
                   ))}
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Dietary</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Stay</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Notes</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Notes / RSVP</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Save the Date</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Invited</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Link</th>
@@ -345,13 +392,16 @@ export default function GuestsPage() {
                         )}
                       </td>
 
-                      {/* Per-event RSVP */}
+                      {/* Per-event RSVP — party members don't have independent RSVPs */}
                       {events.map(e => {
                         const rsvp = guest.rsvps[e.id];
                         const invited = guest.events.includes(e.id);
+                        const isPartyMember = !!guest.party_leader_id;
                         return (
                           <td key={e.id} className="px-4 py-3">
-                            {!invited ? (
+                            {isPartyMember ? (
+                              <span className="text-gray-300 text-xs">—</span>
+                            ) : !invited ? (
                               <span className="text-gray-300 text-xs">—</span>
                             ) : rsvp ? (
                               <span style={{ ...STATUS_STYLE[rsvp.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>
@@ -392,9 +442,11 @@ export default function GuestsPage() {
                         </span>
                       </td>
 
-                      {/* Save the Date status */}
+                      {/* Save the Date status — party members inherit from primary */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {guest.attending ? (
+                        {guest.party_leader_id ? (
+                          <span className="text-gray-300 text-xs">—</span>
+                        ) : guest.attending ? (
                           <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                             guest.attending === 'yes' ? 'bg-green-100 text-green-700' :
                             guest.attending === 'no' ? 'bg-red-100 text-red-700' :
@@ -407,9 +459,11 @@ export default function GuestsPage() {
                         )}
                       </td>
 
-                      {/* Invited status */}
+                      {/* Invited status — party members inherit from primary */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {guest.invited_at ? (
+                        {guest.party_leader_id ? (
+                          <span className="text-xs text-gray-300">—</span>
+                        ) : guest.invited_at ? (
                           <div>
                             <span className="text-xs text-green-600">✓ Sent</span>
                             <p className="text-xs text-gray-400 mt-0.5">{new Date(guest.invited_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
@@ -651,7 +705,7 @@ export default function GuestsPage() {
               {/* Events and RSVPs */}
               {events.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Event RSVPs</p>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Extras</p>
                   <div className="space-y-2">
                     {events.map(event => {
                       const rsvp = viewingGuest.rsvps[event.id];
@@ -677,6 +731,31 @@ export default function GuestsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Party members (only shown on primary guest) */}
+              {!viewingGuest.party_leader_id && (() => {
+                const members = guests.filter(g => g.party_leader_id === viewingGuest.id);
+                if (!members.length) return null;
+                return (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">Party members</p>
+                    <div className="space-y-2">
+                      {members.map(m => (
+                        <div key={m.id} className="flex items-center justify-between border border-gray-100 rounded p-3">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{m.name}</p>
+                            <p className="text-xs text-gray-400 capitalize">{m.party_role}</p>
+                          </div>
+                          <button
+                            onClick={() => { setViewingGuest(null); openEdit(m); }}
+                            className="text-xs text-gray-400 hover:text-gray-700"
+                          >Edit</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Notes */}
               {viewingGuest.notes && (

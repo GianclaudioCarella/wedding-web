@@ -17,7 +17,7 @@ export default function AccommodationPage() {
   const [editingExt, setEditingExt] = useState<any>(null);
   const [roomForm, setRoomForm] = useState({ name: '', room_type: 'private', capacity: 2, floor: '', notes: '' });
   const [assignForm, setAssignForm] = useState({ guest_id: '', bed_label: '', notes: '' });
-  const [extForm, setExtForm] = useState({ name: '', description: '', url: '', price_range: '', distance_from_venue: '', image_url: '' });
+  const [extForm, setExtForm] = useState({ name: '', description: '', url: '', directions_url: '', distance_from_venue: '', image_url: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
@@ -26,7 +26,7 @@ export default function AccommodationPage() {
     const [roomsRes, assignRes, guestsRes, extRes] = await Promise.all([
       supabase.from('venue_rooms').select('*').order('name'),
       supabase.from('guest_room_assignments').select('*, guests(name)'),
-      supabase.from('guests').select('id, name').order('name'),
+      supabase.from('guests').select('id, name, venue_stay_invited').order('name'),
       supabase.from('external_accommodations').select('*').order('sort_order'),
     ]);
     setRooms(roomsRes.data || []);
@@ -38,6 +38,8 @@ export default function AccommodationPage() {
 
   const totalCapacity = rooms.reduce((s, r) => s + (r.capacity || 0), 0);
   const totalAssigned = assignments.length;
+  const venueGuests = guests.filter((g: any) => g.venue_stay_invited);
+  const assignedGuestIdSet = new Set(assignments.map(a => a.guest_id));
 
   const saveRoom = async () => {
     setSaving(true);
@@ -77,7 +79,7 @@ export default function AccommodationPage() {
     if (editingExt) {
       await supabase.from('external_accommodations').update(extForm).eq('id', editingExt.id);
     } else {
-      await supabase.from('external_accommodations').insert(extForm);
+      await supabase.from('external_accommodations').insert({ ...extForm, directions_url: extForm.directions_url || null });
     }
     setShowExtModal(false);
     setEditingExt(null);
@@ -111,6 +113,34 @@ export default function AccommodationPage() {
 
       {loading ? <p className="text-sm text-gray-400">Loading…</p> : tab === 'venue' ? (
         <>
+          {/* Venue stay guest list */}
+          <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-900">Staying at the venue</h2>
+              <span className="text-xs text-gray-400">{venueGuests.length} guests · {venueGuests.filter((g: any) => assignedGuestIdSet.has(g.id)).length} assigned to a room</span>
+            </div>
+            {venueGuests.length === 0 ? (
+              <p className="text-sm text-gray-400">No guests are marked as staying at the venue yet. Set this per guest in the Guests page.</p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {venueGuests.map((g: any) => {
+                  const assignment = assignments.find(a => a.guest_id === g.id);
+                  const room = assignment ? rooms.find(r => r.id === assignment.room_id) : null;
+                  return (
+                    <div key={g.id} className="flex items-center justify-between py-2">
+                      <span className="text-sm text-gray-900">{g.name}</span>
+                      {room ? (
+                        <span className="text-xs text-green-600">{room.name}{assignment.bed_label ? ` · ${assignment.bed_label}` : ''}</span>
+                      ) : (
+                        <span className="text-xs text-amber-500">No room assigned</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-gray-500">{totalAssigned} of {totalCapacity} beds assigned</p>
             <button onClick={() => { setEditingRoom(null); setRoomForm({ name: '', room_type: 'private', capacity: 2, floor: '', notes: '' }); setShowRoomModal(true); }} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add room</button>
@@ -171,7 +201,7 @@ export default function AccommodationPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 ml-4">
-                    <button onClick={() => { setEditingExt(ext); setExtForm({ name: ext.name, description: ext.description || '', url: ext.url || '', price_range: ext.price_range || '', distance_from_venue: ext.distance_from_venue || '', image_url: ext.image_url || '' }); setShowExtModal(true); }} className="text-xs text-gray-400 hover:text-gray-700">Edit</button>
+                    <button onClick={() => { setEditingExt(ext); setExtForm({ name: ext.name, description: ext.description || '', url: ext.url || '', directions_url: ext.directions_url || '', distance_from_venue: ext.distance_from_venue || '', image_url: ext.image_url || '' }); setShowExtModal(true); }} className="text-xs text-gray-400 hover:text-gray-700">Edit</button>
                     <button onClick={() => deleteExt(ext.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                   </div>
                 </div>
@@ -239,11 +269,9 @@ export default function AccommodationPage() {
             <div className="px-6 py-5 space-y-4">
               <Field label="Name"><input type="text" value={extForm.name} onChange={e => setExtForm(f => ({ ...f, name: e.target.value }))} className="input" /></Field>
               <Field label="Description"><textarea value={extForm.description} onChange={e => setExtForm(f => ({ ...f, description: e.target.value }))} className="input resize-none" rows={2} /></Field>
-              <Field label="URL"><input type="url" value={extForm.url} onChange={e => setExtForm(f => ({ ...f, url: e.target.value }))} className="input" placeholder="https://…" /></Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Price range"><input type="text" value={extForm.price_range} onChange={e => setExtForm(f => ({ ...f, price_range: e.target.value }))} className="input" placeholder="€80–€120/night" /></Field>
-                <Field label="Distance from venue"><input type="text" value={extForm.distance_from_venue} onChange={e => setExtForm(f => ({ ...f, distance_from_venue: e.target.value }))} className="input" placeholder="2km" /></Field>
-              </div>
+              <Field label="Website URL"><input type="url" value={extForm.url} onChange={e => setExtForm(f => ({ ...f, url: e.target.value }))} className="input" placeholder="https://…" /></Field>
+              <Field label="Directions URL (Google Maps)"><input type="url" value={extForm.directions_url} onChange={e => setExtForm(f => ({ ...f, directions_url: e.target.value }))} className="input" placeholder="https://www.google.com/maps/…" /></Field>
+              <Field label="Distance from venue"><input type="text" value={extForm.distance_from_venue} onChange={e => setExtForm(f => ({ ...f, distance_from_venue: e.target.value }))} className="input" placeholder="2km from venue" /></Field>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
               <button onClick={() => setShowExtModal(false)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>

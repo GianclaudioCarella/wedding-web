@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
 
   const { data: guest, error: guestError } = await supabaseAdmin
     .from('guests')
-    .select('id, name, email, venue_stay_invited, party_role, party_leader_id, plus_one_name, plus_one_email')
+    .select('id, name, email, notes, venue_stay_invited, party_role, party_leader_id')
     .eq('invite_token', token)
     .single()
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   const { data: guestEvents } = await supabaseAdmin
     .from('guest_events')
-    .select('event_id, events(id, name, event_date, event_time, sort_order)')
+    .select('event_id, events(id, name, slug, event_date, event_time, sort_order)')
     .eq('guest_id', guest.id)
     .order('event_id')
 
@@ -27,10 +27,27 @@ export async function GET(request: NextRequest) {
     .filter(Boolean)
     .sort((a: any, b: any) => a.sort_order - b.sort_order)
 
+  const { data: partyMembers } = await supabaseAdmin
+    .from('guests')
+    .select('id, name, party_role')
+    .eq('party_leader_id', guest.id)
+
   const { data: existingRsvps } = await supabaseAdmin
     .from('rsvp_responses')
     .select('event_id, status, dietary_requirements, dietary_notes, notes')
     .eq('guest_id', guest.id)
+
+  // Fetch existing dietary for party members so the form can pre-fill on edit
+  const partyRsvps: Record<string, { dietary_requirements: string[]; dietary_notes: string | null }> = {}
+  if (partyMembers?.length) {
+    const { data: pmRsvps } = await supabaseAdmin
+      .from('rsvp_responses')
+      .select('guest_id, dietary_requirements, dietary_notes')
+      .in('guest_id', partyMembers.map((m: any) => m.id))
+    for (const r of pmRsvps || []) {
+      if (!partyRsvps[r.guest_id]) partyRsvps[r.guest_id] = { dietary_requirements: r.dietary_requirements || [], dietary_notes: r.dietary_notes }
+    }
+  }
 
   const { data: stayRequest } = await supabaseAdmin
     .from('guest_stay_requests')
@@ -41,19 +58,20 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     guest: {
       id: guest.id, name: guest.name, email: guest.email,
+      notes: guest.notes || '',
       venue_stay_invited: guest.venue_stay_invited,
-      plus_one_name: guest.plus_one_name || '',
-      plus_one_email: guest.plus_one_email || '',
     },
     events,
+    partyMembers: partyMembers || [],
     existingRsvps: existingRsvps || [],
+    partyRsvps,
     stayRequest: stayRequest || null,
   })
 }
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email } = body
+  const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email, party_dietary, party_dietary_notes } = body
 
   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
@@ -79,6 +97,27 @@ export async function POST(request: NextRequest) {
     if (rsvpError) {
       console.error('RSVP upsert error:', rsvpError)
       return NextResponse.json({ error: 'Failed to save RSVP', detail: rsvpError.message }, { status: 500 })
+    }
+  }
+
+  // Save dietary for party members
+  if (party_dietary && typeof party_dietary === 'object') {
+    for (const [memberId, memberDietary] of Object.entries(party_dietary as Record<string, string[]>)) {
+      const { data: memberEvents } = await supabaseAdmin
+        .from('guest_events')
+        .select('event_id')
+        .eq('guest_id', memberId)
+      for (const me of memberEvents || []) {
+        await supabaseAdmin.from('rsvp_responses').upsert({
+          guest_id: memberId,
+          event_id: me.event_id,
+          status: 'attending',
+          dietary_requirements: memberDietary || [],
+          dietary_notes: (party_dietary_notes as Record<string, string>)?.[memberId] || null,
+          responded_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'guest_id,event_id' })
+      }
     }
   }
 

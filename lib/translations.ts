@@ -20,7 +20,7 @@ export const translations = {
 
     // Invite about
     aboutLabel: 'A note from us',
-    aboutText: 'We\'re getting married — and we can\'t wait to celebrate with you. Everything you need is on this page: the schedule, where we\'re celebrating, where to stay, and how to RSVP. So excited to share this day with you both.',
+    aboutText: 'We\'re getting married, and we can\'t wait to celebrate with you. Everything you need is on this page. The schedule, where we\'re celebrating, where to stay, and how to RSVP. We\'re so excited to share this day with you!',
 
     // Invite venue
     locationLabel: 'Location',
@@ -31,8 +31,8 @@ export const translations = {
     venueMapsLink: 'Google Maps Directions',
     venueCarLabel: '• By Car',
     venueCarText: 'Parking details TBC.',
-    venueBusLabel: '• By Bus',
-    venueBusText: 'We\'re arranging a bus from the city centre. Let us know in your RSVP if you\'d like a seat.',
+    venueBusLabel: '• Organised transport',
+    venueBusText: 'We\'re arranging transport from Barcelona — details to be confirmed, we\'ll be in touch.',
 
     // Invite schedule
     scheduleLabel: 'The Schedule',
@@ -44,7 +44,7 @@ export const translations = {
     hotelsTitle: 'Hotels & accommodation',
     bookNow: 'Book now →',
     venueStayTitle: 'Accommodation is on us!',
-    venueStayText: 'We\'ve invited a special few guests to stay in the venue from Friday to Monday, and you\'re one of them. Let us know in the RSVP form what you think.',
+    venueStayText: 'We\'ve invited a special few guests to stay in the venue from Friday to Monday, and you\'re one of them. Let us know in the RSVP form what you think. We\'ll be in touch with more info.',
     checkIn: '• Check-in',
     checkInDetail: 'From 3pm on Friday 2 October',
     checkOut: '• Check-out',
@@ -55,8 +55,8 @@ export const translations = {
     // Invite registry
     registryLabel: 'Gift Registry',
     registryTitle: 'Sharing our wedding day with you is what matters most to us.',
-    registryText: 'If you would like to give a gift, a contribution towards our honeymoon would be greatly appreciated.',
-    honeymoonFund: 'View Honeymoon Fund →',
+    registryText: 'If you would like to give a gift, or contribute towards our honeymoon it would be greatly appreciated.',
+    honeymoonFund: 'More details coming soon',
 
     // Invite FAQ
     faqLabel: 'FAQ',
@@ -65,10 +65,12 @@ export const translations = {
     anyOtherQuestions: 'Any other questions?',
 
     // Invite RSVP CTA
-    rsvpDeadline: 'Kindly reply by 1 May 2026',
+    rsvpDeadline: 'Kindly reply by 15 July 2026',
     rsvpQuestion: 'Please let us know if you\'ll be joining us.',
     rsvpVenue: 'La Garriga de Castelladral · Saturday 3 October 2026',
     rsvpButton: 'RSVP now →',
+    rsvpSent: 'RSVP Sent ✓',
+    rsvpEditNote: 'Want to update your response? Click above.',
     backToTop: 'Back to top ↑',
     rsvpLabel: 'RSVP',
     rsvpGreeting: (name?: string) => name ? `${name},` : 'Let us know',
@@ -110,6 +112,15 @@ export const translations = {
       { key: 'friday_night', label: 'Friday night' },
       { key: 'saturday_night', label: 'Saturday night' },
     ],
+    confirmation: {
+      titleYes: 'See you there.',
+      titleNo: "We'll miss you.",
+      messageYes: "Your RSVP is confirmed. We can't wait to celebrate with you.",
+      messageNo: "We're sorry you can't join us. We hope to celebrate with you another time.",
+      received: 'RSVP Received',
+      backToInvitation: 'Back to invitation',
+      editRsvp: 'Edit RSVP',
+    },
   },
   pt: {
     // Common
@@ -177,7 +188,7 @@ export const translations = {
     anyOtherQuestions: 'Outras dúvidas?',
 
     // Invite RSVP CTA
-    rsvpDeadline: 'Por favor, responda até 1 de maio de 2026',
+    rsvpDeadline: 'Por favor, responda até 15 de julho de 2026',
     rsvpQuestion: 'Por favor, nos avise se você estará conosco.',
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de outubro de 2026',
     rsvpButton: 'RSVP agora →',
@@ -221,6 +232,26 @@ export const translations = {
       { key: 'thursday_night', label: 'Quinta-feira à noite' },
       { key: 'friday_night', label: 'Sexta-feira à noite' },
       { key: 'saturday_night', label: 'Sábado à noite' },
+    ],
+    confirmation: {
+      titleYes: 'Até breve!',
+      titleNo: 'Sentiremos a sua falta.',
+      messageYes: 'O seu RSVP está confirmado. Mal podemos esperar para celebrar consigo.',
+      messageNo: 'Lamentamos que não possa estar presente. Esperamos celebrar convosco noutra altura.',
+      received: 'RSVP Recebido',
+      backToInvitation: 'Voltar ao convite',
+      editRsvp: 'Editar RSVP',
+    },
+    faqs: [
+      { question: 'Qual é o código de vestuário?', answer: 'Smart-casual a semi-formal. É um venue ao ar livre em outubro, por isso recomendamos trazer uma camada extra para a noite. Pensa numa festa de jardim com um toque de elegância — não é preciso traje formal.' },
+      { question: 'Como chego ao venue?', answer: 'La Garriga de Castelladral fica a cerca de 1h30 de Barcelona de carro. Estamos também a organizar transporte desde Barcelona — detalhes a confirmar. Indica no teu RSVP se precisas de lugar no autocarro.' },
+      { question: 'Há estacionamento no venue?', answer: 'Sim, há estacionamento disponível no venue. Mais detalhes serão enviados perto da data.' },
+      { question: 'Posso trazer crianças?', answer: 'Adoramos os vossos pequenos, mas esta é uma celebração exclusiva para adultos. Esperamos que consigam encontrar alguém para ficar com eles e juntar-se a nós — vai valer a pena!' },
+      { question: 'A que horas começa e acaba o dia?', answer: 'A cerimónia começa à tarde. O programa completo está nesta página. A noite vai ser longa, por isso poupem energias.' },
+      { question: 'Posso tirar fotografias durante a cerimónia?', answer: 'Gostaríamos que estivesses presente no momento durante a cerimónia — temos fotógrafo. À vontade para tirar tantas fotos quanto quiseres no resto do dia.' },
+      { question: 'Haverá opções vegetarianas e veganas?', answer: 'Sim — por favor indica as tuas restrições alimentares no formulário RSVP e trataremos de ti.' },
+      { question: 'Como é o tempo em outubro?', answer: 'Outubro na Catalunha é geralmente ameno e soalheiro — espera temperaturas máximas entre 18–22°C durante o dia, mais fresco à noite. Recomendamos trazer um casaco leve.' },
+      { question: 'Tenho uma pergunta que não está aqui respondida.', answer: 'Por favor contacta-nos em hello@giancat.com e respondemos assim que possível.' },
     ],
   },
   es: {
@@ -289,7 +320,7 @@ export const translations = {
     anyOtherQuestions: '¿Otras preguntas?',
 
     // Invite RSVP CTA
-    rsvpDeadline: 'Por favor, responde antes del 1 de mayo de 2026',
+    rsvpDeadline: 'Por favor, responde antes del 15 de julio de 2026',
     rsvpQuestion: 'Por favor, avísanos si asistirás.',
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de octubre de 2026',
     rsvpButton: 'RSVP ahora →',
@@ -333,6 +364,26 @@ export const translations = {
       { key: 'thursday_night', label: 'Jueves por la noche' },
       { key: 'friday_night', label: 'Viernes por la noche' },
       { key: 'saturday_night', label: 'Sábado por la noche' },
+    ],
+    confirmation: {
+      titleYes: '¡Nos vemos allí!',
+      titleNo: 'Te echaremos de menos.',
+      messageYes: 'Tu RSVP está confirmado. No podemos esperar para celebrar contigo.',
+      messageNo: 'Lamentamos que no puedas acompañarnos. Esperamos celebrar contigo en otra ocasión.',
+      received: 'RSVP Recibido',
+      backToInvitation: 'Volver a la invitación',
+      editRsvp: 'Editar RSVP',
+    },
+    faqs: [
+      { question: '¿Cuál es el código de vestimenta?', answer: 'Smart-casual a semi-formal. Es un venue al aire libre en octubre, así que te recomendamos traer una capa extra para la noche. Piensa en una fiesta de jardín con un toque de elegancia — no hace falta traje formal.' },
+      { question: '¿Cómo llego al venue?', answer: 'La Garriga de Castelladral está a unos 1h30 de Barcelona en coche. También estamos organizando transporte desde Barcelona — detalles por confirmar. Indícalo en tu RSVP si necesitas plaza en el autobús.' },
+      { question: '¿Hay aparcamiento en el venue?', answer: 'Sí, hay aparcamiento disponible en el venue. Más detalles se enviarán cerca de la fecha.' },
+      { question: '¿Puedo traer niños?', answer: 'Adoramos a vuestros pequeños, pero esta es una celebración solo para adultos. Esperamos que podáis encontrar a alguien que se quede con ellos y uniros a nosotros — ¡valdrá la pena!' },
+      { question: '¿A qué hora empieza y acaba el día?', answer: 'La ceremonia comienza por la tarde. El programa completo está en esta página. La noche será larga, así que guardad energías.' },
+      { question: '¿Puedo hacer fotos durante la ceremonia?', answer: 'Nos gustaría que estuvieras presente en el momento durante la ceremonia — tenemos fotógrafo. Puedes hacer todas las fotos que quieras durante el resto del día.' },
+      { question: '¿Habrá opciones vegetarianas y veganas?', answer: 'Sí — por favor indica tus restricciones alimentarias en el formulario RSVP y nos encargaremos de ti.' },
+      { question: '¿Cómo es el tiempo en octubre?', answer: 'Octubre en Cataluña suele ser templado y soleado — espera temperaturas máximas de 18–22°C durante el día, más fresco por la noche. Te recomendamos traer una chaqueta ligera.' },
+      { question: 'Tengo una pregunta que no está respondida aquí.', answer: 'Por favor, contáctanos en hello@giancat.com y te responderemos lo antes posible.' },
     ],
   },
 };

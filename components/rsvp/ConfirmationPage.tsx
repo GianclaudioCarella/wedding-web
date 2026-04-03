@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Locale } from '@/lib/i18n/locales';
-import { getTranslation } from '@/lib/i18n/translations';
+import { getTranslation } from '@/lib/translations';
 
 const TEXT  = 'var(--color-text)'
 const MUTED = 'var(--color-muted)'
@@ -13,14 +12,14 @@ const SERIF = 'var(--font-serif)'
 const SANS  = 'var(--font-sans)'
 
 interface ConfirmationPageProps {
-  locale: Locale;
+  locale: string;
 }
 
 export default function ConfirmationPage({ locale }: ConfirmationPageProps) {
   const t = getTranslation(locale);
   const searchParams = useSearchParams();
   const guestId = searchParams.get('guest');
-  const [attending, setAttending] = useState<string>('');
+  const [attending, setAttending] = useState<boolean | null>(null);
 
   const baseUrl   = locale === 'en' ? '' : `/${locale}`;
   const rsvpUrl   = guestId ? `${baseUrl}/rsvp?guest=${guestId}` : `${baseUrl}/rsvp`;
@@ -28,26 +27,40 @@ export default function ConfirmationPage({ locale }: ConfirmationPageProps) {
 
   useEffect(() => {
     if (!guestId) return;
-    supabase
-      .from('guests')
-      .select('attending')
-      .eq('id', guestId)
-      .single()
-      .then(({ data }) => { if (data) setAttending(data.attending || '') });
+    (async () => {
+      // Look up guest by invite_token to get their id
+      const { data: guestData } = await supabase
+        .from('guests')
+        .select('id')
+        .eq('invite_token', guestId)
+        .single();
+
+      if (!guestData) return;
+
+      // Check rsvp_responses for this guest
+      const { data: rsvps } = await supabase
+        .from('rsvp_responses')
+        .select('status')
+        .eq('guest_id', guestData.id);
+
+      if (!rsvps || rsvps.length === 0) return;
+
+      const hasAttending = rsvps.some(r => r.status === 'attending');
+      setAttending(hasAttending);
+    })();
   }, [guestId]);
 
-  const title = attending === 'no' ? "We'll miss you." : "See you there.";
+  const isNo = attending === false;
 
-  const message = attending === 'no'
-    ? t.confirmation.message.no
-    : t.confirmation.message.yes;
+  const title   = isNo ? t.confirmation.titleNo   : t.confirmation.titleYes;
+  const message = isNo ? t.confirmation.messageNo : t.confirmation.messageYes;
 
   return (
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 'var(--space-section)' }}>
       <div style={{ width: '100%', maxWidth: 480, textAlign: 'center' }}>
 
         <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
-          RSVP Received
+          {t.confirmation.received}
         </p>
         <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, marginBottom: 16, fontWeight: 400, lineHeight: 1.2 }}>
           {title}
@@ -57,28 +70,14 @@ export default function ConfirmationPage({ locale }: ConfirmationPageProps) {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <Link
-            href={inviteUrl}
-            style={{
-              fontFamily: SANS,
-              fontSize: 'var(--text-sm)',
-              color: '#ffffff',
-              background: TEXT,
-              padding: '14px 36px',
-              borderRadius: 'var(--radius-pill)',
-              textDecoration: 'none',
-              letterSpacing: 'var(--tracking-wide)',
-              textTransform: 'uppercase',
-              fontWeight: 500,
-            }}
-          >
-            Back to invitation
+          <Link href={inviteUrl} className="btn btn-primary">
+            {t.confirmation.backToInvitation}
           </Link>
           <Link
             href={rsvpUrl}
             style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
-            Edit RSVP
+            {t.confirmation.editRsvp}
           </Link>
         </div>
 

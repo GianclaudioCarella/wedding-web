@@ -47,8 +47,42 @@ const NIGHTS = [
   { key: 'saturday_night', label: 'Saturday night' },
 ];
 
-interface Event { id: string; name: string; event_date: string | null; event_time: string | null }
+interface Event { id: string; name: string; slug: string | null; event_date: string | null; event_time: string | null }
 interface RSVPState { status: string }
+
+function DietaryPicker({
+  selected,
+  onToggle,
+  notes,
+  onNotesChange,
+  t,
+}: {
+  selected: string[];
+  onToggle: (id: string) => void;
+  notes: string;
+  onNotesChange: (v: string) => void;
+  t: ReturnType<typeof getTranslation>;
+}) {
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        {t.dietaryOptions.map(opt => (
+          <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <input type="checkbox" checked={selected.includes(opt.id)} onChange={() => onToggle(opt.id)} />
+            <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{opt.label}</span>
+          </label>
+        ))}
+      </div>
+      <textarea
+        value={notes}
+        onChange={e => onNotesChange(e.target.value)}
+        placeholder={t.dietaryPlaceholder}
+        rows={2}
+        style={inputStyle}
+      />
+    </>
+  );
+}
 
 export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const t = getTranslation(locale);
@@ -62,14 +96,14 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
 
   const [guest, setGuest]           = useState<{ id: string; name: string; email: string; venue_stay_invited: boolean } | null>(null);
   const [events, setEvents]         = useState<Event[]>([]);
+  const [partyMembers, setPartyMembers] = useState<{ id: string; name: string }[]>([]);
   const [rsvps, setRsvps]           = useState<Record<string, RSVPState>>({});
   const [dietary, setDietary]       = useState<string[]>([]);
   const [dietaryNotes, setDietaryNotes] = useState('');
+  const [partyDietary, setPartyDietary] = useState<Record<string, string[]>>({});
+  const [partyDietaryNotes, setPartyDietaryNotes] = useState<Record<string, string>>({});
   const [stayNights, setStayNights] = useState({ thursday_night: true, friday_night: true, saturday_night: true });
   const [notes, setNotes]           = useState('');
-  const [plusOne, setPlusOne]       = useState(false);
-  const [plusOneName, setPlusOneName] = useState('');
-  const [plusOneEmail, setPlusOneEmail] = useState('');
 
   useEffect(() => {
     if (!token) { setNotFound(true); setLoading(false); return; }
@@ -79,17 +113,30 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         if (!data) { setNotFound(true); return; }
         setGuest(data.guest);
         setEvents(data.events);
+        if (data.partyMembers?.length) setPartyMembers(data.partyMembers);
 
         const rsvpMap: Record<string, RSVPState> = {};
         for (const r of data.existingRsvps) {
           rsvpMap[r.event_id] = { status: r.status };
           if (r.dietary_requirements?.length) setDietary(r.dietary_requirements);
           if (r.dietary_notes) setDietaryNotes(r.dietary_notes);
-          if (r.notes) setNotes(r.notes);
         }
         setRsvps(rsvpMap);
-        if (data.guest.plus_one_name)  { setPlusOne(true); setPlusOneName(data.guest.plus_one_name); }
-        if (data.guest.plus_one_email) setPlusOneEmail(data.guest.plus_one_email);
+
+        // Pre-fill notes from guest record (shared field with admin notes)
+        if (data.guest.notes) setNotes(data.guest.notes);
+
+        // Pre-fill party member dietary from previous submission
+        if (data.partyRsvps) {
+          const pDietary: Record<string, string[]> = {};
+          const pNotes: Record<string, string> = {};
+          for (const [id, r] of Object.entries(data.partyRsvps as Record<string, { dietary_requirements: string[]; dietary_notes: string | null }>)) {
+            if (r.dietary_requirements?.length) pDietary[id] = r.dietary_requirements;
+            if (r.dietary_notes) pNotes[id] = r.dietary_notes;
+          }
+          if (Object.keys(pDietary).length) setPartyDietary(pDietary);
+          if (Object.keys(pNotes).length) setPartyDietaryNotes(pNotes);
+        }
 
         if (data.stayRequest) {
           setStayNights({
@@ -114,13 +161,22 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
     });
   };
 
+  const togglePartyDietary = (memberId: string, id: string) => {
+    setPartyDietary(prev => {
+      const curr = prev[memberId] || [];
+      if (id === 'none') return { ...prev, [memberId]: ['none'] };
+      const without = curr.filter(d => d !== 'none');
+      return { ...prev, [memberId]: without.includes(id) ? without.filter(d => d !== id) : [...without, id] };
+    });
+  };
+
   const sortedEvents = [...events].sort((a, b) => {
     const aStr = `${a.event_date || ''}T${a.event_time || '00:00:00'}`
     const bStr = `${b.event_date || ''}T${b.event_time || '00:00:00'}`
     return aStr.localeCompare(bStr)
   })
 
-  const ceremonyEvent    = sortedEvents.find(e => e.name.toLowerCase().includes('ceremon')) || sortedEvents[Math.floor(sortedEvents.length / 2)]
+  const ceremonyEvent    = sortedEvents.find(e => e.slug === 'wedding') || sortedEvents.find(e => e.name.toLowerCase().includes('wedding')) || sortedEvents[Math.floor(sortedEvents.length / 2)]
   const otherEvents      = sortedEvents.filter(e => e.id !== ceremonyEvent?.id)
   const ceremonyRsvp     = ceremonyEvent ? (rsvps[ceremonyEvent.id] || { status: '' }) : null
   const ceremonyAttending = ceremonyRsvp?.status === 'attending'
@@ -148,8 +204,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         dietary_notes:        dietaryNotes,
         stay_request:         guest?.venue_stay_invited && anyAttending ? stayNights : null,
         notes,
-        plus_one_name:  plusOne ? plusOneName : '',
-        plus_one_email: plusOne ? plusOneEmail : '',
+        party_dietary:       partyDietary,
+        party_dietary_notes: partyDietaryNotes,
       }),
     });
 
@@ -194,15 +250,19 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 'var(--space-section)' }}>
       <div style={{ width: '100%', maxWidth: 520 }}>
 
+        {/* Back link */}
+        <div style={{ marginBottom: 32 }}>
+          <a href={`/invite?guest=${token}`} className="btn btn-secondary">
+            ← Back to invitation
+          </a>
+        </div>
+
         {/* Header */}
         <div style={{ marginBottom: 48 }}>
-          <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: 'var(--color-green)', margin: 0, marginBottom: 12 }}>
-            RSVP
-          </p>
-          <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
             {t.rsvpGreeting(guest?.name)}
           </h1>
-          <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.5vw, 30px)', color: TEXT, margin: 0, marginTop: 8, fontWeight: 400, lineHeight: 1.3 }}>
+          <p style={{ fontFamily: SERIF, fontSize: 'clamp(16px, 2vw, 22px)', color: TEXT, margin: 0, marginTop: 8, fontWeight: 400, lineHeight: 1.3 }}>
             {t.rsvpQuestion}
           </p>
         </div>
@@ -289,29 +349,21 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             </div>
           )}
 
-          {/* Dietary */}
+          {/* Dietary — primary guest */}
           {anyAttending && (
             <div style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                {t.dietaryRequirements}
+                {partyMembers.length > 0 ? `${guest?.name} — ${t.dietaryRequirements}` : t.dietaryRequirements}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
                 {t.dietarySelectAll}
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-                {t.dietaryOptions.map(opt => (
-                  <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={dietary.includes(opt.id)} onChange={() => toggleDietary(opt.id)} />
-                    <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-              <textarea
-                value={dietaryNotes}
-                onChange={e => setDietaryNotes(e.target.value)}
-                placeholder={t.dietaryPlaceholder}
-                rows={2}
-                style={inputStyle}
+              <DietaryPicker
+                selected={dietary}
+                onToggle={toggleDietary}
+                notes={dietaryNotes}
+                onNotesChange={setDietaryNotes}
+                t={t}
               />
               {!dietaryAnswered && (
                 <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginTop: 12 }}>
@@ -321,39 +373,25 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             </div>
           )}
 
-          {/* +1 */}
-          {anyAttending && (
-            <div style={sectionStyle}>
+          {/* Dietary — party members */}
+          {anyAttending && partyMembers.length > 0 && partyMembers.map(member => (
+            <div key={member.id} style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                {t.plusOneTitle}
+                {member.name} — {t.dietaryRequirements}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                {t.plusOneDescription}
+                {t.dietarySelectAll}
               </p>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                <input type="checkbox" checked={plusOne} onChange={e => setPlusOne(e.target.checked)} />
-                <span style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT }}>{t.plusOneCheckbox}</span>
-              </label>
-              {plusOne && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
-                  <input
-                    type="text"
-                    value={plusOneName}
-                    onChange={e => setPlusOneName(e.target.value)}
-                    placeholder={t.plusOneName}
-                    style={inputStyle}
-                  />
-                  <input
-                    type="email"
-                    value={plusOneEmail}
-                    onChange={e => setPlusOneEmail(e.target.value)}
-                    placeholder={t.plusOneEmail}
-                    style={inputStyle}
-                  />
-                </div>
-              )}
+              <DietaryPicker
+                selected={partyDietary[member.id] || []}
+                onToggle={(id) => togglePartyDietary(member.id, id)}
+                notes={partyDietaryNotes[member.id] || ''}
+                onNotesChange={(v) => setPartyDietaryNotes(prev => ({ ...prev, [member.id]: v }))}
+                t={t}
+              />
             </div>
-          )}
+          ))}
+
 
           {/* Notes */}
           {!!ceremonyRsvp?.status && (
@@ -388,7 +426,16 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                 type="submit"
                 disabled={!allAnswered || submitting}
                 className="btn btn-primary"
-                style={{}}
+                style={
+                  !allAnswered || submitting
+                    ? {
+                        background: 'var(--color-surface)',
+                        color: '#aaaaaa',
+                        pointerEvents: 'none',
+                        cursor: 'default',
+                      }
+                    : {}
+                }
               >
                 <WaveText text={submitting ? t.submitting : t.submitButton} />
               </button>

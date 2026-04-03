@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 interface Event {
   id: string;
   name: string;
+  slug: string | null;
   event_date: string | null;
   event_time: string | null;
   location: string | null;
@@ -27,9 +28,11 @@ export default function EventsPage() {
   const [guestsByEvent, setGuestsByEvent] = useState<Record<string, GuestRow[]>>({});
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [guestPopupEventId, setGuestPopupEventId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Event>>({});
   const [saving, setSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -69,17 +72,49 @@ export default function EventsPage() {
   };
 
   const handleSave = async () => {
-    if (!editingId) return;
     setSaving(true);
-    await supabase.from('events').update({
-      name: form.name,
-      event_date: form.event_date || null,
-      event_time: form.event_time || null,
-      location: form.location || null,
-      description: form.description || null,
-    }).eq('id', editingId);
-    setEditingId(null);
+    if (isAdding) {
+      await supabase.from('events').insert({
+        name: form.name,
+        slug: form.slug || null,
+        event_date: form.event_date || null,
+        event_time: form.event_time || null,
+        location: form.location || null,
+        description: form.description || null,
+        sort_order: events.length,
+      });
+      setIsAdding(false);
+    } else {
+      if (!editingId) { setSaving(false); return; }
+      await supabase.from('events').update({
+        name: form.name,
+        slug: form.slug || null,
+        event_date: form.event_date || null,
+        event_time: form.event_time || null,
+        location: form.location || null,
+        description: form.description || null,
+      }).eq('id', editingId);
+      setEditingId(null);
+    }
     setSaving(false);
+    await fetchAll();
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from('events').delete().eq('id', id);
+    setDeleteConfirm(null);
+    await fetchAll();
+  };
+
+  const handleMove = async (index: number, dir: 'up' | 'down') => {
+    const swapIndex = dir === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= events.length) return;
+    const updated = [...events];
+    [updated[index], updated[swapIndex]] = [updated[swapIndex], updated[index]];
+    // Persist new sort_order values
+    await Promise.all(updated.map((e, i) =>
+      supabase.from('events').update({ sort_order: i }).eq('id', e.id)
+    ));
     await fetchAll();
   };
 
@@ -96,23 +131,41 @@ export default function EventsPage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-1">Events</h1>
-      <p className="text-sm text-gray-500 mb-8">Your 3 wedding events</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-1">Events</h1>
+          <p className="text-sm text-gray-500">{loading ? '…' : `${events.length} event${events.length !== 1 ? 's' : ''}`}</p>
+        </div>
+        <button
+          onClick={() => { setForm({}); setIsAdding(true); }}
+          className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700"
+        >+ Add event</button>
+      </div>
 
       {loading ? <p className="text-sm text-gray-400">Loading…</p> : (
         <div className="space-y-4">
-          {events.map(event => (
+          {events.map((event, i) => (
             <div key={event.id} className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{event.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900">{event.name}</h2>
+                    {event.slug && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-0.5 rounded">{event.slug}</span>}
+                  </div>
                   <p className="text-sm text-gray-500">
                     {event.event_date ? new Date(event.event_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Date TBC'}
                     {event.event_time ? ` · ${event.event_time.slice(0, 5)}` : ''}
                   </p>
                   {event.location && <p className="text-sm text-gray-500">{event.location}</p>}
                 </div>
-                <button onClick={() => { setForm({ ...event }); setEditingId(event.id); }} className="text-sm text-gray-400 hover:text-gray-700">Edit</button>
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col gap-0.5">
+                    <button onClick={() => handleMove(i, 'up')} disabled={i === 0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 leading-none text-xs">▲</button>
+                    <button onClick={() => handleMove(i, 'down')} disabled={i === events.length - 1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 leading-none text-xs">▼</button>
+                  </div>
+                  <button onClick={() => { setForm({ ...event }); setEditingId(event.id); }} className="text-sm text-gray-400 hover:text-gray-700">Edit</button>
+                  <button onClick={() => setDeleteConfirm(event.id)} className="text-sm text-red-400 hover:text-red-600">Delete</button>
+                </div>
               </div>
               {event.description && <p className="text-sm text-gray-600 mb-4">{event.description}</p>}
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
@@ -173,15 +226,20 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Edit event modal */}
-      {editingId && (
+      {/* Add / Edit event modal */}
+      {(editingId || isAdding) && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
             <div className="px-6 py-5 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Edit event</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{isAdding ? 'Add event' : 'Edit event'}</h2>
             </div>
             <div className="px-6 py-5 space-y-4">
-              <Field label="Name"><input type="text" value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" /></Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Name *"><input type="text" value={form.name || ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" /></Field>
+                <Field label="Slug">
+                  <input type="text" value={form.slug || ''} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className="input" placeholder="e.g. wedding, pre-party, aftermath" />
+                </Field>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Date"><input type="date" value={form.event_date || ''} onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))} className="input" /></Field>
                 <Field label="Time"><input type="time" value={form.event_time || ''} onChange={e => setForm(f => ({ ...f, event_time: e.target.value }))} className="input" /></Field>
@@ -190,12 +248,26 @@ export default function EventsPage() {
               <Field label="Description"><textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="input resize-none" rows={3} /></Field>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button onClick={() => setEditingId(null)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
+              <button onClick={() => { setEditingId(null); setIsAdding(false); }} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
               <button onClick={handleSave} disabled={saving} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
       )}
+      {/* Delete confirmation */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
+            <p className="font-semibold text-gray-900 mb-2">Delete this event?</p>
+            <p className="text-sm text-gray-500 mb-6">This will remove all guest assignments and RSVPs for this event.</p>
+            <div className="flex justify-center gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
+              <button onClick={() => handleDelete(deleteConfirm)} className="bg-red-500 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-red-600">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`.input{width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:14px;color:#111827;outline:none}.input:focus{border-color:#6b7280}`}</style>
     </div>
   );

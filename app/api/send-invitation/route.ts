@@ -7,28 +7,28 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 function generateInvitationEmail(guestName: string, inviteUrl: string, locale: string): string {
   const content = {
     en: {
-      subject: 'You\'re invited — Gian & Cat, 4 October 2026',
+      subject: 'You\'re invited — Gian & Cat, 3 October 2026',
       greeting: `Dear ${guestName},`,
       body: 'We\'re getting married, and we would love for you to be there.',
-      details: 'Saturday, 4 October 2026',
+      details: 'Saturday, 3 October 2026',
       cta: 'View your invitation',
       closing: 'With love,',
       names: 'Gian &amp; Cat',
     },
     pt: {
-      subject: 'Estás convidado/a — Gian & Cat, 4 de outubro de 2026',
+      subject: 'Estás convidado/a — Gian & Cat, 3 de outubro de 2026',
       greeting: `Caro/a ${guestName},`,
       body: 'Vamos casar e adorávamos contar com a tua presença.',
-      details: 'Sábado, 4 de outubro de 2026',
+      details: 'Sábado, 3 de outubro de 2026',
       cta: 'Ver o teu convite',
       closing: 'Com amor,',
       names: 'Gian &amp; Cat',
     },
     es: {
-      subject: 'Estás invitado/a — Gian & Cat, 4 de octubre de 2026',
+      subject: 'Estás invitado/a — Gian & Cat, 3 de octubre de 2026',
       greeting: `Querido/a ${guestName},`,
       body: 'Nos casamos y nos encantaría que estuvieras con nosotros.',
-      details: 'Sábado, 4 de octubre de 2026',
+      details: 'Sábado, 3 de octubre de 2026',
       cta: 'Ver tu invitación',
       closing: 'Con amor,',
       names: 'Gian &amp; Cat',
@@ -126,9 +126,9 @@ export async function POST(request: NextRequest) {
     const localePath = locale === 'en' ? '' : `/${locale}`
     const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
     const subjectMap: Record<string, string> = {
-      en: "You're invited — Gian & Cat, 4 October 2026",
-      pt: 'Estás convidado/a — Gian & Cat, 4 de outubro de 2026',
-      es: 'Estás invitado/a — Gian & Cat, 4 de octubre de 2026',
+      en: "You're invited — Gian & Cat, 3 October 2026",
+      pt: 'Estás convidado/a — Gian & Cat, 3 de outubro de 2026',
+      es: 'Estás invitado/a — Gian & Cat, 3 de octubre de 2026',
     }
 
     const { error: sendError } = await resend.emails.send({

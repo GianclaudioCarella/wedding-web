@@ -15,6 +15,7 @@ function generateConfirmationEmail(
     en: {
       subjectYes: 'See you there — RSVP confirmed',
       subjectNo:  "We'll miss you — RSVP confirmed",
+      greeting:   `Dear ${guestName},`,
       label:      'RSVP Confirmed',
       titleYes:   'See you there.',
       titleNo:    "We'll miss you.",
@@ -22,12 +23,14 @@ function generateConfirmationEmail(
       messageNo:  "Thank you for letting us know. We're sorry you won't be able to make it.",
       viewInvite: 'View invitation',
       editRsvp:   'Edit RSVP',
+      footerEdit: 'To update your RSVP, visit:',
       closing:    'With love,',
       names:      'Gian &amp; Cat',
     },
     pt: {
       subjectYes: 'Até já — confirmação de RSVP',
       subjectNo:  'Vamos ter saudades — confirmação de RSVP',
+      greeting:   `Caro/a ${guestName},`,
       label:      'RSVP Confirmado',
       titleYes:   'Até já.',
       titleNo:    'Vamos ter saudades.',
@@ -35,12 +38,14 @@ function generateConfirmationEmail(
       messageNo:  'Obrigado por nos informares. Lamentamos que não possas estar presente.',
       viewInvite: 'Ver convite',
       editRsvp:   'Editar RSVP',
+      footerEdit: 'Para atualizar o teu RSVP, visita:',
       closing:    'Com amor,',
       names:      'Gian &amp; Cat',
     },
     es: {
       subjectYes: 'Hasta pronto — confirmación de RSVP',
       subjectNo:  'Te echaremos de menos — confirmación de RSVP',
+      greeting:   `Querido/a ${guestName},`,
       label:      'RSVP Confirmado',
       titleYes:   'Hasta pronto.',
       titleNo:    'Te echaremos de menos.',
@@ -48,6 +53,7 @@ function generateConfirmationEmail(
       messageNo:  'Gracias por avisarnos. Lamentamos que no puedas venir.',
       viewInvite: 'Ver invitación',
       editRsvp:   'Editar RSVP',
+      footerEdit: 'Para actualizar tu RSVP, visita:',
       closing:    'Con amor,',
       names:      'Gian &amp; Cat',
     },
@@ -78,18 +84,18 @@ function generateConfirmationEmail(
           <!-- Body -->
           <tr>
             <td style="padding:40px 48px;">
-              <p style="margin:0 0 24px;font-size:15px;color:#4a4540;">Dear ${guestName},</p>
+              <p style="margin:0 0 24px;font-size:15px;color:#4a4540;">${t.greeting}</p>
               <p style="margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:400;color:#1a1a18;">${attending ? t.titleYes : t.titleNo}</p>
               <p style="margin:0 0 36px;font-size:15px;color:#4a4540;line-height:1.7;">${attending ? t.messageYes : t.messageNo}</p>
 
               <!-- CTAs -->
-              <table cellpadding="0" cellspacing="0" style="margin:0 0 40px;">
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 40px;">
                 <tr>
                   ${attending ? `<td style="padding-right:12px;">
-                    <a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;font-size:13px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#ffffff;text-decoration:none;background:#1a1a18;border-radius:100px;">${t.viewInvite}</a>
+                    <a href="${inviteUrl}" style="display:inline-block;padding:14px 36px;font-size:13px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#ffffff;text-decoration:none;background:#1a1a18;border-radius:100px;">${t.viewInvite} →</a>
                   </td>` : ''}
                   <td>
-                    <a href="${rsvpUrl}" style="display:inline-block;padding:12px 24px;font-size:13px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#1a1a18;text-decoration:none;border:1px solid #d4cfc9;border-radius:100px;">${t.editRsvp}</a>
+                    <a href="${rsvpUrl}" style="display:inline-block;padding:14px 36px;font-size:13px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#1a1a18;text-decoration:none;border:1px solid #d4cfc9;border-radius:100px;">${t.editRsvp}</a>
                   </td>
                 </tr>
               </table>
@@ -102,7 +108,7 @@ function generateConfirmationEmail(
           <!-- Footer -->
           <tr>
             <td style="padding:20px 48px;border-top:1px solid #ece9e4;text-align:center;">
-              <p style="margin:0;font-size:11px;color:#b8b0a7;">To update your RSVP, visit: ${rsvpUrl}</p>
+              <p style="margin:0;font-size:11px;color:#b8b0a7;">${t.footerEdit} ${rsvpUrl}</p>
             </td>
           </tr>
 
