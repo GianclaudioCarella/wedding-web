@@ -73,6 +73,7 @@ export default function GuestsPage() {
   const [saving, setSaving]             = useState(false);
   const [copied, setCopied]             = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [viewingGuest, setViewingGuest] = useState<Guest | null>(null);
   const [sending, setSending]           = useState<string | null>(null); // guest id being sent
   const [bulkSending, setBulkSending]   = useState(false);
   const [sendResult, setSendResult]     = useState<string | null>(null);
@@ -145,7 +146,8 @@ export default function GuestsPage() {
         if (form.event_ids.length > 0)
           await supabase.from('guest_events').insert(form.event_ids.map(eid => ({ guest_id: editingId, event_id: eid })));
       } else {
-        const { data: newGuest } = await supabase.from('guests').insert(payload).select('id').single();
+        const newToken = crypto.randomUUID();
+        const { data: newGuest } = await supabase.from('guests').insert({ ...payload, invite_token: newToken }).select('id').single();
         const finalIds = ceremonyEvent ? [...new Set([ceremonyEvent.id, ...form.event_ids])] : form.event_ids;
         if (newGuest && finalIds.length > 0)
           await supabase.from('guest_events').insert(finalIds.map(eid => ({ guest_id: newGuest.id, event_id: eid })));
@@ -309,7 +311,7 @@ export default function GuestsPage() {
                   const leader = guest.party_leader_id ? guests.find(g => g.id === guest.party_leader_id) : null;
 
                   return (
-                    <tr key={guest.id} className={guest.party_leader_id ? 'hover:bg-gray-50 bg-gray-50/50' : 'hover:bg-gray-50'}>
+                    <tr key={guest.id} onClick={() => setViewingGuest(guest)} className={`cursor-pointer ${guest.party_leader_id ? 'hover:bg-gray-100 bg-gray-50/50' : 'hover:bg-gray-100'}`}>
                       {/* Name */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -383,8 +385,10 @@ export default function GuestsPage() {
                       </td>
 
                       {/* Notes */}
-                      <td className="px-4 py-3 text-xs text-gray-500 max-w-[180px]">
-                        <span className="line-clamp-2">{guest.notes || <span className="text-gray-300">—</span>}</span>
+                      <td className="px-4 py-3 text-xs text-gray-500 max-w-[120px]">
+                        <span className="line-clamp-1 cursor-help" title={guest.notes || undefined}>
+                          {guest.notes || <span className="text-gray-300">—</span>}
+                        </span>
                       </td>
 
                       {/* Save the Date status */}
@@ -411,7 +415,7 @@ export default function GuestsPage() {
                           </div>
                         ) : guest.email ? (
                           <button
-                            onClick={() => sendInvite(guest.id)}
+                            onClick={(e) => { e.stopPropagation(); sendInvite(guest.id); }}
                             disabled={sending === guest.id}
                             className="text-xs text-gray-500 hover:text-gray-900 border border-gray-200 rounded px-2 py-1 hover:border-gray-400 disabled:opacity-40 whitespace-nowrap"
                           >
@@ -436,7 +440,8 @@ export default function GuestsPage() {
                         <div className="flex items-center gap-3 justify-end whitespace-nowrap">
                           {!guest.party_leader_id && (
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setForm({ ...EMPTY_FORM, tags: guest.tags || [], language: guest.language, party_role: 'partner', party_leader_id: guest.id, event_ids: guest.events, venue_stay_invited: guest.venue_stay_invited });
                                 setEditingId(null); setShowForm(true);
                               }}
@@ -444,8 +449,8 @@ export default function GuestsPage() {
                               title="Add party member"
                             >+ Party</button>
                           )}
-                          <button onClick={() => openEdit(guest)} className="text-xs text-gray-400 hover:text-gray-700">Edit</button>
-                          <button onClick={() => setDeleteConfirm(guest.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
+                          <button onClick={(e) => { e.stopPropagation(); openEdit(guest); }} className="text-xs text-gray-400 hover:text-gray-700">Edit</button>
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(guest.id); }} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -477,11 +482,13 @@ export default function GuestsPage() {
                     placeholder="Type and press Enter"
                     onKeyDown={e => {
                       if (e.key === 'Enter') {
-                        const newTag = (e.target as HTMLInputElement).value.trim();
+                        e.preventDefault();
+                        const input = e.target as HTMLInputElement;
+                        const newTag = input.value.trim();
                         if (newTag && !form.tags?.includes(newTag)) {
                           setForm(f => ({ ...f, tags: [...(f.tags || []), newTag] }));
+                          input.value = '';
                         }
-                        (e.target as HTMLInputElement).value = '';
                       }
                     }}
                     list="tags-list"
@@ -580,6 +587,152 @@ export default function GuestsPage() {
           </div>
         </div>
       )}
+
+      {/* View guest modal */}
+      {viewingGuest && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-5 border-b border-gray-200 sticky top-0 bg-white flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">{viewingGuest.name}</h2>
+              <button onClick={() => setViewingGuest(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="px-6 py-5 space-y-6">
+              {/* Basic info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Email</p>
+                  <p className="text-sm text-gray-900">{viewingGuest.email || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Phone</p>
+                  <p className="text-sm text-gray-900">{viewingGuest.phone || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Language</p>
+                  <p className="text-sm text-gray-900">{viewingGuest.language.toUpperCase()}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Role</p>
+                  <p className="text-sm text-gray-900">{viewingGuest.party_role === 'primary' ? 'Primary Guest' : viewingGuest.party_role?.charAt(0).toUpperCase() + viewingGuest.party_role?.slice(1)}</p>
+                </div>
+              </div>
+
+              {/* Tags */}
+              {viewingGuest.tags?.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingGuest.tags.map(tag => (
+                      <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Save the date */}
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase mb-1">Save the Date Response</p>
+                {viewingGuest.attending ? (
+                  <p className={`text-sm font-medium ${
+                    viewingGuest.attending === 'yes' ? 'text-green-700' :
+                    viewingGuest.attending === 'no' ? 'text-red-700' :
+                    'text-yellow-700'
+                  }`}>
+                    {viewingGuest.attending === 'yes' ? '✓ Yes, attending' : viewingGuest.attending === 'no' ? '✗ Not attending' : '? Maybe'}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500">No response</p>
+                )}
+              </div>
+
+              {/* Events and RSVPs */}
+              {events.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Event RSVPs</p>
+                  <div className="space-y-2">
+                    {events.map(event => {
+                      const rsvp = viewingGuest.rsvps[event.id];
+                      const invited = viewingGuest.events.includes(event.id);
+                      return (
+                        <div key={event.id} className="text-sm border border-gray-100 rounded p-3">
+                          <p className="font-medium text-gray-900">{event.name}</p>
+                          {invited ? (
+                            <p className={`text-xs mt-1 ${
+                              rsvp?.status === 'attending' ? 'text-green-600' :
+                              rsvp?.status === 'declined' ? 'text-red-600' :
+                              'text-amber-600'
+                            }`}>
+                              {rsvp?.status === 'attending' ? '✓ Attending' : rsvp?.status === 'declined' ? '✗ Declined' : '◐ Pending'}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-400 mt-1">Not invited</p>
+                          )}
+                          {rsvp?.dietary_notes && <p className="text-xs text-gray-500 mt-1">Diet: {rsvp.dietary_notes}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {viewingGuest.notes && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Notes</p>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{viewingGuest.notes}</p>
+                </div>
+              )}
+
+              {/* Invite link */}
+              <div className="border-t border-gray-100 pt-4">
+                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Invite Link</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/invite?guest=${viewingGuest.invite_token}`}
+                    className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded bg-gray-50 font-mono"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/invite?guest=${viewingGuest.invite_token}`);
+                      setCopied(viewingGuest.id);
+                      setTimeout(() => setCopied(null), 2000);
+                    }}
+                    className="text-xs px-3 py-2 border border-gray-200 rounded hover:bg-gray-50 font-medium"
+                  >
+                    {copied === viewingGuest.id ? '✓ Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="border-t border-gray-100 pt-4 flex gap-3">
+                <button
+                  onClick={() => {
+                    openEdit(viewingGuest);
+                    setViewingGuest(null);
+                  }}
+                  className="flex-1 text-sm text-gray-700 px-4 py-2 border border-gray-200 rounded hover:bg-gray-50 font-medium"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    setViewingGuest(null);
+                  }}
+                  className="flex-1 text-sm text-gray-700 px-4 py-2 border border-gray-200 rounded hover:bg-gray-50 font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`.input{width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:14px;color:#111827;outline:none}.input:focus{border-color:#6b7280}`}</style>
     </div>
   );
