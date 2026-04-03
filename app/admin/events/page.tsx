@@ -150,7 +150,7 @@ export default function EventsPage() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-gray-900">{(event.name as any)?.en || event.name}</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">{(event.name as any)?.en}</h2>
                     {event.slug && <span className="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-0.5 rounded">{event.slug}</span>}
                   </div>
                   <p className="text-sm text-gray-500">
@@ -168,7 +168,7 @@ export default function EventsPage() {
                   <button onClick={() => setDeleteConfirm(event.id)} className="text-sm text-red-400 hover:text-red-600">Delete</button>
                 </div>
               </div>
-              {((event.description as any)?.en || event.description) && <p className="text-sm text-gray-600 mb-4">{(event.description as any)?.en || event.description}</p>}
+              {(event.description as any)?.en && <p className="text-sm text-gray-600 mb-4">{(event.description as any)?.en}</p>}
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex gap-6">
                   {[
@@ -200,7 +200,7 @@ export default function EventsPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{(popupEvent?.name as any)?.en || popupEvent?.name}</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{(popupEvent?.name as any)?.en}</h2>
                 <p className="text-xs text-gray-400 mt-0.5">{popupGuests.length} invited</p>
               </div>
               <button onClick={() => setGuestPopupEventId(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
