@@ -6,6 +6,7 @@ import Link from 'next/link'
 import FAB from '@/components/invite/FAB'
 import { WaveText } from '@/components/WaveText'
 import Countdown from '@/components/invite/Countdown'
+import { getTranslation } from '@/lib/translations'
 
 interface Event {
   id: string; name: string; event_date: string | null
@@ -22,7 +23,8 @@ const MUTED = 'var(--color-muted)'
 const SERIF = 'var(--font-serif)'
 const SANS  = 'var(--font-sans)'
 
-export default function InviteContent() {
+export default function InviteContent({ locale = 'en' }: { locale?: string }) {
+  const t = getTranslation(locale)
   const searchParams = useSearchParams()
   const token = searchParams.get('guest')
 
@@ -90,15 +92,15 @@ export default function InviteContent() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: MUTED, fontFamily: SANS, fontSize: 14 }}>Loading…</p>
+      <p style={{ color: MUTED, fontFamily: SANS, fontSize: 14 }}>{t.loading}</p>
     </div>
   )
 
   if (notFound) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 8 }}>Invitation not found</h1>
-        <p style={{ fontFamily: SANS, color: MUTED, fontSize: 15 }}>Please check your invitation link.</p>
+        <h1 style={{ fontFamily: SERIF, fontSize: 28, color: TEXT, marginBottom: 8 }}>{t.invitationNotFound}</h1>
+        <p style={{ fontFamily: SANS, color: MUTED, fontSize: 15 }}>{t.checkLink}</p>
       </div>
     </div>
   )
@@ -106,13 +108,13 @@ export default function InviteContent() {
   const hasStay = guest?.venue_stay_invited || externalAccom.length > 0
 
   const navLinks = [
-    { label: 'About', href: '#about' },
-    { label: 'Location', href: '#venue' },
-    { label: 'The Schedule', href: '#events' },
-    ...(hasStay ? [{ label: 'Where to stay', href: '#stay' }] : []),
-    ...(registry.length > 0 ? [{ label: 'Gift Registry', href: '#registry' }] : []),
-    { label: 'FAQ', href: '#faq' },
-    { label: 'RSVP', href: '#rsvp' },
+    { label: t.navAbout, href: '#about' },
+    { label: t.navLocation, href: '#venue' },
+    { label: t.navSchedule, href: '#events' },
+    ...(hasStay ? [{ label: t.navStay, href: '#stay' }] : []),
+    ...(registry.length > 0 ? [{ label: t.navRegistry, href: '#registry' }] : []),
+    { label: t.navFaq, href: '#faq' },
+    { label: t.navRsvp, href: '#rsvp' },
   ]
 
   const formatEventPill = (event: Event) => {
@@ -150,10 +152,10 @@ export default function InviteContent() {
           {/* Bottom: date + RSVP */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <p style={{ fontFamily: SANS, fontSize: 15, color: TEXT, margin: 0 }}>
-              Saturday 3 October 2026
+              {t.weddingDate}
             </p>
             <a href="#rsvp" className="btn btn-primary">
-              <WaveText text="RSVP Now" />
+              <WaveText text={t.rsvpNow} />
             </a>
           </div>
         </div>
@@ -166,37 +168,37 @@ export default function InviteContent() {
         margin: '0 auto',
         textAlign: 'center' as const,
       }}>
-        <p className="schedule-label" style={{ marginBottom: 24 }}>A note from us</p>
+        <p className="schedule-label" style={{ marginBottom: 24 }}>{t.aboutLabel}</p>
         <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.2vw, 28px)', color: TEXT, lineHeight: 'var(--leading-normal)', margin: 0, fontWeight: 400 }}>
-          We&rsquo;re getting married — and we can&rsquo;t wait to celebrate with you. Everything you need is on this page: the schedule, where we&rsquo;re celebrating, where to stay, and how to RSVP. So excited to share this day with you both.
+          {t.aboutText}
         </p>
       </section>
 
       {/* ── Venue ── */}
       <section id="venue" className="venue-section" style={{ paddingBlock: 'var(--space-section)', gap: 24, minHeight: '100vh' }}>
         <div style={{ display: 'flex', flexDirection: 'column' as const, paddingTop: 8 }}>
-          <p className="schedule-label">Location</p>
+          <p className="schedule-label">{t.locationLabel}</p>
           <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 3vw, 42px)', color: TEXT, margin: 0, marginBottom: 48, lineHeight: 1.2, fontWeight: 400 }}>
-            La Garriga de Castelladral.
+            {t.venueName}
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 28, marginTop: 'auto' }}>
             <div>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>• Address</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueAddressLabel}</p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>
-                La Garriga de Castelladral<br />Barcelona, Spain
+                {t.venueAddress}<br />{t.venueCity}
               </p>
               <a href="#" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, display: 'inline-block', marginTop: 4, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                Google Maps Directions
+                {t.venueMapsLink}
               </a>
             </div>
             <div>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>• By Car</p>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>Parking details TBC.</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueCarLabel}</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>{t.venueCarText}</p>
             </div>
             <div>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>• By Bus</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 6, fontWeight: 500 }}>{t.venueBusLabel}</p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, lineHeight: 'var(--leading-normal)' }}>
-                We&rsquo;re arranging a bus from the city centre. Let us know in your RSVP if you&rsquo;d like a seat.
+                {t.venueBusText}
               </p>
             </div>
           </div>
@@ -208,9 +210,9 @@ export default function InviteContent() {
       <section id="events" className="schedule">
         <div className="schedule-inner">
           <div className="schedule-left">
-            <p className="schedule-label">The Schedule</p>
+            <p className="schedule-label">{t.scheduleLabel}</p>
             <p className="schedule-intro">
-              We would love for you to join us as we celebrate our wedding. Good food, familiar faces, and a few stories worth retelling.
+              {t.scheduleIntro}
             </p>
           </div>
 
@@ -244,7 +246,7 @@ export default function InviteContent() {
             ))}
 
             {events.length === 0 && (
-              <p style={{ fontFamily: SANS, fontSize: 14, color: MUTED }}>Event details coming soon.</p>
+              <p style={{ fontFamily: SANS, fontSize: 14, color: MUTED }}>{t.eventComingSoon}</p>
             )}
           </div>
         </div>
@@ -265,9 +267,9 @@ export default function InviteContent() {
               <div>
                 {/* Heading */}
                 <div style={{ marginBottom: 24 }}>
-                  <p className="schedule-label">Where to stay</p>
+                  <p className="schedule-label">{t.stayLabel}</p>
                   <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 2.5vw, 36px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
-                    Hotels &amp; accommodation
+                    {t.hotelsTitle}
                   </h2>
                 </div>
 
@@ -318,7 +320,7 @@ export default function InviteContent() {
                       {a.url && (
                         <div style={{ marginTop: 'auto' }}>
                           <a href={a.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ display: 'inline-flex' }}>
-                            <WaveText text="Book now →" />
+                            <WaveText text={t.bookNow} />
                           </a>
                         </div>
                       )}
@@ -331,18 +333,18 @@ export default function InviteContent() {
             {/* Venue stay */}
             {guest?.venue_stay_invited && (
               <div>
-                <p className="schedule-label">Where to stay</p>
+                <p className="schedule-label">{t.stayLabel}</p>
                 <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(24px, 2.5vw, 36px)', color: TEXT, margin: 0, marginBottom: 40, fontWeight: 400, lineHeight: 1.2 }}>
-                  Accommodation is on us!
+                  {t.venueStayTitle}
                 </h2>
                 <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: 0, marginBottom: 32, lineHeight: 'var(--leading-normal)' }}>
-                  We&rsquo;ve invited a special few guests to stay in the venue from Friday to Monday, and you&rsquo;re one of them. Let us know in the RSVP form what you think.
+                  {t.venueStayText}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 20 }}>
                   {[
-                    { label: '• Check-in',  detail: 'From 3pm on Friday 2 October' },
-                    { label: '• Check-out', detail: 'By 11am on Monday 5 October' },
-                    { label: '• Breakfast', detail: 'Included both mornings' },
+                    { label: t.checkIn,  detail: t.checkInDetail },
+                    { label: t.checkOut, detail: t.checkOutDetail },
+                    { label: t.breakfast, detail: t.breakfastDetail },
                   ].map(item => (
                     <div key={item.label}>
                       <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 500 }}>{item.label}</p>
@@ -358,50 +360,52 @@ export default function InviteContent() {
       )}
 
       {/* ── Registry ── */}
-      <section id="registry" style={{
-        paddingBlock: 'var(--space-section)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-      }}>
-        <div style={{
-          background: 'var(--color-surface)',
-          width: '100%',
-          minHeight: '90vh',
+      {registry.length > 0 && (
+        <section id="registry" style={{
+          paddingBlock: 'var(--space-section)',
           display: 'flex',
-          flexDirection: 'column' as const,
           alignItems: 'center',
           justifyContent: 'center',
-          textAlign: 'center' as const,
-          padding: '48px 40px',
+          minHeight: '100vh',
         }}>
-          <div style={{ width: 160, height: 160, background: 'var(--color-btn-secondary)', margin: '0 auto 40px' }} />
-          <p className="schedule-label" style={{ marginBottom: 16 }}>Gift Registry</p>
-          <p style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 2.5vw, 34px)', color: TEXT, margin: '0 auto', marginBottom: 16, lineHeight: 'var(--leading-normal)', maxWidth: 520, fontWeight: 400 }}>
-            Sharing our wedding day with you is what matters most to us.
-          </p>
-          <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, maxWidth: 420, lineHeight: 'var(--leading-normal)' }}>
-            If you would like to give a gift, a contribution towards our honeymoon would be greatly appreciated.
-          </p>
-          <a href="#" className="btn btn-secondary">
-            <WaveText text="View Honeymoon Fund →" />
-          </a>
-        </div>
-      </section>
+          <div style={{
+            background: 'var(--color-surface)',
+            width: '100%',
+            minHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column' as const,
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center' as const,
+            padding: '48px 40px',
+          }}>
+            <div style={{ width: 160, height: 160, background: 'var(--color-btn-secondary)', margin: '0 auto 40px' }} />
+            <p className="schedule-label" style={{ marginBottom: 16 }}>{t.registryLabel}</p>
+            <p style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 2.5vw, 34px)', color: TEXT, margin: '0 auto', marginBottom: 16, lineHeight: 'var(--leading-normal)', maxWidth: 520, fontWeight: 400 }}>
+              {t.registryTitle}
+            </p>
+            <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, maxWidth: 420, lineHeight: 'var(--leading-normal)' }}>
+              {t.registryText}
+            </p>
+            <a href="#" className="btn btn-secondary">
+              <WaveText text={t.honeymoonFund} />
+            </a>
+          </div>
+        </section>
+      )}
 
       {/* ── FAQ ── */}
       <section id="faq" className="schedule faq-section">
         <div className="schedule-inner" style={{ alignItems: 'start' }}>
           <div className="schedule-left" style={{ display: 'flex', flexDirection: 'column' as const, gap: 24 }}>
             <div>
-              <p className="schedule-label">FAQ</p>
-              <p className="schedule-intro" style={{ margin: 0 }}>Good to know.</p>
+              <p className="schedule-label">{t.faqLabel}</p>
+              <p className="schedule-intro" style={{ margin: 0 }}>{t.faqIntro}</p>
             </div>
             <div style={{ width: 250, height: 250, background: 'var(--color-surface)' }} />
             <div id="contact">
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 8, lineHeight: 'var(--leading-normal)' }}>
-                Any other questions?
+                {t.anyOtherQuestions}
               </p>
               <a href="mailto:hello@example.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
                 hello@example.com
@@ -417,7 +421,7 @@ export default function InviteContent() {
               </div>
             ))}
             {faqs.length === 0 && (
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>FAQ coming soon.</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED }}>{t.faqComingSoon}</p>
             )}
           </div>
         </div>
@@ -443,22 +447,22 @@ export default function InviteContent() {
           boxSizing: 'border-box' as const,
         }}>
           <div style={{ width: 160, height: 160, background: 'var(--color-btn-secondary)', margin: '0 auto 40px' }} />
-          <p className="schedule-label" style={{ marginBottom: 24 }}>Kindly reply by 1 May 2026</p>
+          <p className="schedule-label" style={{ marginBottom: 24 }}>{t.rsvpDeadline}</p>
           <h2 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 48px)', color: TEXT, margin: '0 auto', marginBottom: 16, lineHeight: 1.2, fontWeight: 400 }}>
-            Please let us know if you&rsquo;ll be joining us.
+            {t.rsvpQuestion}
           </h2>
           <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, lineHeight: 'var(--leading-normal)' }}>
-            La Garriga de Castelladral · Saturday 3 October 2026
+            {t.rsvpVenue}
           </p>
-          <Link href={`/rsvp?guest=${token}`} className="btn btn-primary">
-            <WaveText text="RSVP now →" />
+          <Link href={`/${locale === 'en' ? '' : locale}/rsvp?guest=${token}`} className="btn btn-primary">
+            <WaveText text={t.rsvpButton} />
           </Link>
         </div>
 
         {/* Back to top — pinned to bottom of section */}
         <div style={{ marginTop: 'auto', paddingTop: 48 }}>
           <a href="#" className="btn btn-secondary">
-            <WaveText text="Back to top ↑" />
+            <WaveText text={t.backToTop} />
           </a>
         </div>
       </section>

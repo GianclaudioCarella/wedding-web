@@ -8,7 +8,7 @@ export default function InvitePage() {
         <p className="text-gray-400 text-sm">Loading…</p>
       </div>
     }>
-      <InviteContent />
+      <InviteContent locale="en" />
     </Suspense>
   )
 }
