@@ -145,7 +145,7 @@ export const translations = {
 
     // Invite about
     aboutLabel: 'Uma nota nossa',
-    aboutText: 'Vamos nos casar — e mal podemos esperar para celebrar com vocês. Tudo que você precisa está nesta página: o cronograma, o local onde vamos celebrar, onde ficar e como responder. Muito animados em compartilhar este dia com vocês.',
+    aboutText: 'Vamos nos casar — e mal podemos esperar para celebrar com vocês. Tudo que você precisa está nesta página: o cronograma, o local onde vamos celebrar, onde ficar e como ir. Estamos muito animados em compartilhar este dia com vocês.',
 
     // Invite venue
     locationLabel: 'Local',
@@ -161,7 +161,7 @@ export const translations = {
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
-    scheduleIntro: 'Adoraríamos que nos acompanhassem enquanto celebramos nosso casamento. Boa comida, rostos familiares e algumas histórias que merecem ser contadas novamente.',
+    scheduleIntro: 'Ficaremos muito felizes que nos acompanhassem enquanto celebramos nosso casamento. Boa comida, familiares e algumas histórias que merecem ser contadas novamente.',
     eventComingSoon: 'Detalhes dos eventos em breve.',
 
     // Invite accommodation
@@ -182,14 +182,14 @@ export const translations = {
     // Invite registry
     registryLabel: 'Lista de Presentes',
     registryTitle: 'Compartilhar nosso dia de casamento com você é o que mais nos importa.',
-    registryText: 'Se quiser oferecer um presente, uma contribuição para nossa lua de mel seria muito apreciada.',
+    registryText: 'Se quiser oferecer um presente ou contribuir para nossa lua de mel, estaremos agradecidos.',
     honeymoonFund: 'Mais detalhes em breve.',
 
     // Invite FAQ
     faqLabel: 'Perguntas Frequentes',
     faqIntro: 'Bom saber.',
     faqComingSoon: 'Perguntas frequentes em breve.',
-    anyOtherQuestions: 'Outras dúvidas?',
+    anyOtherQuestions: 'Qualquer duvida',
 
     // Invite RSVP CTA
     rsvpDeadline: 'Por favor, responda até 15 de julho de 2026',
@@ -197,7 +197,7 @@ export const translations = {
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de outubro de 2026',
     rsvpButton: 'RSVP agora →',
     rsvpSent: 'RSVP Enviado ✓',
-    rsvpEditNote: 'Queres atualizar a tua resposta? Clica acima.',
+    rsvpEditNote: 'Quer atualizar a resposta? Clica acima.',
     backToTop: 'Voltar ao topo ↑',
     rsvpLabel: 'RSVP',
     rsvpGreeting: (name?: string) => name ? `${name},` : 'Queremos saber',
