@@ -281,7 +281,7 @@ export const translations = {
 
     // Invite about
     aboutLabel: 'Una nota de nosotros',
-    aboutText: 'Nos casamos — y no podemos esperar para celebrar contigo. Todo lo que necesitas está en esta página: el cronograma, dónde celebramos, dónde alojarse y cómo RSVP. Muy emocionados de compartir este día contigo.',
+    aboutText: 'Nos casamos — y no podemos esperar para celebrar contigo. Todo lo que necesitas está en esta página: el cronograma, dónde celebramos, dónde alojarse y cómo ir. Estamos muy emocionados de compartir este día contigo.',
 
     // Invite venue
     locationLabel: 'Ubicación',
@@ -297,7 +297,7 @@ export const translations = {
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
-    scheduleIntro: 'Nos encantaría que nos acompañes mientras celebramos nuestra boda. Buena comida, caras familiares y algunas historias que vale la pena contar de nuevo.',
+    scheduleIntro: 'Nos encantaría que nos acompañes mientras celebramos nuestra boda. Buena comida, familiares y algunas historias que vale la pena contar de nuevo.',
     eventComingSoon: 'Detalles del evento próximamente.',
 
     // Invite accommodation
@@ -317,9 +317,9 @@ export const translations = {
 
     // Invite registry
     registryLabel: 'Lista de Bodas',
-    registryTitle: 'Compartir nuestro día de boda contigo es lo más importante para nosotros.',
-    registryText: 'Si deseas hacer un regalo, una contribución hacia nuestra luna de miel sería muy apreciada.',
-    honeymoonFund: 'Próximamente más detalles.',
+    registryTitle: 'Compartir nuestra boda contigo es lo más importante para nosotros.',
+    registryText: 'Si quieres hacer un regalo o una contribución hacia nuestra luna de miel estaremos muy agradecidos.',
+    honeymoonFund: 'Mas detalles pronto.',
 
     // Invite FAQ
     faqLabel: 'Preguntas frecuentes',
@@ -329,7 +329,7 @@ export const translations = {
 
     // Invite RSVP CTA
     rsvpDeadline: 'Por favor, responde antes del 15 de julio de 2026',
-    rsvpQuestion: 'Por favor, avísanos si asistirás.',
+    rsvpQuestion: 'Por favor, avísanos si podrás venir.',
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de octubre de 2026',
     rsvpButton: 'RSVP ahora →',
     rsvpSent: 'RSVP Enviado ✓',
