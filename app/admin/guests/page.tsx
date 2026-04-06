@@ -332,17 +332,17 @@ export default function GuestsPage() {
             <table className="text-sm" style={{ width: 'max-content', minWidth: '100%' }}>
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Name</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Tag</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Guest name">Name</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Guest tag or group">Tag</th>
                   {events.map(e => (
-                    <th key={e.id} className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">{((e.name as any)?.en || 'Event').split(' ')[0]}</th>
+                    <th key={e.id} className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title={`RSVP for ${(e.name as any)?.en || 'Event'}`}>{((e.name as any)?.en || 'Event').split(' ')[0]}</th>
                   ))}
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Dietary</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Stay</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Notes / RSVP</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Save the Date</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Invited</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap">Link</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Dietary restrictions">Dietary</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Staying at venue">Stay</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="RSVP notes and status">Notes / RSVP</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Save the Date sent">Save the Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Formal invitation sent">Invited</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Invitation link">Link</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -604,10 +604,10 @@ export default function GuestsPage() {
                   </Field>
                 )}
               </div>
-              {(extraEvents.length > 0 || true) && (
+              {(events.length > 0 || true) && (
                 <div className="border border-gray-100 rounded-lg p-3 space-y-2">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Extras</p>
-                  {extraEvents.map(e => (
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Events</p>
+                  {events.map(e => (
                     <label key={e.id} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={form.event_ids.includes(e.id)} onChange={ev => setForm(f => ({ ...f, event_ids: ev.target.checked ? [...f.event_ids, e.id] : f.event_ids.filter(id => id !== e.id) }))} className="rounded border-gray-300" />
                       <span className="text-sm text-gray-700">{(e.name as any)?.en || 'Event'}</span>
