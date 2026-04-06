@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Fragment } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface Event { id: string; name: string; sort_order: number }
@@ -15,7 +15,7 @@ interface StayRequest {
 }
 interface Guest {
   id: string; name: string; email: string | null; phone: string | null;
-  tags: string[]; language: string; notes: string | null;
+  tags: string[]; language: string; notes: string | null; save_the_date_notes: string | null;
   invite_token: string; party_role: string; party_leader_id: string | null;
   venue_stay_invited: boolean; invited_at: string | null; attending: string | null; events: string[];
   rsvps: Record<string, RsvpDetail>;
@@ -33,31 +33,50 @@ const STATUS_STYLE: Record<string, React.CSSProperties> = {
   declined:  { background: '#fee2e2', color: '#dc2626' },
 };
 
-const getTagColor = (tag: string) => {
+const getTagColorWithCollisionAvoidance = (tag: string, allTags: string[]) => {
   const colors = [
-    'border-blue-400 text-blue-400 bg-blue-400/10',
-    'border-green-400 text-green-400 bg-green-400/10',
-    'border-purple-400 text-purple-400 bg-purple-400/10',
-    'border-pink-400 text-pink-400 bg-pink-400/10',
-    'border-indigo-400 text-indigo-400 bg-indigo-400/10',
-    'border-yellow-400 text-yellow-400 bg-yellow-400/10',
-    'border-teal-400 text-teal-400 bg-teal-400/10',
-    'border-orange-400 text-orange-400 bg-orange-400/10',
-    'border-cyan-400 text-cyan-400 bg-cyan-400/10',
-    'border-rose-400 text-rose-400 bg-rose-400/10',
-    'border-lime-400 text-lime-400 bg-lime-400/10',
-    'border-amber-400 text-amber-400 bg-amber-400/10',
-    'border-emerald-400 text-emerald-400 bg-emerald-400/10',
-    'border-violet-400 text-violet-400 bg-violet-400/10',
-    'border-fuchsia-400 text-fuchsia-400 bg-fuchsia-400/10',
-    'border-sky-400 text-sky-400 bg-sky-400/10',
-    'border-red-400 text-red-400 bg-red-400/10',
+    'border-blue-600 text-blue-600 bg-blue-600/10',
+    'border-orange-600 text-orange-600 bg-orange-600/10',
+    'border-red-600 text-red-600 bg-red-600/10',
+    'border-purple-600 text-purple-600 bg-purple-600/10',
+    'border-green-600 text-green-600 bg-green-600/10',
+    'border-yellow-600 text-yellow-600 bg-yellow-600/10',
+    'border-pink-600 text-pink-600 bg-pink-600/10',
+    'border-indigo-600 text-indigo-600 bg-indigo-600/10',
+    'border-teal-600 text-teal-600 bg-teal-600/10',
+    'border-amber-600 text-amber-600 bg-amber-600/10',
+    'border-rose-600 text-rose-600 bg-rose-600/10',
+    'border-cyan-600 text-cyan-600 bg-cyan-600/10',
+    'border-lime-600 text-lime-600 bg-lime-600/10',
+    'border-fuchsia-600 text-fuchsia-600 bg-fuchsia-600/10',
+    'border-sky-600 text-sky-600 bg-sky-600/10',
+    'border-emerald-600 text-emerald-600 bg-emerald-600/10',
   ];
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+
+  // Build a map of tag -> color index with collision detection
+  const tagColorMap = new Map<string, number>();
+  const usedIndices = new Set<number>();
+
+  for (const t of allTags) {
+    if (tagColorMap.has(t)) continue;
+
+    let hash = 0;
+    for (let i = 0; i < t.length; i++) {
+      hash = t.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let index = Math.abs(hash) % colors.length;
+
+    // If this index is taken, find the next available one
+    while (usedIndices.has(index)) {
+      index = (index + 1) % colors.length;
+    }
+
+    tagColorMap.set(t, index);
+    usedIndices.add(index);
   }
-  return colors[Math.abs(hash) % colors.length];
+
+  const index = tagColorMap.get(tag) ?? 0;
+  return colors[index];
 };
 
 export default function GuestsPage() {
@@ -79,6 +98,18 @@ export default function GuestsPage() {
   const [sendResult, setSendResult]     = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowForm(false);
+        setViewingGuest(null);
+        setDeleteConfirm(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -300,7 +331,7 @@ export default function GuestsPage() {
               onClick={() => setGroupFilter(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
               className={`px-3 py-2 text-xs rounded-md font-medium transition-colors ${
                 groupFilter.includes(tag)
-                  ? `${getTagColor(tag)} border`
+                  ? `${getTagColorWithCollisionAvoidance(tag, tags)} border`
                   : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -380,7 +411,7 @@ export default function GuestsPage() {
                       <td className="px-4 py-3 text-xs whitespace-nowrap">
                         {guest.tags?.length ? (
                           <div className="flex gap-1" title={guest.tags.join(', ')}>
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(guest.tags[0])}`}>
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColorWithCollisionAvoidance(guest.tags[0], tags)}`}>
                               {guest.tags[0]}
                             </span>
                             {guest.tags.length > 1 && (
@@ -417,7 +448,10 @@ export default function GuestsPage() {
                       })}
 
                       {/* Dietary */}
-                      <td className="px-4 py-3 text-xs text-gray-600 max-w-[180px]">
+                      <td
+                        className="px-4 py-3 text-xs text-gray-600 max-w-[180px]"
+                        title={allDietary.length > 0 || allDietaryNotes.length > 0 ? [...allDietary, ...allDietaryNotes].join(', ') : undefined}
+                      >
                         {allDietary.length === 0 && allDietaryNotes.length === 0
                           ? <span className="text-gray-300">—</span>
                           : <div>
@@ -438,8 +472,8 @@ export default function GuestsPage() {
                       </td>
 
                       {/* Notes */}
-                      <td className="px-4 py-3 text-xs text-gray-500 max-w-[120px]">
-                        <span className="line-clamp-1 cursor-help" title={guest.notes || undefined}>
+                      <td className="px-4 py-3 text-xs text-gray-500 max-w-[120px]" title={guest.notes || undefined}>
+                        <span className="line-clamp-1">
                           {guest.notes || <span className="text-gray-300">—</span>}
                         </span>
                       </td>
@@ -469,8 +503,15 @@ export default function GuestsPage() {
                       {/* Invite link */}
                       <td className="px-4 py-3">
                         {!guest.party_leader_id && (
-                          <button onClick={() => copyLink(guest.invite_token)} className="text-xs text-gray-400 hover:text-gray-700 font-mono whitespace-nowrap">
-                            {copied === guest.invite_token ? '✓ Copied' : guest.invite_token.slice(0, 8) + '…'}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const localePrefix = guest.language === 'en' ? '' : `/${guest.language}`;
+                              window.open(`${window.location.origin}${localePrefix}/invite?guest=${guest.invite_token}`, '_blank');
+                            }}
+                            className="text-xs text-gray-400 hover:text-gray-700 font-mono whitespace-nowrap"
+                          >
+                            Open invite →
                           </button>
                         )}
                       </td>
@@ -530,7 +571,7 @@ export default function GuestsPage() {
                 {form.tags?.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {form.tags.map(tag => (
-                      <span key={tag} className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
+                      <span key={tag} className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs border ${getTagColorWithCollisionAvoidance(tag, tags)}`}>
                         {tag}
                         <button
                           type="button"
@@ -696,7 +737,7 @@ export default function GuestsPage() {
                   <p className="text-xs font-medium text-gray-500 uppercase mb-2">Tags</p>
                   <div className="flex flex-wrap gap-2">
                     {viewingGuest.tags.map(tag => (
-                      <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
+                      <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColorWithCollisionAvoidance(tag, tags)}`}>
                         {tag}
                       </span>
                     ))}
@@ -717,6 +758,9 @@ export default function GuestsPage() {
                   </p>
                 ) : (
                   <p className="text-sm text-gray-500">No response</p>
+                )}
+                {viewingGuest.save_the_date_notes && (
+                  <p className="text-sm text-gray-600 mt-2 italic">{viewingGuest.save_the_date_notes}</p>
                 )}
               </div>
 
