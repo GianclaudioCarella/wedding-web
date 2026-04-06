@@ -340,7 +340,6 @@ export default function GuestsPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Dietary restrictions">Dietary</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Staying at venue">Stay</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="RSVP notes and status">Notes / RSVP</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Save the Date sent">Save the Date</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Formal invitation sent">Invited</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Invitation link">Link</th>
                   <th className="px-4 py-3"></th>
@@ -348,7 +347,7 @@ export default function GuestsPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {sortedFiltered.length === 0 && (
-                  <tr><td colSpan={8 + events.length} className="px-4 py-8 text-center text-gray-400">{guests.length === 0 ? 'No guests yet.' : 'No results.'}</td></tr>
+                  <tr><td colSpan={7 + events.length} className="px-4 py-8 text-center text-gray-400">{guests.length === 0 ? 'No guests yet.' : 'No results.'}</td></tr>
                 )}
                 {sortedFiltered.map(guest => {
                   const allDietary      = [...new Set(Object.values(guest.rsvps).flatMap(r => Array.isArray(r.dietary_requirements) ? r.dietary_requirements : []).filter(d => d && d !== 'none'))];
@@ -380,15 +379,18 @@ export default function GuestsPage() {
                       {/* Tags */}
                       <td className="px-4 py-3 text-xs whitespace-nowrap">
                         {guest.tags?.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {guest.tags.map(tag => (
-                              <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
-                                {tag}
+                          <div className="flex gap-1" title={guest.tags.join(', ')}>
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(guest.tags[0])}`}>
+                              {guest.tags[0]}
+                            </span>
+                            {guest.tags.length > 1 && (
+                              <span className="inline-block px-1.5 py-0.5 rounded text-xs font-medium border border-gray-200 text-gray-500">
+                                +{guest.tags.length - 1}
                               </span>
-                            ))}
+                            )}
                           </div>
                         ) : (
-                          <span className="text-gray-500">—</span>
+                          <span className="text-gray-300">—</span>
                         )}
                       </td>
 
@@ -442,23 +444,6 @@ export default function GuestsPage() {
                         </span>
                       </td>
 
-                      {/* Save the Date status — party members inherit from primary */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {guest.party_leader_id ? (
-                          <span className="text-gray-300 text-xs">—</span>
-                        ) : guest.attending ? (
-                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                            guest.attending === 'yes' ? 'bg-green-100 text-green-700' :
-                            guest.attending === 'no' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {guest.attending === 'yes' ? '✓ Yes' : guest.attending === 'no' ? '✗ No' : '? Maybe'}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300 text-xs">—</span>
-                        )}
-                      </td>
-
                       {/* Invited status — party members inherit from primary */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         {guest.party_leader_id ? (
@@ -493,17 +478,6 @@ export default function GuestsPage() {
                       {/* Actions */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3 justify-end whitespace-nowrap">
-                          {!guest.party_leader_id && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setForm({ ...EMPTY_FORM, tags: guest.tags || [], language: guest.language, party_role: 'partner', party_leader_id: guest.id, event_ids: guest.events, venue_stay_invited: guest.venue_stay_invited });
-                                setEditingId(null); setShowForm(true);
-                              }}
-                              className="text-xs text-gray-400 hover:text-gray-700"
-                              title="Add party member"
-                            >+ Party</button>
-                          )}
                           <button onClick={(e) => { e.stopPropagation(); openEdit(guest); }} className="text-xs text-gray-400 hover:text-gray-700">Edit</button>
                           <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(guest.id); }} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                         </div>
@@ -604,6 +578,50 @@ export default function GuestsPage() {
                   </Field>
                 )}
               </div>
+              {form.party_role === 'primary' && editingId && (() => {
+                const partyMembers = guests.filter(g => g.party_leader_id === editingId);
+                return (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase mb-2">Party members</p>
+                    {partyMembers.length > 0 ? (
+                      <div className="space-y-2 mb-3">
+                        {partyMembers.map(m => (
+                          <div key={m.id} className="flex items-center justify-between border border-gray-100 rounded p-2 bg-gray-50">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">{m.name}</p>
+                              <p className="text-xs text-gray-500 capitalize">{m.party_role}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => { setShowForm(false); openEdit(m); }}
+                                className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1"
+                              >Edit</button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirm(m.id)}
+                                className="text-xs text-red-400 hover:text-red-600 px-2 py-1"
+                              >Remove</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 mb-3">No party members yet</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const primaryGuest = guests.find(g => g.id === editingId);
+                        setForm({ ...EMPTY_FORM, tags: primaryGuest?.tags || [], language: primaryGuest?.language || 'en', party_role: 'partner', party_leader_id: editingId || '', event_ids: primaryGuest?.events || [], venue_stay_invited: primaryGuest?.venue_stay_invited || false });
+                        setEditingId(null);
+                        setShowForm(true);
+                      }}
+                      className="text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded px-3 py-1.5 hover:bg-gray-50 font-medium w-full"
+                    >+ Add party member</button>
+                  </div>
+                );
+              })()}
               {(events.length > 0 || true) && (
                 <div className="border border-gray-100 rounded-lg p-3 space-y-2">
                   <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Events</p>
