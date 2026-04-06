@@ -176,6 +176,27 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
     });
   };
 
+  const formatPartyNames = () => {
+    const names: string[] = [];
+
+    // Add primary guest first name
+    if (guest?.name) {
+      names.push(guest.name.split(' ')[0]);
+    }
+
+    // Add party members first names
+    partyMembers.forEach(member => {
+      names.push(member.name.split(' ')[0]);
+    });
+
+    if (names.length === 0) return '';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} & ${names[1]}`;
+
+    // 3+ people: "Name1, Name2, Name3 & Name4"
+    return names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1];
+  };
+
   const sortedEvents = [...events].sort((a, b) => {
     const aStr = `${a.event_date || ''}T${a.event_time || '00:00:00'}`
     const bStr = `${b.event_date || ''}T${b.event_time || '00:00:00'}`
@@ -266,7 +287,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         {/* Header */}
         <div style={{ marginBottom: 48 }}>
           <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
-            {t.rsvpGreeting(guest?.name)}
+            {t.rsvpGreeting(formatPartyNames())}
           </h1>
           <p style={{ fontFamily: SERIF, fontSize: 'clamp(16px, 2vw, 22px)', color: TEXT, margin: 0, marginTop: 8, fontWeight: 400, lineHeight: 1.3 }}>
             {t.rsvpQuestion}
@@ -359,7 +380,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {anyAttending && (
             <div style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                {partyMembers.length > 0 ? `${guest?.name} — ${t.dietaryRequirements}` : t.dietaryRequirements}
+                {partyMembers.length > 0 ? `${guest?.name?.split(' ')[0]} — ${t.dietaryRequirements}` : t.dietaryRequirements}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
                 {t.dietarySelectAll}
@@ -383,7 +404,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {anyAttending && partyMembers.length > 0 && partyMembers.map(member => (
             <div key={member.id} style={sectionStyle}>
               <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                {member.name} — {t.dietaryRequirements}
+                {member.name?.split(' ')[0]} — {t.dietaryRequirements}
               </p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
                 {t.dietarySelectAll}
