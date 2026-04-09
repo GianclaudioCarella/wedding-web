@@ -31,6 +31,7 @@ const EMPTY_FORM = {
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
   attending: { background: '#dcfce7', color: '#16a34a' },
   declined:  { background: '#fee2e2', color: '#dc2626' },
+  pending:   { background: '#f3f4f6', color: '#4b5563' },
 };
 
 const getTagColorWithCollisionAvoidance = (tag: string, allTags: string[]) => {
@@ -441,7 +442,7 @@ export default function GuestsPage() {
                                 {rsvp.status}
                               </span>
                             ) : (
-                              <span className="text-xs text-amber-500">Pending</span>
+                              <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>Pending</span>
                             )}
                           </td>
                         );
@@ -468,7 +469,7 @@ export default function GuestsPage() {
                           ? <span className="text-gray-300">—</span>
                           : stayNights.length > 0
                           ? stayNights.join(', ')
-                          : <span className="text-amber-500">Pending</span>}
+                          : <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>Pending</span>}
                       </td>
 
                       {/* Notes */}
@@ -779,7 +780,7 @@ export default function GuestsPage() {
                             <p className={`text-xs mt-1 ${
                               rsvp?.status === 'attending' ? 'text-green-600' :
                               rsvp?.status === 'declined' ? 'text-red-600' :
-                              'text-amber-600'
+                              'text-gray-700'
                             }`}>
                               {rsvp?.status === 'attending' ? '✓ Attending' : rsvp?.status === 'declined' ? '✗ Declined' : '◐ Pending'}
                             </p>
