@@ -765,34 +765,10 @@ export default function GuestsPage() {
               </div>
 
               {/* Events and RSVPs with Staying at venue */}
-              {events.length > 0 && (
+              {(events.length > 0 || viewingGuest.venue_stay_invited) && (
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase mb-2">Extras</p>
                   <div className="space-y-2">
-                    {/* Staying at venue */}
-                    <div className="text-sm border border-gray-100 rounded p-3">
-                      <p className="font-medium text-gray-900 mb-2">Staying at venue</p>
-                      <div className="flex gap-2 flex-wrap">
-                        {viewingGuest.stayRequest ? (
-                          <>
-                            {(['sunday_night', 'friday_night', 'saturday_night'] as const).map(night => {
-                              const nights: Record<string, string> = { sunday_night: 'Sun 4 Oct', friday_night: 'Fri 2 Oct', saturday_night: 'Sat 3 Oct' };
-                              return viewingGuest.stayRequest![night] ? (
-                                <span key={night} style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap font-medium">
-                                  {nights[night]}
-                                </span>
-                              ) : null;
-                            })}
-                            {!(['sunday_night', 'friday_night', 'saturday_night'] as const).some(n => viewingGuest.stayRequest![n]) && (
-                              <p className="text-xs text-gray-500">Not staying</p>
-                            )}
-                          </>
-                        ) : (
-                          <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="inline-block whitespace-nowrap font-medium">Pending</span>
-                        )}
-                      </div>
-                    </div>
-
                     {/* Events */}
                     {events.map(event => {
                       const rsvp = viewingGuest.rsvps[event.id];
@@ -815,6 +791,32 @@ export default function GuestsPage() {
                         </div>
                       );
                     })}
+
+                    {/* Staying at venue - only if invited */}
+                    {viewingGuest.venue_stay_invited && (
+                      <div className="text-sm border border-gray-100 rounded p-3">
+                        <p className="font-medium text-gray-900 mb-2">Staying at venue</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {viewingGuest.stayRequest ? (
+                            <>
+                              {(['sunday_night', 'friday_night', 'saturday_night'] as const).map(night => {
+                                const nights: Record<string, string> = { sunday_night: 'Sun 4 Oct', friday_night: 'Fri 2 Oct', saturday_night: 'Sat 3 Oct' };
+                                return viewingGuest.stayRequest![night] ? (
+                                  <span key={night} style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap font-medium">
+                                    {nights[night]}
+                                  </span>
+                                ) : null;
+                              })}
+                              {!(['sunday_night', 'friday_night', 'saturday_night'] as const).some(n => viewingGuest.stayRequest![n]) && (
+                                <p className="text-xs text-gray-500">Not staying</p>
+                              )}
+                            </>
+                          ) : (
+                            <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="inline-block whitespace-nowrap font-medium">Pending</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
