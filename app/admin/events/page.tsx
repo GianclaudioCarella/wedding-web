@@ -248,7 +248,7 @@ export default function EventsPage() {
       {/* Guest list popup */}
       {guestPopupEventId && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setGuestPopupEventId(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">{(popupEvent?.name as any)?.en}</h2>
@@ -260,22 +260,37 @@ export default function EventsPage() {
               {popupGuests.length === 0 && (
                 <p className="px-6 py-8 text-sm text-gray-400 text-center">No guests invited yet.</p>
               )}
-              {groupedGuests.map(({ primary, members }) => (
-                <div key={primary.id}>
-                  {/* Primary guest */}
-                  <div className="px-6 py-3 hover:bg-gray-50">
-                    <div className="flex items-start justify-between gap-3">
+              {groupedGuests.map(({ primary, members }) => {
+                // Group party members by role
+                const byRole: Record<string, string[]> = { partner: [], child: [], other: [] };
+                for (const m of members) {
+                  const role = m.party_role || 'other';
+                  byRole[role].push(m.name);
+                }
+
+                // Build party members display string
+                const partyParts: string[] = [];
+                if (byRole.partner.length > 0) partyParts.push(`Partner: ${byRole.partner.join(', ')}`);
+                if (byRole.child.length > 0) partyParts.push(`Children: ${byRole.child.join(', ')}`);
+                if (byRole.other.length > 0) partyParts.push(`Other: ${byRole.other.join(', ')}`);
+                const partyDisplay = partyParts.join(' • ');
+
+                return (
+                  <div key={primary.id} className="px-6 py-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{primary.name}</p>
-                        {primary.email && <p className="text-xs text-gray-400 truncate">{primary.email}</p>}
-                        {primary.tags.length > 0 && (
-                          <div className="flex gap-1 mt-1.5 flex-wrap">
-                            {primary.tags.map(tag => (
-                              <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                        {/* Name with tags inline */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <p className="text-sm font-medium text-gray-900">{primary.name}</p>
+                          {primary.tags.length > 0 && primary.tags.map(tag => (
+                            <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        {/* Party members */}
+                        {partyDisplay && (
+                          <p className="text-xs text-gray-500">{partyDisplay}</p>
                         )}
                       </div>
                       <div className="flex-shrink-0">
@@ -287,36 +302,8 @@ export default function EventsPage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Party members */}
-                  {members.map(member => (
-                    <div key={member.id} className="px-6 py-3 pl-10 bg-gray-50/50 hover:bg-gray-50">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{member.name}</p>
-                          {member.email && <p className="text-xs text-gray-400 truncate">{member.email}</p>}
-                          {member.tags.length > 0 && (
-                            <div className="flex gap-1 mt-1.5 flex-wrap">
-                              {member.tags.map(tag => (
-                                <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0">
-                          {member.status ? (
-                            <span style={{ ...STATUS_STYLE[member.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{member.status}</span>
-                          ) : (
-                            <span className="text-xs text-amber-500 whitespace-nowrap">Pending</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
