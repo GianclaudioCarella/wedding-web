@@ -723,9 +723,9 @@ export default function GuestsPage() {
               )}
 
               {/* Stay nights */}
-              {viewingGuest.stayRequest && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Staying at venue</p>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Staying at venue</p>
+                {viewingGuest.stayRequest ? (
                   <div className="flex gap-2 flex-wrap">
                     {(['sunday_night', 'friday_night', 'saturday_night'] as const).map(night => {
                       const nights: Record<string, string> = { sunday_night: 'Sun 4 Oct', friday_night: 'Fri 2 Oct', saturday_night: 'Sat 3 Oct' };
@@ -735,12 +735,14 @@ export default function GuestsPage() {
                         </span>
                       ) : null;
                     })}
+                    {!(['sunday_night', 'friday_night', 'saturday_night'] as const).some(n => viewingGuest.stayRequest![n]) && (
+                      <p className="text-sm text-gray-500">Not staying</p>
+                    )}
                   </div>
-                  {!(['sunday_night', 'friday_night', 'saturday_night'] as const).some(n => viewingGuest.stayRequest![n]) && (
-                    <p className="text-sm text-gray-500">Not staying</p>
-                  )}
-                </div>
-              )}
+                ) : (
+                  <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="inline-block whitespace-nowrap font-medium">Pending</span>
+                )}
+              </div>
 
               {/* Save the date */}
               <div>
