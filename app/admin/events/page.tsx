@@ -19,6 +19,7 @@ interface GuestRow {
   name: string;
   email: string | null;
   status: string | null; // rsvp status, null = no response
+  tags: string[];
 }
 
 export default function EventsPage() {
@@ -42,7 +43,7 @@ export default function EventsPage() {
       supabase.from('events').select('*').order('sort_order'),
       supabase.from('rsvp_responses').select('event_id, status, guest_id'),
       supabase.from('guest_events').select('event_id, guest_id'),
-      supabase.from('guests').select('id, name, email'),
+      supabase.from('guests').select('id, name, email, tags'),
     ]);
     setEvents(eventsRes.data || []);
     setRsvps(rsvpRes.data || []);
@@ -51,9 +52,9 @@ export default function EventsPage() {
     for (const ge of (geRes.data || [])) counts[ge.event_id] = (counts[ge.event_id] || 0) + 1;
     setGuestCounts(counts);
 
-    // Build guest list per event with RSVP status
-    const guestsMap: Record<string, { id: string; name: string; email: string | null }> = {};
-    for (const g of (guestsRes.data || [])) guestsMap[g.id] = g;
+    // Build guest list per event with RSVP status and tags
+    const guestsMap: Record<string, { id: string; name: string; email: string | null; tags: string[] }> = {};
+    for (const g of (guestsRes.data || [])) guestsMap[g.id] = { ...g, tags: g.tags || [] };
     const rsvpMap: Record<string, Record<string, string>> = {};
     for (const r of (rsvpRes.data || [])) {
       if (!rsvpMap[r.event_id]) rsvpMap[r.event_id] = {};
@@ -127,8 +128,57 @@ export default function EventsPage() {
     declined:  { background: '#fee2e2', color: '#dc2626' },
   };
 
+  const getTagColor = (tag: string): string => {
+    const gianTags = ['gian', 'gianfamily', 'gianfriends'];
+    const catTags = ['cat', 'catfamily', 'catfriends'];
+    const greenShades = [
+      'border-green-600 text-green-600 bg-green-600/10',
+      'border-emerald-600 text-emerald-600 bg-emerald-600/10',
+      'border-teal-600 text-teal-600 bg-teal-600/10',
+    ];
+    const pinkShades = [
+      'border-pink-600 text-pink-600 bg-pink-600/10',
+      'border-rose-600 text-rose-600 bg-rose-600/10',
+      'border-fuchsia-600 text-fuchsia-600 bg-fuchsia-600/10',
+    ];
+
+    if (gianTags.includes(tag.toLowerCase())) {
+      return greenShades[gianTags.indexOf(tag.toLowerCase())];
+    } else if (catTags.includes(tag.toLowerCase())) {
+      return pinkShades[catTags.indexOf(tag.toLowerCase())];
+    }
+    return 'border-gray-300 text-gray-600 bg-gray-100';
+  };
+
   const popupEvent = events.find(e => e.id === guestPopupEventId);
   const popupGuests = guestPopupEventId ? (guestsByEvent[guestPopupEventId] || []) : [];
+
+  // Group guests by their primary tag (family)
+  const groupedGuests = (() => {
+    const groups: Record<string, GuestRow[]> = {};
+    const ungrouped: GuestRow[] = [];
+
+    for (const guest of popupGuests) {
+      if (guest.tags.length > 0) {
+        const primaryTag = guest.tags[0];
+        if (!groups[primaryTag]) groups[primaryTag] = [];
+        groups[primaryTag].push(guest);
+      } else {
+        ungrouped.push(guest);
+      }
+    }
+
+    // Sort groups by primary tag name
+    const sortedGroups = Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([tag, guests]) => ({ tag, guests }));
+
+    if (ungrouped.length > 0) {
+      sortedGroups.push({ tag: 'Ungrouped', guests: ungrouped });
+    }
+
+    return sortedGroups;
+  })();
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -205,21 +255,43 @@ export default function EventsPage() {
               </div>
               <button onClick={() => setGuestPopupEventId(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
             </div>
-            <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
+            <div className="overflow-y-auto flex-1">
               {popupGuests.length === 0 && (
                 <p className="px-6 py-8 text-sm text-gray-400 text-center">No guests invited yet.</p>
               )}
-              {popupGuests.map(g => (
-                <div key={g.id} className="px-6 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{g.name}</p>
-                    {g.email && <p className="text-xs text-gray-400">{g.email}</p>}
+              {groupedGuests.map((group, idx) => (
+                <div key={group.tag}>
+                  <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{group.tag}</p>
                   </div>
-                  {g.status ? (
-                    <span style={{ ...STATUS_STYLE[g.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>{g.status}</span>
-                  ) : (
-                    <span className="text-xs text-amber-500">Pending</span>
-                  )}
+                  <div className="divide-y divide-gray-100">
+                    {group.guests.map(g => (
+                      <div key={g.id} className="px-6 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{g.name}</p>
+                            {g.email && <p className="text-xs text-gray-400 truncate">{g.email}</p>}
+                            {g.tags.length > 0 && (
+                              <div className="flex gap-1 mt-1.5 flex-wrap">
+                                {g.tags.map(tag => (
+                                  <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-shrink-0">
+                            {g.status ? (
+                              <span style={{ ...STATUS_STYLE[g.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{g.status}</span>
+                            ) : (
+                              <span className="text-xs text-amber-500 whitespace-nowrap">Pending</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
