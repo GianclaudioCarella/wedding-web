@@ -34,50 +34,26 @@ const STATUS_STYLE: Record<string, React.CSSProperties> = {
   pending:   { background: '#f3f4f6', color: '#4b5563' },
 };
 
-const getTagColorWithCollisionAvoidance = (tag: string, allTags: string[]) => {
-  const colors = [
-    'border-blue-600 text-blue-600 bg-blue-600/10',
-    'border-orange-600 text-orange-600 bg-orange-600/10',
-    'border-red-600 text-red-600 bg-red-600/10',
-    'border-purple-600 text-purple-600 bg-purple-600/10',
+const getTagColor = (tag: string): string => {
+  const gianTags = ['gian', 'gianfamily', 'gianfriends'];
+  const catTags = ['cat', 'catfamily', 'catfriends'];
+  const greenShades = [
     'border-green-600 text-green-600 bg-green-600/10',
-    'border-yellow-600 text-yellow-600 bg-yellow-600/10',
-    'border-pink-600 text-pink-600 bg-pink-600/10',
-    'border-indigo-600 text-indigo-600 bg-indigo-600/10',
-    'border-teal-600 text-teal-600 bg-teal-600/10',
-    'border-amber-600 text-amber-600 bg-amber-600/10',
-    'border-rose-600 text-rose-600 bg-rose-600/10',
-    'border-cyan-600 text-cyan-600 bg-cyan-600/10',
-    'border-lime-600 text-lime-600 bg-lime-600/10',
-    'border-fuchsia-600 text-fuchsia-600 bg-fuchsia-600/10',
-    'border-sky-600 text-sky-600 bg-sky-600/10',
     'border-emerald-600 text-emerald-600 bg-emerald-600/10',
+    'border-teal-600 text-teal-600 bg-teal-600/10',
+  ];
+  const pinkShades = [
+    'border-pink-600 text-pink-600 bg-pink-600/10',
+    'border-rose-600 text-rose-600 bg-rose-600/10',
+    'border-fuchsia-600 text-fuchsia-600 bg-fuchsia-600/10',
   ];
 
-  // Build a map of tag -> color index with collision detection
-  const tagColorMap = new Map<string, number>();
-  const usedIndices = new Set<number>();
-
-  for (const t of allTags) {
-    if (tagColorMap.has(t)) continue;
-
-    let hash = 0;
-    for (let i = 0; i < t.length; i++) {
-      hash = t.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    let index = Math.abs(hash) % colors.length;
-
-    // If this index is taken, find the next available one
-    while (usedIndices.has(index)) {
-      index = (index + 1) % colors.length;
-    }
-
-    tagColorMap.set(t, index);
-    usedIndices.add(index);
+  if (gianTags.includes(tag.toLowerCase())) {
+    return greenShades[gianTags.indexOf(tag.toLowerCase())];
+  } else if (catTags.includes(tag.toLowerCase())) {
+    return pinkShades[catTags.indexOf(tag.toLowerCase())];
   }
-
-  const index = tagColorMap.get(tag) ?? 0;
-  return colors[index];
+  return 'border-gray-300 text-gray-600 bg-gray-100';
 };
 
 export default function GuestsPage() {
@@ -332,7 +308,7 @@ export default function GuestsPage() {
               onClick={() => setGroupFilter(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
               className={`px-3 py-2 text-xs rounded-md font-medium transition-colors ${
                 groupFilter.includes(tag)
-                  ? `${getTagColorWithCollisionAvoidance(tag, tags)} border`
+                  ? `${getTagColor(tag)} border`
                   : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -412,7 +388,7 @@ export default function GuestsPage() {
                       <td className="px-4 py-3 text-xs whitespace-nowrap">
                         {guest.tags?.length ? (
                           <div className="flex gap-1" title={guest.tags.join(', ')}>
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColorWithCollisionAvoidance(guest.tags[0], tags)}`}>
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(guest.tags[0])}`}>
                               {guest.tags[0]}
                             </span>
                             {guest.tags.length > 1 && (
@@ -572,7 +548,7 @@ export default function GuestsPage() {
                 {form.tags?.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {form.tags.map(tag => (
-                      <span key={tag} className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs border ${getTagColorWithCollisionAvoidance(tag, tags)}`}>
+                      <span key={tag} className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
                         {tag}
                         <button
                           type="button"
@@ -738,7 +714,7 @@ export default function GuestsPage() {
                   <p className="text-xs font-medium text-gray-500 uppercase mb-2">Tags</p>
                   <div className="flex flex-wrap gap-2">
                     {viewingGuest.tags.map(tag => (
-                      <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColorWithCollisionAvoidance(tag, tags)}`}>
+                      <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
                         {tag}
                       </span>
                     ))}
