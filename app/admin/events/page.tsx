@@ -135,6 +135,7 @@ export default function EventsPage() {
   const STATUS_STYLE: Record<string, React.CSSProperties> = {
     attending: { background: '#dcfce7', color: '#16a34a' },
     declined:  { background: '#fee2e2', color: '#dc2626' },
+    pending:   { background: '#f3f4f6', color: '#4b5563' },
   };
 
   const getTagColor = (tag: string): string => {
@@ -304,7 +305,7 @@ export default function EventsPage() {
                         {primary.status ? (
                           <span style={{ ...STATUS_STYLE[primary.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{primary.status}</span>
                         ) : (
-                          <span className="text-xs text-amber-500 whitespace-nowrap">Pending</span>
+                          <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap font-medium">Pending</span>
                         )}
                         <button
                           onClick={() => setDeleteEventConfirm({ eventId: guestPopupEventId!, guestId: primary.id })}
