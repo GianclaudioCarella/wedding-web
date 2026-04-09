@@ -708,91 +708,6 @@ export default function GuestsPage() {
                 </div>
               </div>
 
-              {/* Tags */}
-              {viewingGuest.tags?.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Tags</p>
-                  <div className="flex flex-wrap gap-2">
-                    {viewingGuest.tags.map(tag => (
-                      <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Stay nights */}
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase mb-2">Staying at venue</p>
-                {viewingGuest.stayRequest ? (
-                  <div className="flex gap-2 flex-wrap">
-                    {(['sunday_night', 'friday_night', 'saturday_night'] as const).map(night => {
-                      const nights: Record<string, string> = { sunday_night: 'Sun 4 Oct', friday_night: 'Fri 2 Oct', saturday_night: 'Sat 3 Oct' };
-                      return viewingGuest.stayRequest![night] ? (
-                        <span key={night} style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap font-medium">
-                          {nights[night]}
-                        </span>
-                      ) : null;
-                    })}
-                    {!(['sunday_night', 'friday_night', 'saturday_night'] as const).some(n => viewingGuest.stayRequest![n]) && (
-                      <p className="text-sm text-gray-500">Not staying</p>
-                    )}
-                  </div>
-                ) : (
-                  <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="inline-block whitespace-nowrap font-medium">Pending</span>
-                )}
-              </div>
-
-              {/* Save the date */}
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase mb-1">Save the Date Response</p>
-                {viewingGuest.attending ? (
-                  <p className={`text-sm font-medium ${
-                    viewingGuest.attending === 'yes' ? 'text-green-700' :
-                    viewingGuest.attending === 'no' ? 'text-red-700' :
-                    'text-yellow-700'
-                  }`}>
-                    {viewingGuest.attending === 'yes' ? '✓ Yes, attending' : viewingGuest.attending === 'no' ? '✗ Not attending' : '? Maybe'}
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-500">No response</p>
-                )}
-                {viewingGuest.save_the_date_notes && (
-                  <p className="text-sm text-gray-600 mt-2 italic">{viewingGuest.save_the_date_notes}</p>
-                )}
-              </div>
-
-              {/* Events and RSVPs */}
-              {events.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Extras</p>
-                  <div className="space-y-2">
-                    {events.map(event => {
-                      const rsvp = viewingGuest.rsvps[event.id];
-                      const invited = viewingGuest.events.includes(event.id);
-                      return (
-                        <div key={event.id} className="text-sm border border-gray-100 rounded p-3">
-                          <p className="font-medium text-gray-900">{(event.name as any)?.en || 'Event'}</p>
-                          {invited ? (
-                            <p className={`text-xs mt-1 ${
-                              rsvp?.status === 'attending' ? 'text-green-600' :
-                              rsvp?.status === 'declined' ? 'text-red-600' :
-                              'text-gray-700'
-                            }`}>
-                              {rsvp?.status === 'attending' ? '✓ Attending' : rsvp?.status === 'declined' ? '✗ Declined' : '◐ Pending'}
-                            </p>
-                          ) : (
-                            <p className="text-xs text-gray-400 mt-1">Not invited</p>
-                          )}
-                          {rsvp?.dietary_notes && <p className="text-xs text-gray-500 mt-1">Diet: {rsvp.dietary_notes}</p>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* Party members (only shown on primary guest) */}
               {!viewingGuest.party_leader_id && (() => {
                 const members = guests.filter(g => g.party_leader_id === viewingGuest.id);
@@ -818,16 +733,8 @@ export default function GuestsPage() {
                 );
               })()}
 
-              {/* Notes */}
-              {viewingGuest.notes && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Notes</p>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{viewingGuest.notes}</p>
-                </div>
-              )}
-
               {/* Invite link */}
-              <div className="border-t border-gray-100 pt-4">
+              <div>
                 <p className="text-xs font-medium text-gray-500 uppercase mb-2">Invite Link</p>
                 <div className="flex gap-2">
                   {(() => {
@@ -856,6 +763,102 @@ export default function GuestsPage() {
                   })()}
                 </div>
               </div>
+
+              {/* Events and RSVPs with Staying at venue */}
+              {events.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Extras</p>
+                  <div className="space-y-2">
+                    {/* Staying at venue */}
+                    <div className="text-sm border border-gray-100 rounded p-3">
+                      <p className="font-medium text-gray-900 mb-2">Staying at venue</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {viewingGuest.stayRequest ? (
+                          <>
+                            {(['sunday_night', 'friday_night', 'saturday_night'] as const).map(night => {
+                              const nights: Record<string, string> = { sunday_night: 'Sun 4 Oct', friday_night: 'Fri 2 Oct', saturday_night: 'Sat 3 Oct' };
+                              return viewingGuest.stayRequest![night] ? (
+                                <span key={night} style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap font-medium">
+                                  {nights[night]}
+                                </span>
+                              ) : null;
+                            })}
+                            {!(['sunday_night', 'friday_night', 'saturday_night'] as const).some(n => viewingGuest.stayRequest![n]) && (
+                              <p className="text-xs text-gray-500">Not staying</p>
+                            )}
+                          </>
+                        ) : (
+                          <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="inline-block whitespace-nowrap font-medium">Pending</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Events */}
+                    {events.map(event => {
+                      const rsvp = viewingGuest.rsvps[event.id];
+                      const invited = viewingGuest.events.includes(event.id);
+                      return (
+                        <div key={event.id} className="text-sm border border-gray-100 rounded p-3">
+                          <p className="font-medium text-gray-900">{(event.name as any)?.en || 'Event'}</p>
+                          {invited ? (
+                            <p className={`text-xs mt-1 ${
+                              rsvp?.status === 'attending' ? 'text-green-600' :
+                              rsvp?.status === 'declined' ? 'text-red-600' :
+                              'text-gray-700'
+                            }`}>
+                              {rsvp?.status === 'attending' ? '✓ Attending' : rsvp?.status === 'declined' ? '✗ Declined' : '◐ Pending'}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-400 mt-1">Not invited</p>
+                          )}
+                          {rsvp?.dietary_notes && <p className="text-xs text-gray-500 mt-1">Diet: {rsvp.dietary_notes}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {viewingGuest.tags?.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingGuest.tags.map(tag => (
+                      <span key={tag} className={`inline-block px-2 py-1 rounded-full text-xs border ${getTagColor(tag)}`}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Save the date */}
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase mb-1">Save the Date Response</p>
+                {viewingGuest.attending ? (
+                  <p className={`text-sm font-medium ${
+                    viewingGuest.attending === 'yes' ? 'text-green-700' :
+                    viewingGuest.attending === 'no' ? 'text-red-700' :
+                    'text-yellow-700'
+                  }`}>
+                    {viewingGuest.attending === 'yes' ? '✓ Yes, attending' : viewingGuest.attending === 'no' ? '✗ Not attending' : '? Maybe'}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500">No response</p>
+                )}
+                {viewingGuest.save_the_date_notes && (
+                  <p className="text-sm text-gray-600 mt-2 italic">{viewingGuest.save_the_date_notes}</p>
+                )}
+              </div>
+
+              {/* Notes */}
+              {viewingGuest.notes && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-1">Notes</p>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{viewingGuest.notes}</p>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="border-t border-gray-100 pt-4 flex gap-3">
