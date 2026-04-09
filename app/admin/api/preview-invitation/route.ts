@@ -1,26 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-
-function formatPartyNames(guestName: string, partyMembers: { name: string }[]): string {
-  const names: string[] = []
-
-  if (guestName) {
-    names.push(guestName.split(' ')[0])
-  }
-
-  partyMembers.forEach(member => {
-    names.push(member.name.split(' ')[0])
-  })
-
-  if (names.length === 0) return ''
-  if (names.length === 1) return names[0]
-  if (names.length === 2) return `${names[0]} & ${names[1]}`
-
-  return names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1]
-}
 
 function generateInvitationEmail(guestName: string, partyNames: string, inviteUrl: string, locale: string): string {
   const content = {
@@ -125,70 +103,40 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
 </html>`
 }
 
-export async function POST(request: NextRequest) {
-  if (!resend) {
-    return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
-  }
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const locale = searchParams.get('locale') || 'en'
+  const names = searchParams.get('names') || 'John, Jane & Mike'
+  const inviteUrl = 'https://example.com/invite?guest=token123'
 
-  const { guest_ids } = await request.json()
-  if (!guest_ids?.length) {
-    return NextResponse.json({ error: 'No guest IDs provided' }, { status: 400 })
-  }
+  const emailHtml = generateInvitationEmail('', names, inviteUrl, locale)
 
-  const { data: guests, error } = await supabaseAdmin
-    .from('guests')
-    .select('id, name, email, invite_token, language')
-    .in('id', guest_ids)
+  const previewBanner = `
+  <div style="background-color: #fef3c7; border: 2px solid #f59e0b; padding: 15px; text-align: center; font-weight: 600; color: #92400e; margin-bottom: 20px;">
+    📧 EMAIL PREVIEW MODE - This email will not be sent
+  </div>
+  `
 
-  if (error || !guests) {
-    return NextResponse.json({ error: 'Failed to fetch guests' }, { status: 500 })
-  }
+  const paramInfo = `
+  <div style="max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f3f4f6; border-radius: 8px; font-family: monospace; font-size: 14px;">
+    <h3 style="margin-top: 0;">🔍 Preview URL Parameters:</h3>
+    <p><strong>Current values:</strong></p>
+    <ul style="list-style: none; padding: 0;">
+      <li>• locale: ${locale}</li>
+      <li>• names: ${names}</li>
+    </ul>
+    <p><strong>Test different languages:</strong></p>
+    <ul style="padding-left: 20px;">
+      <li><a href="?locale=en&names=John, Jane & Mike">🇬🇧 English</a></li>
+      <li><a href="?locale=es&names=María, Carlos & Ana">🇪🇸 Español</a></li>
+      <li><a href="?locale=pt&names=João, Maria & Pedro">🇧🇷 Português</a></li>
+    </ul>
+  </div>
+  `
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const results: { id: string; success: boolean; error?: string }[] = []
+  const html = emailHtml.replace('<body>', '<body>' + previewBanner).replace('</body>', paramInfo + '</body>')
 
-  for (const guest of guests) {
-    if (!guest.email) {
-      results.push({ id: guest.id, success: false, error: 'No email address' })
-      continue
-    }
-
-    // Fetch party members for this guest
-    const { data: partyMembers } = await supabaseAdmin
-      .from('party_members')
-      .select('name')
-      .eq('guest_id', guest.id)
-
-    const locale = guest.language || 'en'
-    const localePath = locale === 'en' ? '' : `/${locale}`
-    const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
-    const partyNames = formatPartyNames(guest.name, partyMembers || [])
-
-    const subjectMap: Record<string, string> = {
-      en: "You're invited — Gian & Cat, 3 October 2026",
-      pt: 'Estás convidado/a — Gian & Cat, 3 de outubro de 2026',
-      es: 'Estás invitado/a — Gian & Cat, 3 de octubre de 2026',
-    }
-
-    const { error: sendError } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-      to: guest.email,
-      subject: subjectMap[locale] || subjectMap.en,
-      html: generateInvitationEmail(guest.name, partyNames, inviteUrl, locale),
-      replyTo: process.env.RESEND_REPLY_TO_EMAIL || process.env.RESEND_FROM_EMAIL,
-    })
-
-    if (sendError) {
-      results.push({ id: guest.id, success: false, error: sendError.message })
-    } else {
-      await supabaseAdmin
-        .from('guests')
-        .update({ invited_at: new Date().toISOString() })
-        .eq('id', guest.id)
-      results.push({ id: guest.id, success: true })
-    }
-  }
-
-  const successCount = results.filter(r => r.success).length
-  return NextResponse.json({ results, successCount, total: guests.length })
+  return new NextResponse(html, {
+    headers: { 'Content-Type': 'text/html' },
+  })
 }

@@ -1,20 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
-import { supabaseAdmin } from '@/lib/supabase-admin'
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-
-function generateConfirmationEmail(
-  guestName: string,
-  attending: boolean,
-  inviteUrl: string,
-  rsvpUrl: string,
-  locale: string
-): string {
+function generateConfirmationEmail(attending: boolean, inviteUrl: string, rsvpUrl: string, locale: string): string {
   const content = {
     en: {
-      subjectYes: 'You\'re all set — RSVP confirmed',
-      subjectNo:  'We\'ll miss you — RSVP confirmed',
       label:      'RSVP Confirmed',
       messageYes: "You're all set! We can't wait to celebrate with you. Everything you need is on the website. See you there!",
       messageNo:  "We'll miss you! Thanks for letting us know.",
@@ -25,8 +13,6 @@ function generateConfirmationEmail(
       names:      'Gian &amp; Cat',
     },
     pt: {
-      subjectYes: 'Tudo pronto — confirmação de RSVP',
-      subjectNo:  'Vamos ter saudades — confirmação de RSVP',
       label:      'RSVP Confirmado',
       messageYes: 'Tudo pronto! Mal podemos esperar para celebrar convosco. Tudo o que precisas está no website. Até já!',
       messageNo:  'Vamos ter saudades! Obrigado por nos avisar.',
@@ -37,8 +23,6 @@ function generateConfirmationEmail(
       names:      'Gian &amp; Cat',
     },
     es: {
-      subjectYes: 'Todo listo — confirmación de RSVP',
-      subjectNo:  'Te echaremos de menos — confirmación de RSVP',
       label:      'RSVP Confirmado',
       messageYes: '¡Todo listo! Estamos deseando celebrarlo contigo. Todo lo que necesitas está en la web. ¡Nos vemos!',
       messageNo:  '¡Te echaremos de menos! Gracias por avisarnos.',
@@ -123,45 +107,41 @@ function generateConfirmationEmail(
 </html>`
 }
 
-export async function POST(request: NextRequest) {
-  if (!resend) {
-    return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
-  }
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const locale = searchParams.get('locale') || 'en'
+  const attending = searchParams.get('attending') === 'true'
+  const inviteUrl = 'https://example.com/invite?guest=token123'
+  const rsvpUrl = 'https://example.com/rsvp?guest=token123'
 
-  const { token, attending } = await request.json()
-  if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+  const emailHtml = generateConfirmationEmail(attending, inviteUrl, rsvpUrl, locale)
 
-  const { data: guest } = await supabaseAdmin
-    .from('guests')
-    .select('id, name, email, invite_token, language')
-    .eq('invite_token', token)
-    .single()
+  const previewBanner = `
+  <div style="background-color: #fef3c7; border: 2px solid #f59e0b; padding: 15px; text-align: center; font-weight: 600; color: #92400e; margin-bottom: 20px;">
+    📧 EMAIL PREVIEW MODE - This email will not be sent
+  </div>
+  `
 
-  if (!guest?.email) {
-    return NextResponse.json({ error: 'Guest not found or no email' }, { status: 404 })
-  }
+  const paramInfo = `
+  <div style="max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f3f4f6; border-radius: 8px; font-family: monospace; font-size: 14px;">
+    <h3 style="margin-top: 0;">🔍 Preview URL Parameters:</h3>
+    <p><strong>Current values:</strong></p>
+    <ul style="list-style: none; padding: 0;">
+      <li>• locale: ${locale}</li>
+      <li>• attending: ${attending}</li>
+    </ul>
+    <p><strong>Test different scenarios:</strong></p>
+    <ul style="padding-left: 20px;">
+      <li><strong>English:</strong> <a href="?locale=en&attending=true">Attending</a> | <a href="?locale=en&attending=false">Not Attending</a></li>
+      <li><strong>Español:</strong> <a href="?locale=es&attending=true">Attending</a> | <a href="?locale=es&attending=false">Not Attending</a></li>
+      <li><strong>Português:</strong> <a href="?locale=pt&attending=true">Attending</a> | <a href="?locale=pt&attending=false">Not Attending</a></li>
+    </ul>
+  </div>
+  `
 
-  const baseUrl  = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const locale   = guest.language || 'en'
-  const localePath = locale === 'en' ? '' : `/${locale}`
-  const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
-  const rsvpUrl   = `${baseUrl}${localePath}/rsvp?guest=${guest.invite_token}`
+  const html = emailHtml.replace('<body>', '<body>' + previewBanner).replace('</body>', paramInfo + '</body>')
 
-  const subjects: Record<string, { yes: string; no: string }> = {
-    en: { yes: 'You\'re all set — RSVP confirmed',          no: "We'll miss you — RSVP confirmed" },
-    pt: { yes: 'Tudo pronto — confirmação de RSVP',         no: 'Vamos ter saudades — confirmação de RSVP' },
-    es: { yes: 'Todo listo — confirmación de RSVP',         no: 'Te echaremos de menos — confirmación de RSVP' },
-  }
-  const subject = (subjects[locale] || subjects.en)[attending ? 'yes' : 'no']
-
-  const { error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-    to: guest.email,
-    subject,
-    html: generateConfirmationEmail(guest.name, attending, inviteUrl, rsvpUrl, locale),
-    replyTo: process.env.RESEND_REPLY_TO_EMAIL || process.env.RESEND_FROM_EMAIL,
+  return new NextResponse(html, {
+    headers: { 'Content-Type': 'text/html' },
   })
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ success: true })
 }
