@@ -20,6 +20,8 @@ interface GuestRow {
   email: string | null;
   status: string | null; // rsvp status, null = no response
   tags: string[];
+  party_leader_id: string | null;
+  party_role: string | null;
 }
 
 export default function EventsPage() {
@@ -43,7 +45,7 @@ export default function EventsPage() {
       supabase.from('events').select('*').order('sort_order'),
       supabase.from('rsvp_responses').select('event_id, status, guest_id'),
       supabase.from('guest_events').select('event_id, guest_id'),
-      supabase.from('guests').select('id, name, email, tags'),
+      supabase.from('guests').select('id, name, email, tags, party_leader_id, party_role'),
     ]);
     setEvents(eventsRes.data || []);
     setRsvps(rsvpRes.data || []);
@@ -53,7 +55,7 @@ export default function EventsPage() {
     setGuestCounts(counts);
 
     // Build guest list per event with RSVP status and tags
-    const guestsMap: Record<string, { id: string; name: string; email: string | null; tags: string[] }> = {};
+    const guestsMap: Record<string, { id: string; name: string; email: string | null; tags: string[]; party_leader_id: string | null; party_role: string | null }> = {};
     for (const g of (guestsRes.data || [])) guestsMap[g.id] = { ...g, tags: g.tags || [] };
     const rsvpMap: Record<string, Record<string, string>> = {};
     for (const r of (rsvpRes.data || [])) {
@@ -153,31 +155,30 @@ export default function EventsPage() {
   const popupEvent = events.find(e => e.id === guestPopupEventId);
   const popupGuests = guestPopupEventId ? (guestsByEvent[guestPopupEventId] || []) : [];
 
-  // Group guests by their primary tag (family)
+  // Group guests by family (party_leader_id)
   const groupedGuests = (() => {
-    const groups: Record<string, GuestRow[]> = {};
-    const ungrouped: GuestRow[] = [];
-
+    // Build a map of all guests by id for quick lookup
+    const allGuestsMap = new Map<string, GuestRow>();
     for (const guest of popupGuests) {
-      if (guest.tags.length > 0) {
-        const primaryTag = guest.tags[0];
-        if (!groups[primaryTag]) groups[primaryTag] = [];
-        groups[primaryTag].push(guest);
-      } else {
-        ungrouped.push(guest);
-      }
+      allGuestsMap.set(guest.id, guest);
     }
 
-    // Sort groups by primary tag name
-    const sortedGroups = Object.entries(groups)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([tag, guests]) => ({ tag, guests }));
+    // Get primary guests (no party_leader_id) and sort by their primary tag
+    const primaryGuests = popupGuests.filter(g => !g.party_leader_id);
+    primaryGuests.sort((a, b) => {
+      const aTag = a.tags[0] || '';
+      const bTag = b.tags[0] || '';
+      return aTag.localeCompare(bTag);
+    });
 
-    if (ungrouped.length > 0) {
-      sortedGroups.push({ tag: 'Ungrouped', guests: ungrouped });
+    // Build groups: each primary with their party members
+    const result: Array<{ primary: GuestRow; members: GuestRow[] }> = [];
+    for (const primary of primaryGuests) {
+      const members = popupGuests.filter(g => g.party_leader_id === primary.id);
+      result.push({ primary, members });
     }
 
-    return sortedGroups;
+    return result;
   })();
 
   return (
@@ -255,43 +256,65 @@ export default function EventsPage() {
               </div>
               <button onClick={() => setGuestPopupEventId(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
             </div>
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
               {popupGuests.length === 0 && (
                 <p className="px-6 py-8 text-sm text-gray-400 text-center">No guests invited yet.</p>
               )}
-              {groupedGuests.map((group, idx) => (
-                <div key={group.tag}>
-                  <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{group.tag}</p>
+              {groupedGuests.map(({ primary, members }) => (
+                <div key={primary.id}>
+                  {/* Primary guest */}
+                  <div className="px-6 py-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{primary.name}</p>
+                        {primary.email && <p className="text-xs text-gray-400 truncate">{primary.email}</p>}
+                        {primary.tags.length > 0 && (
+                          <div className="flex gap-1 mt-1.5 flex-wrap">
+                            {primary.tags.map(tag => (
+                              <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        {primary.status ? (
+                          <span style={{ ...STATUS_STYLE[primary.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{primary.status}</span>
+                        ) : (
+                          <span className="text-xs text-amber-500 whitespace-nowrap">Pending</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="divide-y divide-gray-100">
-                    {group.guests.map(g => (
-                      <div key={g.id} className="px-6 py-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900">{g.name}</p>
-                            {g.email && <p className="text-xs text-gray-400 truncate">{g.email}</p>}
-                            {g.tags.length > 0 && (
-                              <div className="flex gap-1 mt-1.5 flex-wrap">
-                                {g.tags.map(tag => (
-                                  <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0">
-                            {g.status ? (
-                              <span style={{ ...STATUS_STYLE[g.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{g.status}</span>
-                            ) : (
-                              <span className="text-xs text-amber-500 whitespace-nowrap">Pending</span>
-                            )}
-                          </div>
+
+                  {/* Party members */}
+                  {members.map(member => (
+                    <div key={member.id} className="px-6 py-3 pl-10 bg-gray-50/50 hover:bg-gray-50">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                          {member.email && <p className="text-xs text-gray-400 truncate">{member.email}</p>}
+                          {member.tags.length > 0 && (
+                            <div className="flex gap-1 mt-1.5 flex-wrap">
+                              {member.tags.map(tag => (
+                                <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          {member.status ? (
+                            <span style={{ ...STATUS_STYLE[member.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{member.status}</span>
+                          ) : (
+                            <span className="text-xs text-amber-500 whitespace-nowrap">Pending</span>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
