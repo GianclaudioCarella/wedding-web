@@ -42,9 +42,9 @@ const DIETARY_OPTIONS = [
 ];
 
 const NIGHTS = [
-  { key: 'thursday_night', label: 'Thursday night' },
   { key: 'friday_night',   label: 'Friday night' },
   { key: 'saturday_night', label: 'Saturday night' },
+  { key: 'sunday_night', label: 'Sunday night' },
 ];
 
 interface Event { id: string; name: { en: string; pt: string; es: string }; slug: string | null; event_date: string | null; event_time: string | null }
@@ -108,7 +108,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const [dietaryNotes, setDietaryNotes] = useState('');
   const [partyDietary, setPartyDietary] = useState<Record<string, string[]>>({});
   const [partyDietaryNotes, setPartyDietaryNotes] = useState<Record<string, string>>({});
-  const [stayNights, setStayNights] = useState({ thursday_night: true, friday_night: true, saturday_night: true });
+  const [stayNights, setStayNights] = useState({ sunday_night: true, friday_night: true, saturday_night: true });
   const [notes, setNotes]           = useState('');
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
 
         if (data.stayRequest) {
           setStayNights({
-            thursday_night: data.stayRequest.thursday_night,
+            sunday_night: data.stayRequest.sunday_night,
             friday_night:   data.stayRequest.friday_night,
             saturday_night: data.stayRequest.saturday_night,
           });

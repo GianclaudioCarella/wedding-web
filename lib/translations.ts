@@ -110,9 +110,9 @@ export const translations = {
       { id: 'kosher', label: 'Kosher' },
     ],
     nights: [
-      { key: 'thursday_night', label: 'Thursday night' },
       { key: 'friday_night', label: 'Friday night' },
       { key: 'saturday_night', label: 'Saturday night' },
+      { key: 'sunday_night', label: 'Sunday night' },
     ],
     confirmation: {
       titleYes: 'See you there.',
@@ -235,9 +235,9 @@ export const translations = {
       { id: 'kosher', label: 'Kosher' },
     ],
     nights: [
-      { key: 'thursday_night', label: 'Quinta-feira à noite' },
       { key: 'friday_night', label: 'Sexta-feira à noite' },
       { key: 'saturday_night', label: 'Sábado à noite' },
+      { key: 'sunday_night', label: 'Domingo à noite' },
     ],
     confirmation: {
       titleYes: 'Até breve!',
@@ -371,9 +371,9 @@ export const translations = {
       { id: 'kosher', label: 'Kosher' },
     ],
     nights: [
-      { key: 'thursday_night', label: 'Jueves por la noche' },
       { key: 'friday_night', label: 'Viernes por la noche' },
       { key: 'saturday_night', label: 'Sábado por la noche' },
+      { key: 'sunday_night', label: 'Domingo por la noche' },
     ],
     confirmation: {
       titleYes: '¡Nos vemos allí!',
