@@ -722,6 +722,26 @@ export default function GuestsPage() {
                 </div>
               )}
 
+              {/* Stay nights */}
+              {viewingGuest.stayRequest && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Staying at venue</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {(['sunday_night', 'friday_night', 'saturday_night'] as const).map(night => {
+                      const nights: Record<string, string> = { sunday_night: 'Sun 4 Oct', friday_night: 'Fri 2 Oct', saturday_night: 'Sat 3 Oct' };
+                      return viewingGuest.stayRequest![night] ? (
+                        <span key={night} style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap font-medium">
+                          {nights[night]}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                  {!(['sunday_night', 'friday_night', 'saturday_night'] as const).some(n => viewingGuest.stayRequest![n]) && (
+                    <p className="text-sm text-gray-500">Not staying</p>
+                  )}
+                </div>
+              )}
+
               {/* Save the date */}
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase mb-1">Save the Date Response</p>
