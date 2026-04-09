@@ -298,9 +298,9 @@ export default function RSVPContent() {
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, margin: 0, marginBottom: 12, fontWeight: 500 }}>Which nights are you staying?</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 {([
-                  { key: 'sunday_night', label: 'Sun 4 Oct' },
                   { key: 'friday_night',   label: 'Fri 2 Oct' },
                   { key: 'saturday_night', label: 'Sat 3 Oct' },
+                  { key: 'sunday_night', label: 'Sun 4 Oct' },
                 ] as const).map(({ key, label }) => (
                   <button
                     key={key} type="button"
