@@ -37,6 +37,7 @@ export default function EventsPage() {
   const [eventTab, setEventTab] = useState<'en' | 'pt' | 'es'>('en');
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteEventConfirm, setDeleteEventConfirm] = useState<{ eventId: string; guestId: string } | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -107,6 +108,12 @@ export default function EventsPage() {
   const handleDelete = async (id: string) => {
     await supabase.from('events').delete().eq('id', id);
     setDeleteConfirm(null);
+    await fetchAll();
+  };
+
+  const handleRemoveGuestFromEvent = async (eventId: string, guestId: string) => {
+    await supabase.from('guest_events').delete().eq('event_id', eventId).eq('guest_id', guestId);
+    setDeleteEventConfirm(null);
     await fetchAll();
   };
 
@@ -293,12 +300,18 @@ export default function EventsPage() {
                           <p className="text-xs text-gray-500">{partyDisplay}</p>
                         )}
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="flex items-center gap-6 flex-shrink-0">
                         {primary.status ? (
                           <span style={{ ...STATUS_STYLE[primary.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{primary.status}</span>
                         ) : (
                           <span className="text-xs text-amber-500 whitespace-nowrap">Pending</span>
                         )}
+                        <button
+                          onClick={() => setDeleteEventConfirm({ eventId: guestPopupEventId!, guestId: primary.id })}
+                          className="text-sm text-red-400 hover:text-red-600"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -346,7 +359,7 @@ export default function EventsPage() {
           </div>
         </div>
       )}
-      {/* Delete confirmation */}
+      {/* Delete event confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
@@ -355,6 +368,20 @@ export default function EventsPage() {
             <div className="flex justify-center gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="bg-red-500 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-red-600">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete guest from event confirmation */}
+      {deleteEventConfirm && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
+            <p className="font-semibold text-gray-900 mb-2">Remove from event?</p>
+            <p className="text-sm text-gray-500 mb-6">This guest will be removed from the event invitation.</p>
+            <div className="flex justify-center gap-3">
+              <button onClick={() => setDeleteEventConfirm(null)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
+              <button onClick={() => handleRemoveGuestFromEvent(deleteEventConfirm.eventId, deleteEventConfirm.guestId)} className="bg-red-500 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-red-600">Remove</button>
             </div>
           </div>
         </div>
