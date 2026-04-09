@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
   const { data: stayRequest } = await supabaseAdmin
     .from('guest_stay_requests')
-    .select('thursday_night, friday_night, saturday_night, notes')
+    .select('sunday_night, friday_night, saturday_night, notes')
     .eq('guest_id', guest.id)
     .single()
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
   if (stay_request) {
     const { error: stayError } = await supabaseAdmin.from('guest_stay_requests').upsert({
       guest_id: guest.id,
-      thursday_night: stay_request.thursday_night,
+      sunday_night: stay_request.sunday_night,
       friday_night: stay_request.friday_night,
       saturday_night: stay_request.saturday_night,
       notes: stay_request.notes || null,

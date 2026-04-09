@@ -11,7 +11,7 @@ interface RsvpDetail {
   notes: string | null;
 }
 interface StayRequest {
-  thursday_night: boolean; friday_night: boolean; saturday_night: boolean;
+  sunday_night: boolean; friday_night: boolean; saturday_night: boolean;
 }
 interface Guest {
   id: string; name: string; email: string | null; phone: string | null;
@@ -95,7 +95,7 @@ export default function GuestsPage() {
       supabase.from('events').select('id, name, sort_order').order('sort_order'),
       supabase.from('guest_events').select('guest_id, event_id'),
       supabase.from('rsvp_responses').select('guest_id, event_id, status, dietary_requirements, dietary_notes, notes'),
-      supabase.from('guest_stay_requests').select('guest_id, thursday_night, friday_night, saturday_night'),
+      supabase.from('guest_stay_requests').select('guest_id, sunday_night, friday_night, saturday_night'),
     ]);
 
     const guestEvents: Record<string, string[]> = {};
@@ -230,7 +230,7 @@ export default function GuestsPage() {
   })();
 
   const roleLabel: Record<string, string> = { primary: '', partner: 'Partner', child: 'Child', other: 'Other' };
-  const nightLabel: Record<string, string> = { thursday_night: 'Thu', friday_night: 'Fri', saturday_night: 'Sat' };
+  const nightLabel: Record<string, string> = { sunday_night: 'Sun', friday_night: 'Fri', saturday_night: 'Sat' };
 
   const exportCSV = () => {
     const eventNames = events.map(e => (e.name as any)?.en || 'Event');
@@ -242,7 +242,7 @@ export default function GuestsPage() {
       )];
       const allDietaryNotes = Object.values(g.rsvps).map(r => r.dietary_notes).filter(Boolean).join('; ');
       const stayNightsList = g.stayRequest
-        ? (['thursday_night', 'friday_night', 'saturday_night'] as const).filter(n => g.stayRequest![n]).map(n => ({ thursday_night: 'Thu', friday_night: 'Fri', saturday_night: 'Sat' })[n])
+        ? (['sunday_night', 'friday_night', 'saturday_night'] as const).filter(n => g.stayRequest![n]).map(n => ({ sunday_night: 'Sun', friday_night: 'Fri', saturday_night: 'Sat' })[n])
         : [];
       const eventStatuses = events.map(e => {
         if (!g.events.includes(e.id)) return 'not invited';
@@ -361,7 +361,7 @@ export default function GuestsPage() {
                   const allDietary      = [...new Set(Object.values(guest.rsvps).flatMap(r => Array.isArray(r.dietary_requirements) ? r.dietary_requirements : []).filter(d => d && d !== 'none'))];
                   const allDietaryNotes = Object.values(guest.rsvps).map(r => r.dietary_notes).filter(Boolean);
                   const stayNights = guest.stayRequest
-                    ? (['thursday_night', 'friday_night', 'saturday_night'] as const).filter(n => guest.stayRequest![n]).map(n => nightLabel[n])
+                    ? (['sunday_night', 'friday_night', 'saturday_night'] as const).filter(n => guest.stayRequest![n]).map(n => nightLabel[n])
                     : [];
                   const leader = guest.party_leader_id ? guests.find(g => g.id === guest.party_leader_id) : null;
 

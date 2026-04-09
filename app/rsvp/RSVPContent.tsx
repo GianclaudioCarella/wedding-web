@@ -70,7 +70,7 @@ export default function RSVPContent() {
   const [plusOneName, setPlusOneName] = useState('')
   const [plusOneDietary, setPlusOneDietary] = useState<string[]>([])
   const [plusOneDietaryNotes, setPlusOneDietaryNotes] = useState('')
-  const [stayNights, setStayNights]   = useState({ thursday_night: false, friday_night: false, saturday_night: false })
+  const [stayNights, setStayNights]   = useState({ sunday_night: false, friday_night: false, saturday_night: false })
 
   useEffect(() => {
     if (!token) { setNotFound(true); setLoading(false); return }
@@ -88,7 +88,7 @@ export default function RSVPContent() {
         if (data.existingRsvps?.[0]?.dietary_requirements) setDietary(data.existingRsvps[0].dietary_requirements)
         if (data.existingRsvps?.[0]?.dietary_notes) setDietaryNotes(data.existingRsvps[0].dietary_notes || '')
         if (data.stayRequest) setStayNights({
-          thursday_night: data.stayRequest.thursday_night || false,
+          sunday_night: data.stayRequest.sunday_night || false,
           friday_night: data.stayRequest.friday_night || false,
           saturday_night: data.stayRequest.saturday_night || false,
         })
@@ -298,7 +298,7 @@ export default function RSVPContent() {
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, margin: 0, marginBottom: 12, fontWeight: 500 }}>Which nights are you staying?</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 {([
-                  { key: 'thursday_night', label: 'Thu 1 Oct' },
+                  { key: 'sunday_night', label: 'Sun 4 Oct' },
                   { key: 'friday_night',   label: 'Fri 2 Oct' },
                   { key: 'saturday_night', label: 'Sat 3 Oct' },
                 ] as const).map(({ key, label }) => (
