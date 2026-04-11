@@ -161,10 +161,14 @@ export default function AccommodationPage() {
   const getAllTags = () => Array.from(new Set(venueGuests.flatMap(g => g.tags || [])));
   const allTags = getAllTags();
 
-  const tagStats = allTags.map(tag => ({
-    tag,
-    count: venueGuests.filter(g => g.tags?.includes(tag)).length,
-  }));
+  const tagStats = allTags.map(tag => {
+    const primariesWithTag = primaryGuests.filter(g => g.tags?.includes(tag));
+    const count = primariesWithTag.reduce((sum, primary) => {
+      const familyMembers = venueGuests.filter(g => g.id === primary.id || g.party_leader_id === primary.id);
+      return sum + familyMembers.length;
+    }, 0);
+    return { tag, count };
+  });
 
   const filteredPrimaries = primaryGuests.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -176,6 +180,11 @@ export default function AccommodationPage() {
   const getGuestAssignment = (guestId: string) => assignments.find(a => a.guest_id === guestId);
   const totalCapacity = rooms.reduce((s, r) => s + r.capacity, 0);
   const totalAssigned = assignments.length;
+  const gianCatPrimaries = primaryGuests.filter(g => g.tags?.includes('gian') || g.tags?.includes('cat'));
+  const gianCatGuestsCount = gianCatPrimaries.reduce((sum, primary) => {
+    const familyMembers = venueGuests.filter(g => g.id === primary.id || g.party_leader_id === primary.id);
+    return sum + familyMembers.length;
+  }, 0);
   const roleLabel: Record<string, string> = { primary: '', partner: 'Partner', child: 'Child', other: 'Other' };
 
   if (loading) return <div className="p-8"><p className="text-sm text-gray-400">Loading…</p></div>;
@@ -186,7 +195,7 @@ export default function AccommodationPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Accommodation</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {venueGuests.length} guests · {totalAssigned} of {totalCapacity} beds assigned · {primaryGuests.filter(p => !assignedGuestIdSet.has(p.id)).length} families need rooms
+            {gianCatGuestsCount} guests (gian + cat) · {totalAssigned} of {totalCapacity} beds assigned · {primaryGuests.filter(p => !assignedGuestIdSet.has(p.id)).length} families need rooms
           </p>
         </div>
       </div>
