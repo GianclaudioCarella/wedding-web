@@ -161,7 +161,7 @@ export const translations = {
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
-    scheduleIntro: 'Ficaremos muito felizes que nos acompanhassem enquanto celebramos nosso casamento. Boa comida, familiares e algumas histórias que merecem ser contadas novamente.',
+    scheduleIntro: 'Ficaremos muito felizes que nos acompanhassem a celebrar o nosso casamento. Boa comida, familiares, amigos e algumas histórias que merecem ser contadas novamente.',
     eventComingSoon: 'Detalhes dos eventos em breve.',
 
     // Invite accommodation
@@ -205,7 +205,7 @@ export const translations = {
     attending: 'Sim, estarei lá',
     notAttending: 'Infelizmente, não consigo',
     stayingWithUs: 'Hospedagem',
-    stayDescription: 'Você foi convidado a ficar no venue — avise-nos se alguma noite não funcionar bem.',
+    stayDescription: 'Você foi convidado a ficar no venue — avise-nos se alguma noite não puder.',
     dietaryRequirements: 'Requisitos alimentares',
     dietarySelectAll: 'Selecione tudo que se aplica.',
     dietaryPlaceholder: 'Há algo mais que devêssemos saber…',
