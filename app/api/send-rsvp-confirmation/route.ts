@@ -26,10 +26,10 @@ function generateConfirmationEmail(
     },
     pt: {
       subjectYes: 'Tudo pronto — confirmação de RSVP',
-      subjectNo:  'Vamos ter saudades — confirmação de RSVP',
+      subjectNo:  'Vamos sentir sua falta — confirmação de RSVP',
       label:      'RSVP Confirmado',
-      messageYes: 'Tudo pronto! Mal podemos esperar para celebrar convosco. Tudo o que precisas está no website. Até já!',
-      messageNo:  'Vamos ter saudades! Obrigado por nos avisar.',
+      messageYes: 'Tudo pronto! Mal podemos esperar para celebrar com vocês. Tudo o que precisas está no website. Até logo!',
+      messageNo:  'Vamos sentir sua falta! Obrigado por nos avisar.',
       viewInvite: 'Ver convite',
       editRsvp:   'Editar RSVP',
       footerEdit: 'Para atualizar o teu RSVP, visita:',
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
   const subjects: Record<string, { yes: string; no: string }> = {
     en: { yes: 'You\'re all set — RSVP confirmed',          no: "We'll miss you — RSVP confirmed" },
-    pt: { yes: 'Tudo pronto — confirmação de RSVP',         no: 'Vamos ter saudades — confirmação de RSVP' },
+    pt: { yes: 'Tudo pronto — confirmação de RSVP',         no: 'Vamos sentir sua falta — confirmação de RSVP' },
     es: { yes: 'Todo listo — confirmación de RSVP',         no: 'Te echaremos de menos — confirmación de RSVP' },
   }
   const subject = (subjects[locale] || subjects.en)[attending ? 'yes' : 'no']

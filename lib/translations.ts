@@ -140,7 +140,7 @@ export const translations = {
     navRsvp: 'RSVP',
 
     // Invite hero
-    rsvpNow: 'RSVP Agora',
+    rsvpNow: 'Confirma tua presença',
     weddingDate: 'Sábado, 3 de outubro de 2026',
 
     // Invite about
@@ -195,7 +195,7 @@ export const translations = {
     rsvpDeadline: 'Por favor, responda até 15 de julho de 2026',
     rsvpQuestion: 'Por favor, nos avise se você estará conosco.',
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de outubro de 2026',
-    rsvpButton: 'RSVP agora →',
+    rsvpButton: 'Confirma tua presença →',
     rsvpSent: 'RSVP Enviado ✓',
     rsvpEditNote: 'Quer atualizar a resposta? Clica acima.',
     backToTop: 'Voltar ao topo ↑',
@@ -276,7 +276,7 @@ export const translations = {
     navRsvp: 'RSVP',
 
     // Invite hero
-    rsvpNow: 'RSVP Ahora',
+    rsvpNow: 'Confirma tu presencia',
     weddingDate: 'Sábado, 3 de octubre de 2026',
 
     // Invite about
@@ -297,7 +297,7 @@ export const translations = {
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
-    scheduleIntro: 'Nos encantaría que nos acompañes mientras celebramos nuestra boda. Buena comida, familiares y algunas historias que vale la pena contar de nuevo.',
+    scheduleIntro: 'Nos encantaría que nos acompañes a celebrar nuestra boda. Buena comida, familiares, amigos y algunas historias que valen la pena contar otra vez.',
     eventComingSoon: 'Detalles del evento próximamente.',
 
     // Invite accommodation
@@ -331,7 +331,7 @@ export const translations = {
     rsvpDeadline: 'Por favor, responde antes del 15 de julio de 2026',
     rsvpQuestion: 'Por favor, avísanos si podrás venir.',
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de octubre de 2026',
-    rsvpButton: 'RSVP ahora →',
+    rsvpButton: 'Confirma tu presencia →',
     rsvpSent: 'RSVP Enviado ✓',
     rsvpEditNote: '¿Quieres actualizar tu respuesta? Haz clic arriba.',
     backToTop: 'Volver al inicio ↑',

@@ -207,11 +207,11 @@ export const translations = {
         locationName: 'Por anunciar',
       },
       rsvp: {
-        confirmed: 'RSVP Confirmado',
+        confirmed: 'Confirmación Recibida',
         statusYes: '¡Gracias por confirmar tu asistencia! Esperamos celebrar contigo.',
         statusMaybe: 'Gracias por tu respuesta. ¡Esperamos que puedas asistir!',
         statusNo: '¡Gracias por informarnos. Te echaremos de menos!',
-        pleaseConfirm: 'Por favor, confírmanos si podrás asistir:',
+        pleaseConfirm: 'Por favor, confirma si podrás asistir:',
         confirmButton: 'Confirmar Asistencia',
         moreDetails: 'Te enviaremos más detalles pronto.',
       },
@@ -225,7 +225,7 @@ export const translations = {
     },
     rsvp: {
       title: 'Confirma tu asistencia',
-      subtitle: 'Cualquier respuesta nos ayuda a planear – sí, no o quizás.',
+      subtitle: 'Cualquier respuesta nos ayuda a planificar – sí, no o quizás.',
       notFound: {
         title: 'No Encontrado',
         message: 'No pudimos encontrar tu invitación. Por favor, verifica el enlace de la invitación.',
@@ -275,7 +275,7 @@ export const translations = {
       backHome: 'Volver al Inicio',
       message: {
         yes: '¡Estamos encantados de que puedas acompañarnos! Te enviaremos la invitación formal pronto.',
-        maybe: '¡Esperamos que puedas asistir! Te mantendremos informado.',
+        maybe: '¡Esperamos que puedas asistir! Te mantendremos informado/a.',
         no: 'Lamentamos que no puedas asistir, pero agradecemos que nos lo hayas informado.',
       },
     },
