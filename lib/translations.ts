@@ -59,6 +59,7 @@ export const translations = {
     registryTitle: 'Sharing our wedding day with you is what matters most to us.',
     registryText: 'If you would like to give a gift, or contribute towards our honeymoon it would be greatly appreciated.',
     honeymoonFund: 'More details coming soon',
+    registryLink: 'View gift registry →',
 
     // Invite FAQ
     faqLabel: 'FAQ',
@@ -188,6 +189,7 @@ export const translations = {
     registryTitle: 'Compartilhar nosso dia de casamento com você é o que mais nos importa.',
     registryText: 'Se quiser oferecer um presente ou contribuir para nossa lua de mel, estaremos agradecidos.',
     honeymoonFund: 'Mais detalhes em breve.',
+    registryLink: 'Ver lista de presentes →',
 
     // Invite FAQ
     faqLabel: 'Perguntas Frequentes',
@@ -328,6 +330,7 @@ export const translations = {
     registryTitle: 'Compartir nuestra boda contigo es lo más importante para nosotros.',
     registryText: 'Si quieres hacer un regalo o una contribución hacia nuestra luna de miel estaremos muy agradecidos.',
     honeymoonFund: 'Mas detalles pronto.',
+    registryLink: 'Ver lista de regalos →',
 
     // Invite FAQ
     faqLabel: 'Preguntas frecuentes',

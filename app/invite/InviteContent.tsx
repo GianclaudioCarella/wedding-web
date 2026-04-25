@@ -383,9 +383,9 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
             <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 40, maxWidth: 420, lineHeight: 'var(--leading-normal)' }}>
               {t.registryText}
             </p>
-            <button disabled className="btn btn-primary">
-              <WaveText text={t.honeymoonFund} />
-            </button>
+            <a href="https://www.elcorteingles.es/listas/bodamas/eventos/ueejqv-boda-de-cat-y-gian/" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+              <WaveText text={t.registryLink || 'View gift registry'} />
+            </a>
           </div>
         </section>
       )}
