@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     const subjectMap: Record<string, string> = {
       en: "You're invited — Gian & Cat, 3 October 2026",
-      pt: 'Estás convidado/a — Gian & Cat, 3 de outubro de 2026',
+      pt: 'Você está convidado/a — Gian & Cat, 3 de outubro de 2026',
       es: 'Estás invitado/a — Gian & Cat, 3 de octubre de 2026',
     }
 
