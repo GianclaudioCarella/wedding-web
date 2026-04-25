@@ -418,9 +418,11 @@ export default function GuestsPage() {
                       {events.map(e => {
                         const rsvp = guest.rsvps[e.id];
                         const invited = guest.events.includes(e.id);
+                        const leaderInvited = leader ? leader.events.includes(e.id) : true;
+                        const shouldShow = invited && leaderInvited;
                         return (
                           <td key={e.id} className="px-4 py-3">
-                            {!invited ? (
+                            {!shouldShow ? (
                               <span className="text-gray-300 text-xs">—</span>
                             ) : rsvp ? (
                               <span style={{ ...STATUS_STYLE[rsvp.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>
