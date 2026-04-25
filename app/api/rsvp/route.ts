@@ -105,26 +105,36 @@ export async function POST(request: NextRequest) {
   }
 
   // Save RSVP and dietary for party members
+  // Get all party members to process (from either party_dietary or party_rsvps)
+  const partyMemberIds = new Set<string>();
   if (party_dietary && typeof party_dietary === 'object') {
-    for (const [memberId, memberDietary] of Object.entries(party_dietary as Record<string, string[]>)) {
-      const { data: memberEvents } = await supabaseAdmin
-        .from('guest_events')
-        .select('event_id')
-        .eq('guest_id', memberId)
-      for (const me of memberEvents || []) {
-        // Use individual party member response if provided, otherwise use primary guest's status
-        const memberRsvpsForMember = (party_rsvps as Record<string, Record<string, string>>)?.[memberId] || {}
-        const memberStatus = memberRsvpsForMember[me.event_id] || eventStatusMap.get(me.event_id) || 'pending'
-        await supabaseAdmin.from('rsvp_responses').upsert({
-          guest_id: memberId,
-          event_id: me.event_id,
-          status: memberStatus,
-          dietary_requirements: memberDietary || [],
-          dietary_notes: (party_dietary_notes as Record<string, string>)?.[memberId] || null,
-          responded_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'guest_id,event_id' })
-      }
+    Object.keys(party_dietary as Record<string, string[]>).forEach(id => partyMemberIds.add(id));
+  }
+  if (party_rsvps && typeof party_rsvps === 'object') {
+    Object.keys(party_rsvps as Record<string, Record<string, string>>).forEach(id => partyMemberIds.add(id));
+  }
+
+  for (const memberId of partyMemberIds) {
+    const { data: memberEvents } = await supabaseAdmin
+      .from('guest_events')
+      .select('event_id')
+      .eq('guest_id', memberId)
+
+    for (const me of memberEvents || []) {
+      // Use individual party member response if provided, otherwise use primary guest's status
+      const memberRsvpsForMember = (party_rsvps as Record<string, Record<string, string>>)?.[memberId] || {}
+      const memberStatus = memberRsvpsForMember[me.event_id] || eventStatusMap.get(me.event_id) || 'pending'
+      const memberDietary = (party_dietary as Record<string, string[]>)?.[memberId] || []
+
+      await supabaseAdmin.from('rsvp_responses').upsert({
+        guest_id: memberId,
+        event_id: me.event_id,
+        status: memberStatus,
+        dietary_requirements: memberDietary,
+        dietary_notes: (party_dietary_notes as Record<string, string>)?.[memberId] || null,
+        responded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'guest_id,event_id' })
     }
   }
 
