@@ -51,6 +51,7 @@ export default function ConfirmationPage({ locale }: ConfirmationPageProps) {
   }, [guestId]);
 
   const isNo = attending === false;
+  const isLoading = attending === null;
 
   const title   = isNo ? t.confirmation.titleNo   : t.confirmation.titleYes;
   const message = isNo ? t.confirmation.messageNo : t.confirmation.messageYes;
@@ -59,27 +60,39 @@ export default function ConfirmationPage({ locale }: ConfirmationPageProps) {
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingBlock: 'var(--space-section)' }}>
       <div style={{ width: '100%', maxWidth: 480, textAlign: 'center' }}>
 
-        <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
-          {t.confirmation.received}
-        </p>
-        <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, marginBottom: 16, fontWeight: 400, lineHeight: 1.2 }}>
-          {title}
-        </h1>
-        <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 48, maxWidth: 360, lineHeight: 'var(--leading-normal)' }}>
-          {message}
-        </p>
+        {isLoading ? (
+          <>
+            <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
+              {t.loading || 'Loading…'}
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase', color: MUTED, margin: 0, marginBottom: 12 }}>
+              {t.confirmation.received}
+            </p>
+            <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(28px, 4vw, 42px)', color: TEXT, margin: 0, marginBottom: 16, fontWeight: 400, lineHeight: 1.2 }}>
+              {title}
+            </h1>
+            <p style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: MUTED, margin: '0 auto', marginBottom: 48, maxWidth: 360, lineHeight: 'var(--leading-normal)' }}>
+              {message}
+            </p>
+          </>
+        )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <Link href={inviteUrl} className="btn btn-primary">
-            {t.confirmation.backToInvitation}
-          </Link>
-          <Link
-            href={rsvpUrl}
-            style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, textDecoration: 'underline', textUnderlineOffset: 3 }}
-          >
-            {t.confirmation.editRsvp}
-          </Link>
-        </div>
+        {!isLoading && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <Link href={inviteUrl} className="btn btn-primary">
+              {t.confirmation.backToInvitation}
+            </Link>
+            <Link
+              href={rsvpUrl}
+              style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              {t.confirmation.editRsvp}
+            </Link>
+          </div>
+        )}
 
       </div>
     </main>
