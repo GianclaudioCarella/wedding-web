@@ -35,7 +35,7 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
       names: 'Gian &amp; Cat',
     },
     pt: {
-      subject: 'Estás convidado/a — Gian & Cat, 3 de outubro de 2026',
+      subject: 'Você está convidado/a',
       body: 'Vamos casar e adoraríamos contar com a sua presença.',
       details: 'Sábado, 3 de outubro de 2026 na Garriga de Castelladral',
       info: 'Encontrarás tudo o que precisa na página de convite.',
