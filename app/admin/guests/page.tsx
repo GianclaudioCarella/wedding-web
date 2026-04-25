@@ -73,6 +73,8 @@ export default function GuestsPage() {
   const [sending, setSending]           = useState<string | null>(null); // guest id being sent
   const [bulkSending, setBulkSending]   = useState(false);
   const [sendResult, setSendResult]     = useState<string | null>(null);
+  const [showAllGuests, setShowAllGuests] = useState(true);
+  const [confirmSendAll, setConfirmSendAll] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -220,12 +222,16 @@ export default function GuestsPage() {
     const result: Guest[] = [];
     for (const p of primaries) {
       result.push(p);
-      // Always include all party members of a matching primary, regardless of filter
-      result.push(...guests.filter(g => g.party_leader_id === p.id));
+      // Always include all party members of a matching primary, regardless of filter (unless hidden)
+      if (showAllGuests) {
+        result.push(...guests.filter(g => g.party_leader_id === p.id));
+      }
     }
-    // Party members whose primary didn't match the filter — still include them if they matched
-    const inResult = new Set(result.map(g => g.id));
-    filtered.filter(g => !inResult.has(g.id)).forEach(g => result.push(g));
+    // Party members whose primary didn't match the filter — still include them if they matched (and shown)
+    if (showAllGuests) {
+      const inResult = new Set(result.map(g => g.id));
+      filtered.filter(g => !inResult.has(g.id)).forEach(g => result.push(g));
+    }
     return result;
   })();
 
@@ -282,7 +288,13 @@ export default function GuestsPage() {
         <div className="flex items-center gap-3">
           {sendResult && <span className="text-sm text-gray-500">{sendResult}</span>}
           <button
-            onClick={sendAllUninvited}
+            onClick={() => setShowAllGuests(!showAllGuests)}
+            className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50"
+          >
+            {showAllGuests ? 'Show main guests' : 'Show all'}
+          </button>
+          <button
+            onClick={() => setConfirmSendAll(true)}
             disabled={bulkSending || guests.filter(g => g.email && !g.invited_at).length === 0}
             className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-40"
           >
@@ -674,6 +686,20 @@ export default function GuestsPage() {
             <div className="flex justify-center gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="bg-red-500 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-red-600">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send all confirm */}
+      {confirmSendAll && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
+            <p className="font-semibold text-gray-900 mb-2">Send invitations to all?</p>
+            <p className="text-sm text-gray-500 mb-6">This will send {guests.filter(g => g.email && !g.invited_at).length} invitations.</p>
+            <div className="flex justify-center gap-3">
+              <button onClick={() => setConfirmSendAll(false)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
+              <button onClick={() => { setConfirmSendAll(false); sendAllUninvited(); }} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700">Send</button>
             </div>
           </div>
         </div>
