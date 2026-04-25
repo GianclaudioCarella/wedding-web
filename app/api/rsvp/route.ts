@@ -136,6 +136,24 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'guest_id' })
     if (stayError) console.error('Stay upsert error:', stayError)
+
+    // Replicate stay request to party members
+    const { data: partyMembers } = await supabaseAdmin
+      .from('guests')
+      .select('id')
+      .eq('party_leader_id', guest.id)
+    if (partyMembers?.length) {
+      for (const member of partyMembers) {
+        await supabaseAdmin.from('guest_stay_requests').upsert({
+          guest_id: member.id,
+          sunday_night: stay_request.sunday_night,
+          friday_night: stay_request.friday_night,
+          saturday_night: stay_request.saturday_night,
+          notes: stay_request.notes || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'guest_id' })
+      }
+    }
   }
 
   // Update guest notes + plus one fields

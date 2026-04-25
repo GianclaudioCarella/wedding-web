@@ -75,6 +75,10 @@ export default function GuestsPage() {
   const [sendResult, setSendResult]     = useState<string | null>(null);
   const [showAllGuests, setShowAllGuests] = useState(true);
   const [confirmSendAll, setConfirmSendAll] = useState(false);
+  const [editingPartyMemberEvents, setEditingPartyMemberEvents] = useState<{ [guestId: string]: string[] }>({});
+  const [savingPartyEvents, setSavingPartyEvents] = useState<string | null>(null);
+  const [editingPartyMemberStay, setEditingPartyMemberStay] = useState<{ [guestId: string]: StayRequest }>({});
+  const [savingPartyStay, setSavingPartyStay] = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -151,16 +155,45 @@ export default function GuestsPage() {
         venue_stay_invited: form.venue_stay_invited,
       };
       if (editingId) {
+        // Update primary guest
         await supabase.from('guests').update(payload).eq('id', editingId);
+
+        // Update primary guest's events
         await supabase.from('guest_events').delete().eq('guest_id', editingId);
         if (form.event_ids.length > 0)
           await supabase.from('guest_events').insert(form.event_ids.map(eid => ({ guest_id: editingId, event_id: eid })));
+
+        // Sync party members' events if this is a primary guest
+        if (form.party_role === 'primary') {
+          const { data: partyMembers } = await supabase.from('guests').select('id').eq('party_leader_id', editingId);
+          if (partyMembers && partyMembers.length > 0) {
+            for (const member of partyMembers) {
+              // Delete party member's old events
+              await supabase.from('guest_events').delete().eq('guest_id', member.id);
+              // Assign party member to same new events
+              if (form.event_ids.length > 0)
+                await supabase.from('guest_events').insert(form.event_ids.map(eid => ({ guest_id: member.id, event_id: eid })));
+            }
+          }
+        }
       } else {
         const newToken = crypto.randomUUID();
         const { data: newGuest } = await supabase.from('guests').insert({ ...payload, invite_token: newToken }).select('id').single();
         const finalIds = ceremonyEvent ? [...new Set([ceremonyEvent.id, ...form.event_ids])] : form.event_ids;
         if (newGuest && finalIds.length > 0)
           await supabase.from('guest_events').insert(finalIds.map(eid => ({ guest_id: newGuest.id, event_id: eid })));
+
+        // If this is a new party member, replicate primary guest's RSVPs and stay request
+        if (newGuest && form.party_role !== 'primary' && form.party_leader_id) {
+          const response = await fetch('/api/replicate-rsvps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_guest_id: newGuest.id, primary_guest_id: form.party_leader_id }),
+          });
+          if (!response.ok) {
+            console.error('Failed to replicate RSVPs');
+          }
+        }
       }
       setShowForm(false); await fetchAll();
     } finally { setSaving(false); }
@@ -169,6 +202,42 @@ export default function GuestsPage() {
   const handleDelete = async (id: string) => {
     await supabase.from('guests').delete().eq('id', id);
     setDeleteConfirm(null); await fetchAll();
+  };
+
+  const savePartyMemberEvents = async (guestId: string, eventIds: string[]) => {
+    setSavingPartyEvents(guestId);
+    try {
+      await supabase.from('guest_events').delete().eq('guest_id', guestId);
+      if (eventIds.length > 0)
+        await supabase.from('guest_events').insert(eventIds.map(eid => ({ guest_id: guestId, event_id: eid })));
+      setEditingPartyMemberEvents(prev => {
+        const next = { ...prev };
+        delete next[guestId];
+        return next;
+      });
+      await fetchAll();
+    } finally { setSavingPartyEvents(null); }
+  };
+
+  const markAsNotAttending = async (guestId: string) => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/mark-not-attending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guest_id: guestId }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('API error:', data);
+        throw new Error(data.error || 'Failed to update');
+      }
+      await fetchAll();
+      setShowForm(false);
+    } catch (error) {
+      console.error('Mark not attending error:', error);
+      alert('Failed to update guest. Please try again.');
+    } finally { setSaving(false); }
   };
 
   const copyLink = (token: string, language: string = 'en') => {
@@ -456,6 +525,8 @@ export default function GuestsPage() {
                           ? <span className="text-gray-300">—</span>
                           : stayNights.length > 0
                           ? stayNights.join(', ')
+                          : guest.stayRequest
+                          ? <span className="text-gray-500">Not staying</span>
                           : <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>Pending</span>}
                       </td>
 
@@ -668,8 +739,24 @@ export default function GuestsPage() {
               )}
               <Field label="Admin notes"><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="input resize-none" rows={2} placeholder="Accessibility, internal reminders…" /></Field>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 bg-white">
-              <button onClick={() => setShowForm(false)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between gap-3 sticky bottom-0 bg-white">
+              <div className="flex gap-3">
+                <button onClick={() => setShowForm(false)} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
+                {editingId && (
+                  <button
+                    onClick={() => {
+                      const guest = guests.find(g => g.id === editingId);
+                      if (guest && confirm(`Mark ${guest.name} as not attending? This will decline all events and remove venue stay.`)) {
+                        markAsNotAttending(editingId);
+                      }
+                    }}
+                    disabled={saving}
+                    className="text-sm text-red-500 hover:text-red-700 px-4 py-2 border border-red-200 rounded hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Mark as not attending
+                  </button>
+                )}
+              </div>
               <button onClick={handleSave} disabled={saving || !form.name.trim()} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">{saving ? 'Saving…' : editingId ? 'Save changes' : 'Add guest'}</button>
             </div>
           </div>
@@ -747,15 +834,70 @@ export default function GuestsPage() {
                             <p className="text-sm font-medium text-gray-900">{m.name}</p>
                             <p className="text-xs text-gray-400 capitalize">{m.party_role}</p>
                           </div>
-                          <button
-                            onClick={() => { setViewingGuest(null); openEdit(m); }}
-                            className="text-xs text-gray-400 hover:text-gray-700"
-                          >Edit</button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingPartyMemberEvents(prev => ({ ...prev, [m.id]: m.events }))}
+                              className="text-xs text-gray-400 hover:text-gray-700"
+                            >Events</button>
+                            <button
+                              onClick={() => { setViewingGuest(null); openEdit(m); }}
+                              className="text-xs text-gray-400 hover:text-gray-700"
+                            >Edit</button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 );
+              })()}
+
+              {/* Edit party member events */}
+              {!viewingGuest.party_leader_id && (() => {
+                const members = guests.filter(g => g.party_leader_id === viewingGuest.id);
+                const editingMemberIds = members.filter(m => editingPartyMemberEvents[m.id] !== undefined);
+                if (!editingMemberIds.length) return null;
+
+                return editingMemberIds.map(member => {
+                  const selectedEventIds = editingPartyMemberEvents[member.id];
+                  return (
+                    <div key={member.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                      <p className="text-xs font-medium text-gray-700 uppercase mb-3">Edit events for {member.name}</p>
+                      <div className="space-y-2 mb-4">
+                        {events.map(e => (
+                          <label key={e.id} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedEventIds.includes(e.id)}
+                              onChange={ev => setEditingPartyMemberEvents(prev => ({
+                                ...prev,
+                                [member.id]: ev.target.checked
+                                  ? [...selectedEventIds, e.id]
+                                  : selectedEventIds.filter(id => id !== e.id)
+                              }))}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm text-gray-700">{(e.name as any)?.en || 'Event'}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingPartyMemberEvents(prev => {
+                            const next = { ...prev };
+                            delete next[member.id];
+                            return next;
+                          })}
+                          className="text-xs text-gray-500 px-3 py-2 border border-gray-200 rounded hover:bg-gray-50"
+                        >Cancel</button>
+                        <button
+                          onClick={() => savePartyMemberEvents(member.id, selectedEventIds)}
+                          disabled={savingPartyEvents === member.id}
+                          className="text-xs text-white bg-gray-900 px-3 py-2 rounded hover:bg-gray-700 disabled:opacity-50"
+                        >{savingPartyEvents === member.id ? 'Saving…' : 'Save'}</button>
+                      </div>
+                    </div>
+                  );
+                });
               })()}
 
               {/* Invite link */}
