@@ -83,6 +83,9 @@ export async function POST(request: NextRequest) {
 
   if (!guest) return NextResponse.json({ error: 'Guest not found' }, { status: 404 })
 
+  // Create a map of event_id -> status from primary guest responses
+  const eventStatusMap = new Map(responses.map((r: any) => [r.event_id, r.status]))
+
   // Upsert RSVP responses per event
   for (const r of responses) {
     const { error: rsvpError } = await supabaseAdmin.from('rsvp_responses').upsert({
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Save dietary for party members
+  // Save RSVP and dietary for party members - replicate primary guest's status
   if (party_dietary && typeof party_dietary === 'object') {
     for (const [memberId, memberDietary] of Object.entries(party_dietary as Record<string, string[]>)) {
       const { data: memberEvents } = await supabaseAdmin
@@ -108,10 +111,11 @@ export async function POST(request: NextRequest) {
         .select('event_id')
         .eq('guest_id', memberId)
       for (const me of memberEvents || []) {
+        const memberStatus = eventStatusMap.get(me.event_id) || 'pending'
         await supabaseAdmin.from('rsvp_responses').upsert({
           guest_id: memberId,
           event_id: me.event_id,
-          status: 'attending',
+          status: memberStatus,
           dietary_requirements: memberDietary || [],
           dietary_notes: (party_dietary_notes as Record<string, string>)?.[memberId] || null,
           responded_at: new Date().toISOString(),

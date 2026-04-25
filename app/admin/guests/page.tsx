@@ -414,16 +414,13 @@ export default function GuestsPage() {
                         )}
                       </td>
 
-                      {/* Per-event RSVP — party members don't have independent RSVPs */}
+                      {/* Per-event RSVP */}
                       {events.map(e => {
                         const rsvp = guest.rsvps[e.id];
                         const invited = guest.events.includes(e.id);
-                        const isPartyMember = !!guest.party_leader_id;
                         return (
                           <td key={e.id} className="px-4 py-3">
-                            {isPartyMember ? (
-                              <span className="text-gray-300 text-xs">—</span>
-                            ) : !invited ? (
+                            {!invited ? (
                               <span className="text-gray-300 text-xs">—</span>
                             ) : rsvp ? (
                               <span style={{ ...STATUS_STYLE[rsvp.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>
