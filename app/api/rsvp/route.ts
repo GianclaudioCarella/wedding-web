@@ -37,15 +37,16 @@ export async function GET(request: NextRequest) {
     .select('event_id, status, dietary_requirements, dietary_notes, notes')
     .eq('guest_id', guest.id)
 
-  // Fetch existing dietary for party members so the form can pre-fill on edit
-  const partyRsvps: Record<string, { dietary_requirements: string[]; dietary_notes: string | null }> = {}
+  // Fetch existing dietary and event responses for party members so the form can pre-fill on edit
+  const partyRsvps: Record<string, { dietary_requirements: string[]; dietary_notes: string | null; rsvps: Record<string, string> }> = {}
   if (partyMembers?.length) {
     const { data: pmRsvps } = await supabaseAdmin
       .from('rsvp_responses')
-      .select('guest_id, dietary_requirements, dietary_notes')
+      .select('guest_id, event_id, status, dietary_requirements, dietary_notes')
       .in('guest_id', partyMembers.map((m: any) => m.id))
     for (const r of pmRsvps || []) {
-      if (!partyRsvps[r.guest_id]) partyRsvps[r.guest_id] = { dietary_requirements: r.dietary_requirements || [], dietary_notes: r.dietary_notes }
+      if (!partyRsvps[r.guest_id]) partyRsvps[r.guest_id] = { dietary_requirements: r.dietary_requirements || [], dietary_notes: r.dietary_notes, rsvps: {} }
+      partyRsvps[r.guest_id].rsvps[r.event_id] = r.status
     }
   }
 
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email, party_dietary, party_dietary_notes } = body
+  const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email, party_dietary, party_dietary_notes, party_rsvps } = body
 
   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Save RSVP and dietary for party members - replicate primary guest's status
+  // Save RSVP and dietary for party members
   if (party_dietary && typeof party_dietary === 'object') {
     for (const [memberId, memberDietary] of Object.entries(party_dietary as Record<string, string[]>)) {
       const { data: memberEvents } = await supabaseAdmin
@@ -111,7 +112,9 @@ export async function POST(request: NextRequest) {
         .select('event_id')
         .eq('guest_id', memberId)
       for (const me of memberEvents || []) {
-        const memberStatus = eventStatusMap.get(me.event_id) || 'pending'
+        // Use individual party member response if provided, otherwise use primary guest's status
+        const memberRsvpsForMember = (party_rsvps as Record<string, Record<string, string>>)?.[memberId] || {}
+        const memberStatus = memberRsvpsForMember[me.event_id] || eventStatusMap.get(me.event_id) || 'pending'
         await supabaseAdmin.from('rsvp_responses').upsert({
           guest_id: memberId,
           event_id: me.event_id,

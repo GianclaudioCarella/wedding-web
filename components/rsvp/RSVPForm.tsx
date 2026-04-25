@@ -108,6 +108,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const [dietaryNotes, setDietaryNotes] = useState('');
   const [partyDietary, setPartyDietary] = useState<Record<string, string[]>>({});
   const [partyDietaryNotes, setPartyDietaryNotes] = useState<Record<string, string>>({});
+  const [partyRsvps, setPartyRsvps] = useState<Record<string, Record<string, string>>>({});
   const [stayNights, setStayNights] = useState({ sunday_night: true, friday_night: true, saturday_night: true });
   const [notes, setNotes]           = useState('');
 
@@ -132,16 +133,23 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         // Pre-fill notes from guest record (shared field with admin notes)
         if (data.guest.notes) setNotes(data.guest.notes);
 
-        // Pre-fill party member dietary from previous submission
+        // Pre-fill party member dietary and RSVPs from previous submission
         if (data.partyRsvps) {
           const pDietary: Record<string, string[]> = {};
           const pNotes: Record<string, string> = {};
-          for (const [id, r] of Object.entries(data.partyRsvps as Record<string, { dietary_requirements: string[]; dietary_notes: string | null }>)) {
+          const pRsvps: Record<string, Record<string, string>> = {};
+          for (const [id, r] of Object.entries(data.partyRsvps as Record<string, any>)) {
             if (r.dietary_requirements?.length) pDietary[id] = r.dietary_requirements;
             if (r.dietary_notes) pNotes[id] = r.dietary_notes;
+            // Initialize party member RSVPs
+            if (!pRsvps[id]) pRsvps[id] = {};
+            for (const [eventId, status] of Object.entries(r.rsvps || {})) {
+              pRsvps[id][eventId] = status as string;
+            }
           }
           if (Object.keys(pDietary).length) setPartyDietary(pDietary);
           if (Object.keys(pNotes).length) setPartyDietaryNotes(pNotes);
+          if (Object.keys(pRsvps).length) setPartyRsvps(pRsvps);
         }
 
         if (data.stayRequest) {
@@ -233,6 +241,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         notes,
         party_dietary:       partyDietary,
         party_dietary_notes: partyDietaryNotes,
+        party_rsvps:         partyRsvps,
       }),
     });
 
@@ -401,24 +410,70 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             </div>
           )}
 
-          {/* Dietary — party members */}
-          {anyAttending && partyMembers.length > 0 && partyMembers.map(member => (
-            <div key={member.id} style={sectionStyle}>
-              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
-                {member.name?.split(' ')[0]} — {t.dietaryRequirements}
-              </p>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                {t.dietarySelectAll}
-              </p>
-              <DietaryPicker
-                selected={partyDietary[member.id] || []}
-                onToggle={(id) => togglePartyDietary(member.id, id)}
-                notes={partyDietaryNotes[member.id] || ''}
-                onNotesChange={(v) => setPartyDietaryNotes(prev => ({ ...prev, [member.id]: v }))}
-                t={t}
-              />
-            </div>
-          ))}
+          {/* Party members — responses + dietary */}
+          {anyAttending && partyMembers.length > 0 && partyMembers.map(member => {
+            const memberAttending = Object.values(partyRsvps[member.id] || {}).every(status => status === 'attending');
+            const hasResponded = Object.keys(partyRsvps[member.id] || {}).length > 0;
+            return (
+              <div key={member.id} style={sectionStyle}>
+                <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 16, fontWeight: 400 }}>
+                  {member.name?.split(' ')[0]}
+                </p>
+
+                {/* Response selection */}
+                <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name={`party-response-${member.id}`}
+                        checked={memberAttending}
+                        onChange={() => {
+                          const newRsvps: Record<string, string> = {};
+                          for (const event of events) {
+                            newRsvps[event.id] = 'attending';
+                          }
+                          setPartyRsvps(prev => ({ ...prev, [member.id]: newRsvps }));
+                        }}
+                      />
+                      <span style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT }}>{t.partyAttending || t.attending || 'Yes'}</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name={`party-response-${member.id}`}
+                        checked={!memberAttending && hasResponded}
+                        onChange={() => {
+                          const newRsvps: Record<string, string> = {};
+                          for (const event of events) {
+                            newRsvps[event.id] = 'declined';
+                          }
+                          setPartyRsvps(prev => ({ ...prev, [member.id]: newRsvps }));
+                        }}
+                      />
+                      <span style={{ fontFamily: SANS, fontSize: 'var(--text-base)', color: TEXT }}>{t.partyNotAttending || t.notAttending || 'No'}</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Dietary — only if attending */}
+                {memberAttending && (
+                  <div>
+                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
+                      {t.dietaryRequirements}
+                    </p>
+                    <DietaryPicker
+                      selected={partyDietary[member.id] || []}
+                      onToggle={(id) => togglePartyDietary(member.id, id)}
+                      notes={partyDietaryNotes[member.id] || ''}
+                      onNotesChange={(v) => setPartyDietaryNotes(prev => ({ ...prev, [member.id]: v }))}
+                      t={t}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
 
           {/* Notes */}
