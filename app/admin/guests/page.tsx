@@ -459,19 +459,19 @@ export default function GuestsPage() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {guest.party_leader_id ? (
                           <span className="text-xs text-gray-300">—</span>
-                        ) : guest.invited_at ? (
-                          <div>
-                            <span className="text-xs text-green-600">✓ Sent</span>
-                            <p className="text-xs text-gray-400 mt-0.5">{new Date(guest.invited_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
-                          </div>
                         ) : guest.email ? (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); sendInvite(guest.id); }}
-                            disabled={sending === guest.id}
-                            className="text-xs text-gray-500 hover:text-gray-900 border border-gray-200 rounded px-2 py-1 hover:border-gray-400 disabled:opacity-40 whitespace-nowrap"
-                          >
-                            {sending === guest.id ? '…' : 'Send invite'}
-                          </button>
+                          <div className="flex flex-col items-start gap-1">
+                            {guest.invited_at && (
+                              <span className="text-xs text-green-600">✓ {new Date(guest.invited_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); sendInvite(guest.id); }}
+                              disabled={sending === guest.id}
+                              className="text-xs text-gray-500 hover:text-gray-900 border border-gray-200 rounded px-2 py-1 hover:border-gray-400 disabled:opacity-40 whitespace-nowrap"
+                            >
+                              {sending === guest.id ? '…' : guest.invited_at ? 'Resend' : 'Send invite'}
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-xs text-gray-300">No email</span>
                         )}
