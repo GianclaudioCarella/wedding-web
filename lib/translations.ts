@@ -242,8 +242,8 @@ export const translations = {
     confirmation: {
       titleYes: 'Até breve!',
       titleNo: 'Sentiremos a sua falta.',
-      messageYes: 'O seu RSVP está confirmado. Mal podemos esperar para celebrar consigo.',
-      messageNo: 'Lamentamos que não possa estar presente. Esperamos celebrar convosco noutra altura.',
+      messageYes: 'O seu RSVP está confirmado. Mal podemos esperar para celebrar com você(s).',
+      messageNo: 'Lamentamos que não possa estar presente. Esperamos celebrar com você(s) em outro momento.',
       received: 'RSVP Recebido',
       backToInvitation: 'Voltar ao convite',
       editRsvp: 'Editar RSVP',
