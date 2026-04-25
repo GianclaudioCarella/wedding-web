@@ -242,7 +242,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
       body: JSON.stringify({ token, attending: anyAttending }),
     }).catch(() => {});
 
-    router.push(`/rsvp/confirmation?guest=${token}`);
+    const confirmationPath = locale === 'en' ? `/rsvp/confirmation?guest=${token}` : `/${locale}/rsvp/confirmation?guest=${token}`;
+    router.push(confirmationPath);
   };
 
   if (loading) return (
