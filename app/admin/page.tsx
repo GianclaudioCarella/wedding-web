@@ -55,7 +55,7 @@ export default function AdminDashboard() {
         const gRsvps = rsvps.filter(r => r.guest_id === g.id);
         return gRsvps.length > 0 && gRsvps.every(r => r.status === 'declined');
       }).length,
-      pending:        guests.filter(g => !respondedGuestIds.has(g.id)).length,
+      pending:        guests.filter(g => g.invited_at && !respondedGuestIds.has(g.id)).length,
       roomsFilled:    assignRes.count || 0,
       roomsTotal:     (roomsRes.data || []).reduce((s, r) => s + (r.capacity || 0), 0),
       unsentWithEmail: guests.filter(g => g.email && !g.invited_at).length,
@@ -116,7 +116,7 @@ export default function AdminDashboard() {
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">No response</p>
               <p className="text-3xl font-semibold text-amber-500">{summary.pending}</p>
-              <p className="text-xs text-gray-400 mt-1">of {summary.totalGuests} guests</p>
+              <p className="text-xs text-gray-400 mt-1">of {summary.invitedCount} invited</p>
             </div>
           </div>
 
