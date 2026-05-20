@@ -154,6 +154,8 @@ export async function POST(request: NextRequest) {
   }
   const subject = (subjects[locale] || subjects.en)[attending ? 'yes' : 'no']
 
+  if (!attending) return NextResponse.json({ skipped: true })
+
   const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
     to: guest.email,
