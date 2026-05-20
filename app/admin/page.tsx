@@ -43,19 +43,16 @@ export default function AdminDashboard() {
     const ge       = geRes.data || [];
     const events   = eventsRes.data || [];
 
-    // Guests who have responded to at least one event
-    const respondedGuestIds = new Set(rsvps.map(r => r.guest_id));
+    const respondedGuestIds  = new Set(rsvps.map(r => r.guest_id));
+    const attendingGuestIds  = new Set(rsvps.filter(r => r.status === 'attending').map(r => r.guest_id));
 
     const summary: Summary = {
       totalGuests:    guests.length,
       invitedCount:   guests.filter(g => g.invited_at).length,
       responding:     respondedGuestIds.size,
-      attending:      [...new Set(rsvps.filter(r => r.status === 'attending').map(r => r.guest_id))].length,
-      declined:       guests.filter(g => {
-        const gRsvps = rsvps.filter(r => r.guest_id === g.id);
-        return gRsvps.length > 0 && gRsvps.every(r => r.status === 'declined');
-      }).length,
-      pending:        guests.filter(g => g.invited_at && !respondedGuestIds.has(g.id)).length,
+      attending:      attendingGuestIds.size,
+      declined:       guests.filter(g => respondedGuestIds.has(g.id) && !attendingGuestIds.has(g.id)).length,
+      pending:        guests.filter(g => !respondedGuestIds.has(g.id)).length,
       roomsFilled:    assignRes.count || 0,
       roomsTotal:     (roomsRes.data || []).reduce((s, r) => s + (r.capacity || 0), 0),
       unsentWithEmail: guests.filter(g => g.email && !g.invited_at).length,
@@ -81,8 +78,8 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
-  const responseRate = summary && summary.invitedCount > 0
-    ? Math.round((summary.responding / summary.invitedCount) * 100)
+  const responseRate = summary && summary.totalGuests > 0
+    ? Math.round((summary.responding / summary.totalGuests) * 100)
     : 0;
 
   return (
@@ -116,7 +113,7 @@ export default function AdminDashboard() {
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">No response</p>
               <p className="text-3xl font-semibold text-amber-500">{summary.pending}</p>
-              <p className="text-xs text-gray-400 mt-1">of {summary.invitedCount} invited</p>
+              <p className="text-xs text-gray-400 mt-1">of {summary.totalGuests} guests</p>
             </div>
           </div>
 
