@@ -4,15 +4,13 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 export async function GET(request: NextRequest) {
   const filter = request.nextUrl.searchParams.get('filter') || 'all'
 
-  const query = supabaseAdmin
+  const { data: guests, error } = await supabaseAdmin
     .from('guests')
-    .select('id, name, email, invite_token, language, attending')
+    .select('id, name, email, invite_token, language')
     .is('party_leader_id', null)
     .not('email', 'is', null)
     .neq('email', '')
     .order('name')
-
-  const { data: guests, error } = await query
 
   if (error || !guests) {
     return NextResponse.json({ error: 'Failed to fetch guests' }, { status: 500 })
@@ -30,16 +28,34 @@ export async function GET(request: NextRequest) {
       memberCounts[m.party_leader_id] = (memberCounts[m.party_leader_id] || 0) + 1
   })
 
-  const toStatus = (a: string | null) =>
-    a === 'yes' ? 'attending' : a === 'no' ? 'declined' : 'pending'
+  // Derive RSVP status from rsvp_responses (same logic as admin/guests page)
+  const guestIds = guests.map(g => g.id)
+  const { data: rsvpRows } = await supabaseAdmin
+    .from('rsvp_responses')
+    .select('guest_id, status')
+    .in('guest_id', guestIds)
+
+  const rsvpByGuest: Record<string, string[]> = {}
+  rsvpRows?.forEach(r => {
+    if (!rsvpByGuest[r.guest_id]) rsvpByGuest[r.guest_id] = []
+    rsvpByGuest[r.guest_id].push(r.status)
+  })
+
+  const deriveStatus = (guestId: string): 'attending' | 'declined' | 'pending' => {
+    const statuses = rsvpByGuest[guestId]
+    if (!statuses || statuses.length === 0) return 'pending'
+    if (statuses.some(s => s === 'attending')) return 'attending'
+    if (statuses.every(s => s === 'declined')) return 'declined'
+    return 'pending'
+  }
 
   let parties = guests.map(g => ({
-    id:          g.id,
-    name:        g.name,
-    email:       g.email as string,
-    language:    g.language || 'en',
-    party_size:  1 + (memberCounts[g.id] || 0),
-    rsvp_status: toStatus(g.attending),
+    id:           g.id,
+    name:         g.name,
+    email:        g.email as string,
+    language:     g.language || 'en',
+    party_size:   1 + (memberCounts[g.id] || 0),
+    rsvp_status:  deriveStatus(g.id),
     invite_token: g.invite_token,
   }))
 
