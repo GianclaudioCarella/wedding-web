@@ -34,7 +34,7 @@ export default function AdminChat() {
   const [tokenInput, setTokenInput] = useState('');
   const [tavilyKeyInput, setTavilyKeyInput] = useState('');
   const [anthropicKeyInput, setAnthropicKeyInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o');
+  const [selectedModel, setSelectedModel] = useState('claude-haiku-4-5-20251001');
   const [systemMessage, setSystemMessage] = useState('');
   const [systemMessageEdit, setSystemMessageEdit] = useState('');
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -47,6 +47,7 @@ export default function AdminChat() {
   const [hoveredConvId, setHoveredConvId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const userSettingsService = new UserSettingsService(supabase);
   const chatService = new ChatSupabaseService(supabase);
@@ -62,6 +63,7 @@ export default function AdminChat() {
   }, []);
 
   useEffect(() => { checkAuth(); }, []);
+  useEffect(() => { if (!isSending) inputRef.current?.focus(); }, [isSending]);
   useEffect(() => { scrollToBottom(); }, [messages]);
 
   const scrollToBottom = () => {
@@ -665,6 +667,7 @@ export default function AdminChat() {
               return (
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
               <textarea
+                ref={inputRef}
                 value={inputMessage}
                 onChange={e => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
