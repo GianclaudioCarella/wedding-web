@@ -45,7 +45,7 @@ export default function AuditPage() {
       .order('invited_at', { ascending: false });
 
     for (const g of invited || []) {
-      all.push({ id: `invite-${g.id}`, timestamp: g.invited_at, type: 'invite_sent', guest_name: g.name, detail: 'Save the date sent' });
+      all.push({ id: `invite-${g.id}`, timestamp: g.invited_at, type: 'invite_sent', guest_name: g.name, detail: 'Invitation sent' });
     }
 
     // Events lookup

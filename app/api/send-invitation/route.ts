@@ -147,11 +147,11 @@ export async function POST(request: NextRequest) {
       continue
     }
 
-    // Fetch party members for this guest
+    // Fetch party members for this guest (stored in guests table with party_leader_id)
     const { data: partyMembers } = await supabaseAdmin
-      .from('party_members')
+      .from('guests')
       .select('name')
-      .eq('guest_id', guest.id)
+      .eq('party_leader_id', guest.id)
 
     const locale = guest.language || 'en'
     const localePath = locale === 'en' ? '' : `/${locale}`
