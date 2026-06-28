@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const statuses = rsvpByGuest[guestId]
     if (!statuses || statuses.length === 0) return 'pending'
     if (statuses.some(s => s === 'attending')) return 'attending'
-    if (statuses.every(s => s === 'declined')) return 'declined'
+    if (statuses.some(s => s === 'declined') && statuses.every(s => s === 'declined' || s === 'pending')) return 'declined'
     return 'pending'
   }
 
