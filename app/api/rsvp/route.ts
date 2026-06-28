@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   const { data: guestEvents } = await supabaseAdmin
     .from('guest_events')
-    .select('event_id, events(id, name, slug, event_date, event_time, sort_order)')
+    .select('event_id, events(id, name, slug, event_date, event_time, location, sort_order)')
     .eq('guest_id', guest.id)
     .order('event_id')
 

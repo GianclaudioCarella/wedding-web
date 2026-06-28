@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+import { sendEmail } from '@/lib/email/mailer'
 
 function formatPartyNames(guestName: string, partyMembers: { name: string }[]): string {
   const names: string[] = []
@@ -29,7 +27,7 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
       body: 'We\'re getting married, and we would love for you to be there.',
       details: 'Saturday, 3 October 2026 at La Garriga de Castelladral',
       info: 'You\'ll find everything you need on your invitation page.',
-      questions: 'Questions? Get in touch at hello@giancat.com.',
+      questions: 'Questions? Get in touch at balfour.cat@gmail.com.',
       cta: 'View your invitation',
       closing: 'With love,',
       names: 'Gian &amp; Cat',
@@ -39,7 +37,7 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
       body: 'Vamos casar e adoraríamos contar com a sua presença.',
       details: 'Sábado, 3 de outubro de 2026 na Garriga de Castelladral',
       info: 'Encontrarás tudo o que precisa na página de convite.',
-      questions: 'Dúvidas? Entre em contato em hello@giancat.com.',
+      questions: 'Dúvidas? Entre em contato em balfour.cat@gmail.com.',
       cta: 'Ver convite',
       closing: 'Com amor,',
       names: 'Gian &amp; Cat',
@@ -49,7 +47,7 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
       body: 'Nos casamos y nos encantaría que estuvieras con nosotros.',
       details: 'Sábado, 3 de octubre de 2026 en La Garriga de Castelladral',
       info: 'Encontrarás todo lo que necesitas en la invitación.',
-      questions: '¿Alguna pregunta? Contáctanos en hello@giancat.com.',
+      questions: '¿Alguna pregunta? Contáctanos en balfour.cat@gmail.com.',
       cta: 'Ver invitación',
       closing: 'Con amor,',
       names: 'Gian &amp; Cat',
@@ -126,10 +124,6 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
 }
 
 export async function POST(request: NextRequest) {
-  if (!resend) {
-    return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
-  }
-
   const { guest_ids } = await request.json()
   if (!guest_ids?.length) {
     return NextResponse.json({ error: 'No guest IDs provided' }, { status: 400 })
@@ -170,17 +164,18 @@ export async function POST(request: NextRequest) {
       es: 'Estás invitado/a — Gian & Cat, 3 de octubre de 2026',
     }
 
-    const { error: sendError } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-      to: guest.email,
-      subject: subjectMap[locale] || subjectMap.en,
-      html: generateInvitationEmail(guest.name, partyNames, inviteUrl, locale),
-      replyTo: process.env.RESEND_REPLY_TO_EMAIL || process.env.RESEND_FROM_EMAIL,
-    })
-
-    if (sendError) {
+    try {
+      await sendEmail({
+        to: guest.email,
+        subject: subjectMap[locale] || subjectMap.en,
+        html: generateInvitationEmail(guest.name, partyNames, inviteUrl, locale),
+      })
+    } catch (sendError: any) {
       results.push({ id: guest.id, success: false, error: sendError.message })
-    } else {
+      continue
+    }
+
+    {
       await supabaseAdmin
         .from('guests')
         .update({ invited_at: new Date().toISOString() })
@@ -190,5 +185,24 @@ export async function POST(request: NextRequest) {
   }
 
   const successCount = results.filter(r => r.success).length
+  const failCount    = results.filter(r => !r.success).length
+
+  // Log to email_campaigns so it shows up in /admin/comms history
+  try {
+    const sentNames = results
+      .filter(r => r.success)
+      .map(r => guests.find(g => g.id === r.id)?.name || r.id)
+      .join(', ')
+    await supabaseAdmin.from('email_campaigns').insert({
+      subject:          'Wedding invitation',
+      body:             'Wedding invitation email',
+      recipient_filter: 'invitation',
+      recipient_count:  successCount,
+      failed_count:     failCount,
+      recipient_names:  sentNames,
+      sent_by:          process.env.GMAIL_USER,
+    })
+  } catch { /* table may not exist yet */ }
+
   return NextResponse.json({ results, successCount, total: guests.length })
 }

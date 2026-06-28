@@ -16,8 +16,10 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
+    "@types/nodemailer": "^8.0.1",
     "dotenv": "^17.2.3",
     "next": "^16.1.0",
+    "nodemailer": "^9.0.1",
     "pdfjs-dist": "^5.4.530",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

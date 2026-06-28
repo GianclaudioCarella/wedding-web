@@ -47,7 +47,7 @@ const NIGHTS = [
   { key: 'sunday_night', label: 'Sunday night' },
 ];
 
-interface Event { id: string; name: { en: string; pt: string; es: string }; slug: string | null; event_date: string | null; event_time: string | null }
+interface Event { id: string; name: { en: string; pt: string; es: string }; slug: string | null; event_date: string | null; event_time: string | null; location: string | null }
 interface RSVPState { status: string }
 
 function DietaryPicker({
@@ -205,6 +205,14 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
     return names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1];
   };
 
+  const eventMeta = (ev: Event) => {
+    const parts: string[] = []
+    if (ev.event_date) parts.push(new Date(ev.event_date).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' }))
+    if (ev.event_time) parts.push(ev.event_time.slice(0, 5))
+    if (ev.location)   parts.push(ev.location)
+    return parts.join(' · ')
+  }
+
   const sortedEvents = [...events].sort((a, b) => {
     const aStr = `${a.event_date || ''}T${a.event_time || '00:00:00'}`
     const bStr = `${b.event_date || ''}T${b.event_time || '00:00:00'}`
@@ -295,7 +303,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         </div>
 
         {/* Header */}
-        <div style={{ marginBottom: 48 }}>
+        <div style={{ marginBottom: 40 }}>
           <h1 style={{ fontFamily: SERIF, fontSize: 'clamp(22px, 3vw, 32px)', color: TEXT, margin: 0, fontWeight: 400, lineHeight: 1.2 }}>
             {t.rsvpGreeting(formatPartyNames())}
           </h1>
@@ -314,10 +322,9 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                 <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
                   {(ceremonyEvent.name as any)?.[locale] || (ceremonyEvent.name as any)?.en}
                 </p>
-                {ceremonyEvent.event_date && (
+                {eventMeta(ceremonyEvent) && (
                   <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                    {new Date(ceremonyEvent.event_date).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
-                    {ceremonyEvent.event_time ? ` · ${ceremonyEvent.event_time.slice(0, 5)}` : ''}
+                    {eventMeta(ceremonyEvent)}
                   </p>
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -342,10 +349,9 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                 <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
                   {(event.name as any)?.[locale] || (event.name as any)?.en}
                 </p>
-                {event.event_date && (
+                {eventMeta(event) && (
                   <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16 }}>
-                    {new Date(event.event_date).toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
-                    {event.event_time ? ` · ${event.event_time.slice(0, 5)}` : ''}
+                    {eventMeta(event)}
                   </p>
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -530,8 +536,8 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         {/* Contact */}
         <div style={{ marginTop: 64 }}>
           <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 4 }}>{t.anyQuestions}</p>
-          <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-            hello@giancat.com
+          <a href="mailto:balfour.cat@gmail.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            balfour.cat@gmail.com
           </a>
         </div>
 

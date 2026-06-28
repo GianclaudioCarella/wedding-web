@@ -17,10 +17,12 @@ export const translations = {
     // Invite hero
     rsvpNow: 'RSVP Now',
     weddingDate: 'Saturday 3 October 2026',
+    heroScrollCta: '↓ Scroll for details',
 
     // Invite about
     aboutLabel: 'A note from us',
-    aboutText: 'We\'re getting married, and we can\'t wait to celebrate with you. Everything you need is on this page. The schedule, where we\'re celebrating, where to stay, and how to RSVP. We\'re so excited to share this day with you!',
+    aboutText: 'We\'re getting married, and we can\'t wait to celebrate with you. Everything you need is on this page — the schedule, where we\'re celebrating, where to stay, our gift registry, and how to RSVP. We\'re so excited to share this day with you!',
+    aboutScrollCta: '↓ Scroll for schedule',
 
     // Invite venue
     locationLabel: 'Location',
@@ -68,7 +70,7 @@ export const translations = {
     anyOtherQuestions: 'Any other questions?',
 
     // Invite RSVP CTA
-    rsvpDeadline: 'Kindly reply by 15 July 2026',
+    rsvpDeadline: 'Kindly reply by 1 September 2026',
     rsvpQuestion: 'Please let us know if you\'ll be joining us.',
     rsvpVenue: 'La Garriga de Castelladral · Saturday 3 October 2026',
     rsvpButton: 'RSVP now →',
@@ -147,10 +149,12 @@ export const translations = {
     // Invite hero
     rsvpNow: 'Confirma tua presença',
     weddingDate: 'Sábado, 3 de outubro de 2026',
+    heroScrollCta: '↓ Veja os detalhes',
 
     // Invite about
     aboutLabel: 'Uma nota nossa',
-    aboutText: 'Vamos nos casar — e mal podemos esperar para celebrar com vocês. Tudo que você precisa está nesta página: o cronograma, o local onde vamos celebrar, onde ficar e como ir. Estamos muito animados em compartilhar este dia com vocês.',
+    aboutText: 'Vamos nos casar — e mal podemos esperar para celebrar com vocês. Tudo que você precisa está nesta página: o cronograma, o local, onde ficar, nossa lista de presentes e como confirmar presença. Estamos muito animados em compartilhar este dia com vocês.',
+    aboutScrollCta: '↓ Ver cronograma',
 
     // Invite venue
     locationLabel: 'Local',
@@ -198,7 +202,7 @@ export const translations = {
     anyOtherQuestions: 'Qualquer duvida',
 
     // Invite RSVP CTA
-    rsvpDeadline: 'Por favor, responda até 15 de julho de 2026',
+    rsvpDeadline: 'Por favor, responda até 1 de setembro de 2026',
     rsvpQuestion: 'Por favor, nos avise se você estará conosco.',
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de outubro de 2026',
     rsvpButton: 'Confirma tua presença →',
@@ -267,7 +271,7 @@ export const translations = {
       { question: 'Posso tirar fotografias durante a cerimónia?', answer: 'Gostaríamos que estivesses presente no momento durante a cerimónia — temos fotógrafo. À vontade para tirar tantas fotos quanto quiseres no resto do dia.' },
       { question: 'Haverá opções vegetarianas e veganas?', answer: 'Sim — por favor indica as tuas restrições alimentares no formulário RSVP e trataremos de ti.' },
       { question: 'Como é o tempo em outubro?', answer: 'Outubro na Catalunha é geralmente ameno e soalheiro — espera temperaturas máximas entre 18–22°C durante o dia, mais fresco à noite. Recomendamos trazer um casaco leve.' },
-      { question: 'Tenho uma pergunta que não está aqui respondida.', answer: 'Por favor contacta-nos em hello@giancat.com e respondemos assim que possível.' },
+      { question: 'Tenho uma pergunta que não está aqui respondida.', answer: 'Por favor contacta-nos em balfour.cat@gmail.com e respondemos assim que possível.' },
     ],
   },
   es: {
@@ -288,10 +292,12 @@ export const translations = {
     // Invite hero
     rsvpNow: 'Confirma tu presencia',
     weddingDate: 'Sábado, 3 de octubre de 2026',
+    heroScrollCta: '↓ Ver detalles',
 
     // Invite about
     aboutLabel: 'Una nota de nosotros',
-    aboutText: 'Nos casamos — y no podemos esperar para celebrar contigo. Todo lo que necesitas está en esta página: el cronograma, dónde celebramos, dónde alojarse y cómo ir. Estamos muy emocionados de compartir este día contigo.',
+    aboutText: 'Nos casamos — y no podemos esperar para celebrar contigo. Todo lo que necesitas está en esta página: el cronograma, dónde celebramos, dónde alojarse, nuestra lista de regalos y cómo confirmar asistencia. Estamos muy emocionados de compartir este día contigo.',
+    aboutScrollCta: '↓ Ver cronograma',
 
     // Invite venue
     locationLabel: 'Ubicación',
@@ -339,7 +345,7 @@ export const translations = {
     anyOtherQuestions: '¿Otras preguntas?',
 
     // Invite RSVP CTA
-    rsvpDeadline: 'Por favor, responde antes del 15 de julio de 2026',
+    rsvpDeadline: 'Por favor, responde antes del 1 de septiembre de 2026',
     rsvpQuestion: 'Por favor, avísanos si podrás venir.',
     rsvpVenue: 'La Garriga de Castelladral · Sábado, 3 de octubre de 2026',
     rsvpButton: 'Confirma tu presencia →',
@@ -408,7 +414,7 @@ export const translations = {
       { question: '¿Puedo hacer fotos durante la ceremonia?', answer: 'Nos gustaría que estuvieras presente en el momento durante la ceremonia — tenemos fotógrafo. Puedes hacer todas las fotos que quieras durante el resto del día.' },
       { question: '¿Habrá opciones vegetarianas y veganas?', answer: 'Sí — por favor indica tus restricciones alimentarias en el formulario RSVP y nos encargaremos de ti.' },
       { question: '¿Cómo es el tiempo en octubre?', answer: 'Octubre en Cataluña suele ser templado y soleado — espera temperaturas máximas de 18–22°C durante el día, más fresco por la noche. Te recomendamos traer una chaqueta ligera.' },
-      { question: 'Tengo una pregunta que no está respondida aquí.', answer: 'Por favor, contáctanos en hello@giancat.com y te responderemos lo antes posible.' },
+      { question: 'Tengo una pregunta que no está respondida aquí.', answer: 'Por favor, contáctanos en balfour.cat@gmail.com y te responderemos lo antes posible.' },
     ],
   },
 };

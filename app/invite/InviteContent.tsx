@@ -143,19 +143,27 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
           justifyContent: 'space-between',
           padding: '8px 0',
         }}>
-          {/* Center: label + countdown */}
+          {/* Center: label + countdown + date */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, justifyContent: 'center', alignItems: 'center', textAlign: 'center' as const, gap: 20 }}>
             <p style={{ fontFamily: SERIF, fontSize: 'clamp(14px, 2vw, 16px)', textTransform: 'uppercase', letterSpacing: '0.1em', color: TEXT, margin: 0, fontWeight: 400 }}>
               Gian &amp; Cat
             </p>
             <Countdown />
-          </div>
-
-          {/* Bottom: date + RSVP */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontFamily: SANS, fontSize: 15, color: TEXT, margin: 0 }}>
+            <p style={{ fontFamily: SANS, fontSize: 14, color: TEXT, margin: 0, opacity: 0.75 }}>
               {t.weddingDate}
             </p>
+          </div>
+
+          {/* Bottom: scroll CTA + RSVP */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <a
+              href="#about"
+              className="btn btn-secondary"
+              style={{ textDecoration: 'none' }}
+              onClick={e => { e.preventDefault(); document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' }) }}
+            >
+              <WaveText text={t.heroScrollCta} />
+            </a>
             <a href="#rsvp" className="btn btn-primary">
               <WaveText text={t.rsvpNow} />
             </a>
@@ -165,16 +173,33 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
 
       {/* ── About ── */}
       <section id="about" style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
         paddingBlock: 'var(--space-section)',
-        maxWidth: 640,
-        margin: '0 auto',
-        textAlign: 'center' as const,
+        paddingBottom: '48px',
+        boxSizing: 'border-box' as const,
       }}>
-        <img src="/about.png" alt="About" style={{ width: 100, height: 100, objectFit: 'contain', display: 'block', margin: '0 auto 32px' }} />
-        <p className="schedule-label" style={{ marginBottom: 24 }}>{t.aboutLabel}</p>
-        <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.2vw, 28px)', color: TEXT, lineHeight: 'var(--leading-normal)', margin: 0, fontWeight: 400 }}>
-          {t.aboutText}
-        </p>
+        {/* Content */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', textAlign: 'center' as const, maxWidth: 640, width: '100%' }}>
+          <img src="/about.png" alt="About" style={{ width: 100, height: 100, objectFit: 'contain', display: 'block', margin: '0 auto 32px' }} />
+          <p className="schedule-label" style={{ marginBottom: 24 }}>{t.aboutLabel}</p>
+          <p style={{ fontFamily: SERIF, fontSize: 'clamp(20px, 2.2vw, 28px)', color: TEXT, lineHeight: 'var(--leading-normal)', margin: 0, fontWeight: 400 }}>
+            {t.aboutText}
+          </p>
+        </div>
+
+        {/* Scroll hint — sits at bottom of the full-height section */}
+        <a
+          href="#events"
+          className="btn btn-secondary"
+          style={{ marginTop: 48, textDecoration: 'none' }}
+          onClick={e => { e.preventDefault(); document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' }) }}
+        >
+          <WaveText text={t.aboutScrollCta} />
+        </a>
       </section>
 
       {/* ── Schedule ── */}
@@ -408,8 +433,8 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
                   <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 8, lineHeight: 'var(--leading-normal)' }}>
                     {t.anyOtherQuestions}
                   </p>
-                  <a href="mailto:hello@giancat.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                    hello@giancat.com
+                  <a href="mailto:balfour.cat@gmail.com" style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                    balfour.cat@gmail.com
                   </a>
                 </div>
               </div>

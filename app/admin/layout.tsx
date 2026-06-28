@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 const nav = [
   { href: '/admin',              label: 'Dashboard',     icon: IconDashboard },
   { href: '/admin/guests',       label: 'Guests',        icon: IconGuests },
+  { href: '/admin/comms',        label: 'Comms',         icon: IconComms },
   { href: '/admin/events',       label: 'Events',        icon: IconCalendar },
   { href: '/admin/accommodation', label: 'Accommodation', icon: IconBed },
   { href: '/admin/transport',    label: 'Transport',     icon: IconCar },
@@ -258,6 +259,15 @@ function IconMetrics() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 12l4-4 3 3 4-5 3 2" />
       <path d="M1 15h14" />
+    </svg>
+  );
+}
+
+function IconComms() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="3" width="14" height="10" rx="1.5" />
+      <path d="M1 5l7 5 7-5" />
     </svg>
   );
 }

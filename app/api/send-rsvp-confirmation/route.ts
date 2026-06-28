@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+import { sendEmail } from '@/lib/email/mailer'
 
 function generateConfirmationEmail(
   guestName: string,
@@ -124,10 +122,6 @@ function generateConfirmationEmail(
 }
 
 export async function POST(request: NextRequest) {
-  if (!resend) {
-    return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
-  }
-
   const { token, attending } = await request.json()
   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
@@ -156,14 +150,15 @@ export async function POST(request: NextRequest) {
 
   if (!attending) return NextResponse.json({ skipped: true })
 
-  const { error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-    to: guest.email,
-    subject,
-    html: generateConfirmationEmail(guest.name, attending, inviteUrl, rsvpUrl, locale),
-    replyTo: process.env.RESEND_REPLY_TO_EMAIL || process.env.RESEND_FROM_EMAIL,
-  })
+  try {
+    await sendEmail({
+      to: guest.email,
+      subject,
+      html: generateConfirmationEmail(guest.name, attending, inviteUrl, rsvpUrl, locale),
+    })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }
