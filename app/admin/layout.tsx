@@ -14,6 +14,9 @@ const nav = [
   { href: '/admin/registry',     label: 'Registry',      icon: IconGift },
   { href: '/admin/content',      label: 'Content',       icon: IconDoc },
   { href: '/admin/planning',     label: 'Planning',      icon: IconClipboard },
+  { href: '/admin/chat',         label: 'Chat',          icon: IconChat },
+  { href: '/admin/inspiration',  label: 'Inspiration',   icon: IconInspiration },
+  { href: '/admin/metrics',      label: 'Metrics',       icon: IconMetrics },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -228,6 +231,33 @@ function IconClipboard() {
       <rect x="3" y="2" width="10" height="13" rx="1" />
       <path d="M6 2V1h4v1" />
       <path d="M5 7h6M5 10h4" />
+    </svg>
+  );
+}
+
+function IconChat() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 10.5a1 1 0 0 1-1 1H5l-3 3V2.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8z" />
+    </svg>
+  );
+}
+
+function IconInspiration() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1v2M8 13v2M1 8h2M13 8h2" />
+      <path d="M3.05 3.05l1.42 1.42M11.53 11.53l1.42 1.42M3.05 12.95l1.42-1.42M11.53 4.47l1.42-1.42" />
+      <circle cx="8" cy="8" r="3" />
+    </svg>
+  );
+}
+
+function IconMetrics() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12l4-4 3 3 4-5 3 2" />
+      <path d="M1 15h14" />
     </svg>
   );
 }
