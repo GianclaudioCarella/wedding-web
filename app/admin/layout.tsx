@@ -15,6 +15,7 @@ const nav = [
   { href: '/admin/registry',     label: 'Registry',      icon: IconGift },
   { href: '/admin/content',      label: 'Content',       icon: IconDoc },
   { href: '/admin/planning',     label: 'Planning',      icon: IconClipboard },
+  { href: '/admin/audit',        label: 'Activity',      icon: IconAudit },
   { href: '/admin/inspiration',  label: 'Inspiration',   icon: IconInspiration },
   { href: '/admin/chat',         label: 'Chat',          icon: IconChat },
   { href: '/admin/metrics',      label: 'Metrics',       icon: IconMetrics },
@@ -222,6 +223,16 @@ function IconDoc() {
       <path d="M9 1H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6L9 1z" />
       <path d="M9 1v5h5" />
       <path d="M5 9h6M5 12h4" />
+    </svg>
+  );
+}
+
+function IconAudit() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 4h14M1 8h9M1 12h6" />
+      <circle cx="13" cy="11" r="2.5" />
+      <path d="M15 13.5l-1.5-1.5" />
     </svg>
   );
 }

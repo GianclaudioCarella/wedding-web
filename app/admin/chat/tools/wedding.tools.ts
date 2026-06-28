@@ -194,8 +194,7 @@ export class WeddingTools {
     try {
       const { data: events } = await this.supabase
         .from('events')
-        .select('id, name:title')
-        .order('date');
+        .select('id, name');
 
       if (!events?.length) return 'No events found.';
 
@@ -220,8 +219,9 @@ export class WeddingTools {
             return `    - ${guest}: ${reqs}`;
           });
 
+        const evName = typeof ev.name === 'object' ? (ev.name as any)?.en || (ev.name as any)?.pt || ev.id : ev.name;
         return [
-          `${(ev as any).name ?? ev.id}:`,
+          `${evName}:`,
           `  Confirmed: ${confirmed.length} | Declined: ${declined.length} | Pending: ${pending.length}`,
           ...(dietary.length ? [`  Dietary requirements:\n${dietary.join('\n')}`] : []),
         ].join('\n');
