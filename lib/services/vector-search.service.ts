@@ -78,7 +78,11 @@ export class VectorSearchService {
         metadata: row.metadata,
         documentFilename: row.document_filename,
       }));
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.status === 429 || error?.message?.includes('429')) {
+        console.warn('[VectorSearch] Embedding rate limit reached, skipping RAG context');
+        return [];
+      }
       console.error('Error in vector search:', error);
       throw error;
     }

@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 
-type Filter = 'all' | 'attending' | 'pending' | 'declined'
 type Tab = 'compose' | 'history'
 
 interface Party {
   id: string
   name: string
   email: string
+  language: string
   party_size: number
   rsvp_status: 'attending' | 'pending' | 'declined'
 }
@@ -33,11 +33,16 @@ interface CampaignGroup {
   sends: Campaign[]
 }
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'all',       label: 'All parties with email' },
-  { id: 'attending', label: 'Attending' },
-  { id: 'pending',   label: 'Not yet replied' },
-  { id: 'declined',  label: 'Declined' },
+const RSVP_PILLS = [
+  { id: 'attending', label: 'Attending', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+  { id: 'pending',   label: 'No reply',  color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+  { id: 'declined',  label: 'Declined',  color: '#6b7280', bg: '#f9fafb', border: '#d1d5db' },
+]
+
+const LANG_PILLS = [
+  { id: 'en', label: 'EN' },
+  { id: 'pt', label: 'PT' },
+  { id: 'es', label: 'ES' },
 ]
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -61,10 +66,11 @@ export default function CommsPage() {
   const [step, setStep] = useState<'compose' | 'review' | 'sent'>('compose')
 
   // Compose
-  const [subject, setSubject]   = useState('')
-  const [body, setBody]         = useState('')
-  const [filter, setFilter]     = useState<Filter>('all')
-  const [search, setSearch]     = useState('')
+  const [subject, setSubject]       = useState('')
+  const [body, setBody]             = useState('')
+  const [rsvpFilters, setRsvpFilters] = useState<Set<string>>(new Set())
+  const [langFilters, setLangFilters] = useState<Set<string>>(new Set())
+  const [search, setSearch]         = useState('')
   const [parties, setParties]   = useState<Party[]>([])
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
   const [loadingParties, setLoadingParties] = useState(false)
@@ -82,12 +88,12 @@ export default function CommsPage() {
     setLoadingParties(true)
     setExcluded(new Set())
     setResult(null)
-    fetch(`/api/admin/comms/recipients?filter=${filter}`)
+    fetch('/api/admin/comms/recipients?filter=all')
       .then(r => r.json())
       .then(d => setParties(d.parties || []))
       .catch(() => {})
       .finally(() => setLoadingParties(false))
-  }, [filter])
+  }, [])
 
   useEffect(() => {
     if (tab !== 'history') return
@@ -99,11 +105,17 @@ export default function CommsPage() {
       .finally(() => setLoadingHistory(false))
   }, [tab])
 
+  const toggle = (set: Set<string>, val: string, setter: (s: Set<string>) => void) => {
+    const n = new Set(set); n.has(val) ? n.delete(val) : n.add(val); setter(n)
+  }
+
   const q = search.trim().toLowerCase()
-  const visibleParties = q
-    ? parties.filter(p => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
-    : parties
-  const selected = parties.filter(p => !excluded.has(p.id))
+  const applyFilters = (list: Party[]) => list
+    .filter(p => rsvpFilters.size === 0 || rsvpFilters.has(p.rsvp_status))
+    .filter(p => langFilters.size === 0 || langFilters.has(p.language))
+  const visibleParties = applyFilters(parties)
+    .filter(p => !q || p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
+  const selected = applyFilters(parties).filter(p => !excluded.has(p.id))
 
   const toggleParty = (id: string) =>
     setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -124,10 +136,14 @@ export default function CommsPage() {
     setSending(true)
     setResult(null)
     try {
+      const filterLabel = [
+        ...(rsvpFilters.size ? [...rsvpFilters] : ['all']),
+        ...(langFilters.size ? [...langFilters] : []),
+      ].join('+')
       const res = await fetch('/api/admin/comms/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, body, filter, recipient_ids: selected.map(p => p.id) }),
+        body: JSON.stringify({ subject, body, filter: filterLabel, recipient_ids: selected.map(p => p.id) }),
       })
       const d = await res.json()
       setResult({ sent: d.sent ?? 0, failed: d.failed ?? 0, error: d.error ?? null })
@@ -258,7 +274,7 @@ export default function CommsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <p style={{ ...labelStyle, margin: 0 }}>Recipients</p>
                 <span style={{ fontSize: 12, color: '#6b7280' }}>
-                  {selected.length} selected · {parties.length} total
+                  {selected.length} selected · {visibleParties.length} shown
                 </span>
               </div>
 
@@ -270,14 +286,41 @@ export default function CommsPage() {
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: '#374151', outline: 'none', marginBottom: 8, boxSizing: 'border-box' as const }}
               />
 
-              {/* Filter */}
-              <select
-                value={filter}
-                onChange={e => { setFilter(e.target.value as Filter); setSearch('') }}
-                style={{ width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: '#374151', outline: 'none', cursor: 'pointer', marginBottom: 10 }}
-              >
-                {FILTERS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-              </select>
+              {/* RSVP pills */}
+              <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5, marginBottom: 8 }}>
+                <span style={pillLabelStyle}>Status</span>
+                {RSVP_PILLS.map(({ id, label, color, bg, border }) => {
+                  const active = rsvpFilters.has(id)
+                  return (
+                    <button key={id} onClick={() => toggle(rsvpFilters, id, setRsvpFilters)} style={{
+                      padding: '3px 10px', fontSize: 12, fontWeight: 500, borderRadius: 20, cursor: 'pointer',
+                      border: `1px solid ${active ? border : '#e5e7eb'}`,
+                      background: active ? bg : '#fff',
+                      color: active ? color : '#6b7280',
+                    }}>
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Language pills */}
+              <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                <span style={pillLabelStyle}>Lang</span>
+                {LANG_PILLS.map(({ id, label }) => {
+                  const active = langFilters.has(id)
+                  return (
+                    <button key={id} onClick={() => toggle(langFilters, id, setLangFilters)} style={{
+                      padding: '3px 10px', fontSize: 12, fontWeight: 500, borderRadius: 20, cursor: 'pointer',
+                      border: `1px solid ${active ? '#111827' : '#e5e7eb'}`,
+                      background: active ? '#111827' : '#fff',
+                      color: active ? '#fff' : '#6b7280',
+                    }}>
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
 
               {/* Select controls */}
               <div style={{ display: 'flex', gap: 12 }}>
@@ -653,6 +696,17 @@ const inputStyle: React.CSSProperties = {
   color: '#111827',
   background: '#fff',
   boxSizing: 'border-box',
+}
+
+const pillLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: '0.07em',
+  textTransform: 'uppercase',
+  color: '#9ca3af',
+  alignSelf: 'center',
+  marginRight: 2,
+  whiteSpace: 'nowrap',
 }
 
 const ghostBtn: React.CSSProperties = {

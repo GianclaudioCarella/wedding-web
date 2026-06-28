@@ -19,6 +19,7 @@ export interface Model {
   name: string;
   icon: string;
   description?: string;
+  provider?: 'github' | 'anthropic';
 }
 
 export interface MemorySaveResult {

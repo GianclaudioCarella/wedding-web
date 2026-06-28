@@ -13,7 +13,7 @@ export class ChatSupabaseService {
       .from('chat_settings')
       .select('setting_value')
       .eq('setting_key', 'system_message')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error loading system message:', error);

@@ -2,21 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell,
 } from 'recharts';
 
 interface MetricsSummary {
@@ -42,18 +31,15 @@ interface HourlyData {
 }
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
-
 type PeriodFilter = '24h' | 'month';
 
 export default function MetricsPage() {
-  const router = useRouter();
   const [summary, setSummary] = useState<MetricsSummary | null>(null);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
   const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
   const [apiBreakdown, setApiBreakdown] = useState<{ name: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('24h');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadMetrics();
@@ -63,414 +49,240 @@ export default function MetricsPage() {
 
   async function loadMetrics() {
     try {
-      let startDate: string;
-      
-      if (periodFilter === 'month') {
-        const now = new Date();
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        startDate = firstDayOfMonth.toISOString();
-      } else {
-        startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      }
+      const startDate = periodFilter === 'month'
+        ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+        : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      // Summary
-      const { data: apiLogs } = await supabase
-        .from('api_logs')
-        .select('*')
-        .gte('timestamp', startDate);
-
-      const { data: tokens } = await supabase
-        .from('tokens_usage')
-        .select('*')
-        .gte('timestamp', startDate);
+      const { data: apiLogs } = await supabase.from('api_logs').select('*').gte('timestamp', startDate);
+      const { data: tokens }  = await supabase.from('tokens_usage').select('*').gte('timestamp', startDate);
 
       setSummary({
-        totalApiCalls: apiLogs?.length || 0,
-        totalTokens: tokens?.reduce((sum, t) => sum + (t.total_tokens || 0), 0) || 0,
-        estimatedCost: tokens?.reduce((sum, t) => sum + (t.estimated_cost_usd || 0), 0) || 0,
+        totalApiCalls:    apiLogs?.length || 0,
+        totalTokens:      tokens?.reduce((s, t) => s + (t.total_tokens || 0), 0) || 0,
+        estimatedCost:    tokens?.reduce((s, t) => s + (t.estimated_cost_usd || 0), 0) || 0,
         tavilyCallsToday: apiLogs?.filter(l => l.api_name === 'tavily').length || 0,
-        llmCallsToday: tokens?.length || 0,
+        llmCallsToday:    tokens?.length || 0,
       });
 
-      // Data aggregation for charts (by hour for 24h, by day for month)
       const timeMap = new Map<string, HourlyData>();
-      
-      apiLogs?.forEach(log => {
-        const date = new Date(log.timestamp);
-        const timeKey = periodFilter === 'month'
-          ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-          
-        if (!timeMap.has(timeKey)) {
-          timeMap.set(timeKey, { hour: timeKey, tavily: 0, llm: 0, tokens: 0 });
-        }
-        const data = timeMap.get(timeKey)!;
-        if (log.api_name === 'tavily') data.tavily++;
-      });
-
-      tokens?.forEach(token => {
-        const date = new Date(token.timestamp);
-        const timeKey = periodFilter === 'month'
-          ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-          
-        if (!timeMap.has(timeKey)) {
-          timeMap.set(timeKey, { hour: timeKey, tavily: 0, llm: 0, tokens: 0 });
-        }
-        const data = timeMap.get(timeKey)!;
-        data.llm++;
-        data.tokens += token.total_tokens || 0;
-      });
-
+      const timeKey = (ts: string) => {
+        const d = new Date(ts);
+        return periodFilter === 'month'
+          ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      };
+      const ensure = (k: string) => {
+        if (!timeMap.has(k)) timeMap.set(k, { hour: k, tavily: 0, llm: 0, tokens: 0 });
+        return timeMap.get(k)!;
+      };
+      apiLogs?.forEach(l => { if (l.api_name === 'tavily') ensure(timeKey(l.timestamp)).tavily++; });
+      tokens?.forEach(t => { const d = ensure(timeKey(t.timestamp)); d.llm++; d.tokens += t.total_tokens || 0; });
       setHourlyData(Array.from(timeMap.values()).sort((a, b) => a.hour.localeCompare(b.hour)));
 
-      // API breakdown for pie chart
-      const breakdown = new Map<string, number>();
-      apiLogs?.forEach(log => {
-        breakdown.set(log.api_name, (breakdown.get(log.api_name) || 0) + 1);
-      });
-      setApiBreakdown(Array.from(breakdown.entries()).map(([name, value]) => ({ name, value })));
+      const bkdn = new Map<string, number>();
+      apiLogs?.forEach(l => bkdn.set(l.api_name, (bkdn.get(l.api_name) || 0) + 1));
+      setApiBreakdown(Array.from(bkdn.entries()).map(([name, value]) => ({ name, value })));
 
-      // Recent calls
       const { data: recent } = await supabase
-        .from('api_logs')
-        .select('timestamp, api_name, response_time_ms, success')
-        .order('timestamp', { ascending: false })
-        .limit(10);
-
+        .from('api_logs').select('timestamp, api_name, response_time_ms, success')
+        .order('timestamp', { ascending: false }).limit(10);
       setRecentCalls(recent || []);
-      setLoading(false);
     } catch (error) {
       console.error('Error loading metrics:', error);
+    } finally {
       setLoading(false);
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/admin/login');
-  };
-
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-pulse text-gray-900">Loading...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
+        <p style={{ color: '#9ca3af', fontSize: 14 }}>Loading…</p>
       </div>
     );
   }
 
+  const periodLabel = periodFilter === '24h' ? 'Hour' : 'Day';
+
+  const summaryCards = [
+    { label: 'Total API Calls',  value: summary?.totalApiCalls || 0,                          color: '#3b82f6' },
+    { label: 'Tavily Calls',     value: summary?.tavilyCallsToday || 0,                        color: '#10b981' },
+    { label: 'LLM Calls',       value: summary?.llmCallsToday || 0,                            color: '#f59e0b' },
+    { label: 'Total Tokens',     value: (summary?.totalTokens || 0).toLocaleString(),           color: '#8b5cf6' },
+    { label: 'Estimated Cost',   value: `$${(summary?.estimatedCost || 0).toFixed(4)}`,         color: '#ef4444' },
+  ];
+
+  const successRate = recentCalls.length
+    ? ((recentCalls.filter(c => c.success).length / recentCalls.length) * 100).toFixed(1)
+    : '0';
+  const avgResponse = recentCalls.length
+    ? Math.round(recentCalls.reduce((s, c) => s + (c.response_time_ms || 0), 0) / recentCalls.length)
+    : 0;
+  const avgCost = summary?.llmCallsToday
+    ? ((summary.estimatedCost || 0) / summary.llmCallsToday).toFixed(6)
+    : '0.000000';
+
   return (
-    <div className="h-screen flex bg-white">
-      {/* Mobile sidebar overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+    <div style={{ padding: '32px 40px', maxWidth: 1100, minHeight: '100%', boxSizing: 'border-box' }}>
 
-      {/* Sidebar */}
-      <div className={`fixed md:relative inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col border-r border-gray-800 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-4 border-b border-gray-800">
-          {/* Close button for mobile */}
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden w-full flex items-center justify-end px-2 py-2 text-gray-400 hover:text-white transition-colors mb-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <button
-            onClick={() => router.push('/admin')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-left"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="font-medium">Back to Admin</span>
-          </button>
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af', margin: '0 0 4px' }}>Admin</p>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: '#111827', margin: 0 }}>Metrics</h1>
         </div>
-
-        <div className="flex-1 p-4">
-          <div className="space-y-2">
-            <button
-              onClick={() => router.push('/admin/chat')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-              <span className="text-sm">AI Assistant</span>
-            </button>
-            <button
-              onClick={() => router.push('/admin/metrics')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm">Metrics</span>
-            </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {/* Period toggle */}
+          <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden', background: '#fff' }}>
+            {(['24h', 'month'] as PeriodFilter[]).map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriodFilter(p)}
+                style={{
+                  padding: '7px 14px', fontSize: 13, fontWeight: 500, border: 'none', cursor: 'pointer',
+                  background: periodFilter === p ? '#111827' : '#fff',
+                  color:      periodFilter === p ? '#fff'    : '#6b7280',
+                }}
+              >
+                {p === '24h' ? '24h' : 'Month'}
+              </button>
+            ))}
           </div>
-        </div>
-
-        <div className="p-4 border-t border-gray-800">
           <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-900 transition-colors text-left"
+            onClick={loadMetrics}
+            style={{ padding: '7px 14px', fontSize: 13, fontWeight: 500, border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', cursor: 'pointer', color: '#374151' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span className="text-sm">Logout</span>
+            Refresh
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="p-4 sm:p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-              <div className="flex items-center gap-3">
-                {/* Mobile menu button */}
-                <button
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="md:hidden p-2 rounded-lg hover:bg-gray-200 text-gray-600 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  Metrics
-                </h1>
-              </div>
-              <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setPeriodFilter('24h')}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm rounded transition ${
-                      periodFilter === '24h'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    24h
-                  </button>
-                  <button
-                    onClick={() => setPeriodFilter('month')}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm rounded transition ${
-                      periodFilter === 'month'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Month
-                  </button>
-                </div>
-                <button
-                  onClick={loadMetrics}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                >
-                  Refresh
-                </button>
-              </div>
-            </div>
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>
+        {summaryCards.map(({ label, value, color }) => (
+          <div key={label} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '16px 20px' }}>
+            <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 6px' }}>{label}</p>
+            <p style={{ fontSize: 24, fontWeight: 700, color, margin: 0 }}>{value}</p>
+          </div>
+        ))}
+      </div>
 
-            {/* Cards de Resumo */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 mb-6 sm:mb-8">
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Total API Calls</div>
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">{summary?.totalApiCalls || 0}</div>
-              </div>
+      {/* Charts grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Tavily Calls</div>
-                <div className="text-2xl sm:text-3xl font-bold text-green-600">{summary?.tavilyCallsToday || 0}</div>
-              </div>
+        {/* API calls bar chart */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '20px 20px 12px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: '0 0 16px' }}>API Calls per {periodLabel}</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={hourlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#9ca3af' }} />
+              <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} />
+              <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="tavily" fill="#10B981" name="Tavily" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="llm"    fill="#3B82F6" name="LLM"    radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">LLM Calls</div>
-                <div className="text-2xl sm:text-3xl font-bold text-orange-600">{summary?.llmCallsToday || 0}</div>
-              </div>
+        {/* Token usage line chart */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '20px 20px 12px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: '0 0 16px' }}>Token Usage per {periodLabel}</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={hourlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="hour" tick={{ fontSize: 10, fill: '#9ca3af' }} />
+              <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} />
+              <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Line type="monotone" dataKey="tokens" stroke="#8B5CF6" strokeWidth={2} dot={false} name="Tokens" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Total Tokens</div>
-                <div className="text-xl sm:text-3xl font-bold text-purple-600">
-                  {(summary?.totalTokens || 0).toLocaleString()}
-                </div>
-              </div>
+        {/* API distribution pie */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '20px 20px 12px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: '0 0 16px' }}>Distribution by API</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={apiBreakdown}
+                cx="50%" cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                outerRadius={80}
+                dataKey="value"
+              >
+                {apiBreakdown.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Pie>
+              <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 6 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md hover:shadow-lg transition col-span-2 sm:col-span-1">
-                <div className="text-gray-900 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Estimated Cost</div>
-                <div className="text-2xl sm:text-3xl font-bold text-red-600">
-                  ${(summary?.estimatedCost || 0).toFixed(4)}
-                </div>
+        {/* Statistics */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '20px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: '0 0 20px' }}>Statistics</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {[
+              { label: 'Success Rate',         value: `${successRate}%`,   color: '#16a34a' },
+              { label: 'Avg Response Time',     value: `${avgResponse}ms`, color: '#3b82f6' },
+              { label: 'Avg Cost per LLM Call', value: `$${avgCost}`,      color: '#8b5cf6' },
+            ].map(({ label, value, color }) => (
+              <div key={label}>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 4px' }}>{label}</p>
+                <p style={{ fontSize: 26, fontWeight: 700, color, margin: 0 }}>{value}</p>
               </div>
-            </div>
-
-            {/* Gráficos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              {/* API Calls by Hour Chart */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
-                  API Calls per {periodFilter === '24h' ? 'Hour' : 'Day'}
-                </h2>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={hourlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Bar dataKey="tavily" fill="#10B981" name="Tavily" />
-                    <Bar dataKey="llm" fill="#3B82F6" name="LLM" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Token Usage Chart */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
-                  Token Usage per {periodFilter === '24h' ? 'Hour' : 'Day'}
-                </h2>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={hourlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Line
-                      type="monotone"
-                      dataKey="tokens"
-                      stroke="#8B5CF6"
-                      strokeWidth={2}
-                      name="Tokens"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Pie Chart - API Distribution */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Distribution by API</h2>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={apiBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : 0}%`}
-                      outerRadius={70}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {apiBreakdown.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Additional Statistics */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Statistics</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
-                  <div>
-                    <div className="text-xs sm:text-sm text-gray-900 font-semibold">Success Rate</div>
-                    <div className="text-xl sm:text-2xl font-bold text-green-600">
-                      {recentCalls.length > 0
-                        ? ((recentCalls.filter(c => c.success).length / recentCalls.length) * 100).toFixed(1)
-                        : 0}%
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs sm:text-sm text-gray-900 font-semibold">Average Response Time</div>
-                    <div className="text-xl sm:text-2xl font-bold text-blue-600">
-                      {recentCalls.length > 0
-                        ? Math.round(
-                            recentCalls.reduce((sum, c) => sum + (c.response_time_ms || 0), 0) /
-                              recentCalls.length
-                          )
-                        : 0}ms
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs sm:text-sm text-gray-900 font-semibold">Avg Cost per Call</div>
-                    <div className="text-xl sm:text-2xl font-bold text-purple-600">
-                      ${summary?.llmCallsToday
-                        ? ((summary?.estimatedCost || 0) / summary.llmCallsToday).toFixed(6)
-                        : '0.000000'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Calls */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-                <h2 className="text-base sm:text-xl font-semibold text-gray-900">Recent Calls</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                        Timestamp
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                        API
-                      </th>
-                      <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                        Time (ms)
-                      </th>
-                      <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {recentCalls.map((call, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50 transition">
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                          <span className="hidden sm:inline">{new Date(call.timestamp).toLocaleString('en-US')}</span>
-                          <span className="sm:hidden">{new Date(call.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 rounded text-xs">
-                            {call.api_name}
-                          </span>
-                        </td>
-                        <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {call.response_time_ms || '-'}
-                        </td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                          <span
-                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${
-                              call.success
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            <span className="hidden sm:inline">{call.success ? '✓ Success' : '✗ Failed'}</span>
-                            <span className="sm:hidden">{call.success ? '✓' : '✗'}</span>
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
+      </div>
+
+      {/* Recent calls table */}
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: 0 }}>Recent Calls</p>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f9fafb' }}>
+              {['Timestamp', 'API', 'Time (ms)', 'Status'].map(h => (
+                <th key={h} style={{ padding: '8px 16px', textAlign: 'left', fontSize: 10, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {recentCalls.map((call, idx) => (
+              <tr key={idx} style={{ borderBottom: idx < recentCalls.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                <td style={{ padding: '10px 16px', fontSize: 12, color: '#6b7280' }}>
+                  {new Date(call.timestamp).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </td>
+                <td style={{ padding: '10px 16px' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', background: '#f3f4f6', borderRadius: 4, color: '#374151' }}>
+                    {call.api_name}
+                  </span>
+                </td>
+                <td style={{ padding: '10px 16px', fontSize: 12, color: '#374151' }}>
+                  {call.response_time_ms ?? '—'}
+                </td>
+                <td style={{ padding: '10px 16px' }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+                    background: call.success ? '#f0fdf4' : '#fef2f2',
+                    color:      call.success ? '#16a34a'  : '#dc2626',
+                  }}>
+                    {call.success ? '✓ Success' : '✗ Failed'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

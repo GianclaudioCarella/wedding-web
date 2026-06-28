@@ -25,13 +25,16 @@ interface Document {
 }
 
 interface DocumentUploadProps {
-  githubToken: string;
   userId: string;
   isDarkMode: boolean;
-  onDocumentsChange?: () => void; // Callback when documents are added/removed
+  onDocumentsChange?: () => void;
 }
 
-export default function DocumentUpload({ githubToken, userId, isDarkMode, onDocumentsChange }: DocumentUploadProps) {
+export default function DocumentUpload({ userId, isDarkMode, onDocumentsChange }: DocumentUploadProps) {
+  const getAuthToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  };
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
@@ -84,7 +87,7 @@ export default function DocumentUpload({ githubToken, userId, isDarkMode, onDocu
       const { DocumentService } = await import('@/lib/services/document.service');
 
       // Initialize services
-      const embeddingService = new EmbeddingService(githubToken);
+      const embeddingService = new EmbeddingService(getAuthToken);
       const documentService = new DocumentService(supabase, embeddingService);
 
       // Process the document
@@ -163,7 +166,7 @@ export default function DocumentUpload({ githubToken, userId, isDarkMode, onDocu
       const { DocumentService } = await import('@/lib/services/document.service');
       const { EmbeddingService } = await import('@/lib/services/embedding.service');
       
-      const embeddingService = new EmbeddingService(githubToken);
+      const embeddingService = new EmbeddingService(getAuthToken);
       const documentService = new DocumentService(supabase, embeddingService);
 
       await documentService.deleteDocument(documentId);

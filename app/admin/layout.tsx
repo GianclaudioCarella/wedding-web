@@ -15,8 +15,8 @@ const nav = [
   { href: '/admin/registry',     label: 'Registry',      icon: IconGift },
   { href: '/admin/content',      label: 'Content',       icon: IconDoc },
   { href: '/admin/planning',     label: 'Planning',      icon: IconClipboard },
-  { href: '/admin/chat',         label: 'Chat',          icon: IconChat },
   { href: '/admin/inspiration',  label: 'Inspiration',   icon: IconInspiration },
+  { href: '/admin/chat',         label: 'Chat',          icon: IconChat },
   { href: '/admin/metrics',      label: 'Metrics',       icon: IconMetrics },
 ];
 
@@ -61,7 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f9fafb' }}>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', background: '#f9fafb' }}>
       {/* Sidebar */}
       <aside style={{
         width: collapsed ? 56 : 220,
@@ -140,7 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main content */}
-      <main style={{ flex: 1, overflow: 'auto' }}>
+      <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         {children}
       </main>
     </div>

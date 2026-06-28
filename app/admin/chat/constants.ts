@@ -3,8 +3,10 @@
 import { Model } from './types';
 
 export const MODELS: Model[] = [
-  { id: 'gpt-4o', name: 'GPT-4o', icon: '🤖', description: 'Most capable model, best quality responses' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', icon: '⚡', description: 'Faster and more efficient, great for most tasks' },
+  { id: 'gpt-4o',                    name: 'GPT-4o',           icon: '🤖', description: 'Most capable OpenAI model',       provider: 'github' },
+  { id: 'gpt-4o-mini',               name: 'GPT-4o Mini',      icon: '⚡', description: 'Faster and more efficient',        provider: 'github' },
+  { id: 'claude-sonnet-4-6',         name: 'Claude Sonnet 4.6', icon: '✦', description: 'Balanced Claude model',            provider: 'anthropic' },
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', icon: '◆', description: 'Fast and lightweight Claude model', provider: 'anthropic' },
 ];
 
 export const TOOLS = [
@@ -99,6 +101,64 @@ export const TOOLS = [
         properties: {},
         required: [],
       },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_transport_overview',
+      description: 'Get all transport options with the guests assigned to each one. Use this to answer questions about transport, buses, shuttles, or how guests are getting to/from the venue.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_accommodation_overview',
+      description: 'Get venue room assignments, guest stay requests by night (Thu/Fri/Sat), and external hotel options. Use this for questions about where guests are sleeping or staying.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_planning_tasks',
+      description: 'Get the wedding planning task list. Use this to check what has been done, what is pending, or the overall planning progress.',
+      parameters: {
+        type: 'object',
+        properties: {
+          filter: {
+            type: 'string',
+            enum: ['all', 'pending', 'done'],
+            description: 'Filter tasks by status. Use "pending" for outstanding tasks, "done" for completed ones, "all" for everything.',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_communications_history',
+      description: 'Get the history of email campaigns sent to guests. Use this to check what communications have been sent, when, and to how many guests.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_rsvp_details',
+      description: 'Get detailed RSVP breakdown per event, including confirmed/declined/pending counts and any dietary requirements or restrictions guests have specified.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_guest_email_status',
+      description: 'Get the email communication status for all guests: who has an email registered, who has already received the save the date, and who still needs to receive it. Use this for any questions about email communications, save the dates, or which guests have been contacted.',
+      parameters: { type: 'object', properties: {}, required: [] },
     },
   },
 ];

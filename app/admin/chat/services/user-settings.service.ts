@@ -1,70 +1,44 @@
-// User settings service for managing API keys
-
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export class UserSettingsService {
   constructor(private supabase: SupabaseClient) {}
 
-  /**
-   * Load user settings (API keys) from database
-   */
-  async loadUserSettings(userId: string) {
+  private async getAuthHeader(): Promise<Record<string, string>> {
+    const { data: { session } } = await this.supabase.auth.getSession();
+    const token = session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async loadUserSettings(_userId: string) {
     try {
-      const { data, error } = await this.supabase
-        .from('user_settings')
-        .select('github_token, tavily_api_key')
-        .eq('user_id', userId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error loading user settings:', error);
-        return null;
-      }
-      
-      return data || null;
+      const headers = await this.getAuthHeader();
+      const response = await fetch('/api/admin/settings', { headers });
+      if (!response.ok) return null;
+      return await response.json();
     } catch (error) {
       console.error('Error loading user settings:', error);
       return null;
     }
   }
 
-  /**
-   * Save or update user API keys
-   */
-  async saveUserSettings(userId: string, githubToken?: string, tavilyApiKey?: string) {
+  async saveUserSettings(_userId: string, githubToken?: string, tavilyApiKey?: string, anthropicApiKey?: string) {
     try {
-      // Check if user settings exist
-      const { data: existing } = await this.supabase
-        .from('user_settings')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-      
-      if (existing) {
-        // Update existing settings
-        const updateData: any = {};
-        if (githubToken) updateData.github_token = githubToken;
-        if (tavilyApiKey) updateData.tavily_api_key = tavilyApiKey;
-        
-        const { error } = await this.supabase
-          .from('user_settings')
-          .update(updateData)
-          .eq('user_id', userId);
-        
-        if (error) throw error;
-      } else {
-        // Insert new settings
-        const { error } = await this.supabase
-          .from('user_settings')
-          .insert({
-            user_id: userId,
-            github_token: githubToken || '',
-            tavily_api_key: tavilyApiKey || '',
-          });
-        
-        if (error) throw error;
+      const headers = await this.getAuthHeader();
+      const body: Record<string, string | undefined> = {};
+      if (githubToken     !== undefined) body.github_token      = githubToken;
+      if (tavilyApiKey    !== undefined) body.tavily_api_key    = tavilyApiKey;
+      if (anthropicApiKey !== undefined) body.anthropic_api_key = anthropicApiKey;
+
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to save settings');
       }
-      
       return { success: true };
     } catch (error) {
       console.error('Error saving user settings:', error);

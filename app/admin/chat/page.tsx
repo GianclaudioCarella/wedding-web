@@ -14,13 +14,13 @@ import { GuestTools } from './tools/guest.tools';
 import { EventTools } from './tools/event.tools';
 import { DocumentTools } from './tools/document.tools';
 import { MemoryTools } from './tools/memory.tools';
+import { WeddingTools } from './tools/wedding.tools';
 import { LLMService } from './services/llm.service';
 
 export default function AdminChat() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -29,11 +29,12 @@ export default function AdminChat() {
   const [isSending, setIsSending] = useState(false);
   const [githubToken, setGithubToken] = useState('');
   const [tavilyApiKey, setTavilyApiKey] = useState('');
+  const [anthropicKey, setAnthropicKey] = useState('');
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [tavilyKeyInput, setTavilyKeyInput] = useState('');
+  const [anthropicKeyInput, setAnthropicKeyInput] = useState('');
   const [selectedModel, setSelectedModel] = useState('gpt-4o');
-  const [showSettings, setShowSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState('');
   const [systemMessageEdit, setSystemMessageEdit] = useState('');
   const [isEditingSettings, setIsEditingSettings] = useState(false);
@@ -43,77 +44,40 @@ export default function AdminChat() {
   const [memorySaveLoading, setMemorySaveLoading] = useState(false);
   const [currentConversationHasMemory, setCurrentConversationHasMemory] = useState(false);
   const [memorySaveResult, setMemorySaveResult] = useState<MemorySaveResult | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [hoveredConvId, setHoveredConvId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize services
   const userSettingsService = new UserSettingsService(supabase);
   const chatService = new ChatSupabaseService(supabase);
   const guestTools = new GuestTools(supabase);
   const eventTools = new EventTools(supabase);
   const memoryTools = new MemoryTools(supabase);
+  const weddingTools = new WeddingTools(supabase);
   const [documentTools, setDocumentTools] = useState<DocumentTools | null>(null);
 
-  // Initialize document tools when github token is available
   useEffect(() => {
-    if (githubToken) {
-      setDocumentTools(new DocumentTools(supabase, githubToken));
-    }
-  }, [githubToken]);
-
-  // Helper function to format wait time
-  const formatWaitTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}`;
-    }
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
-  };
-
-  useEffect(() => {
-    checkAuth();
-    const savedTheme = localStorage.getItem('chatTheme');
-    if (savedTheme) {
-      setIsDarkMode(savedTheme === 'dark');
-    }
+    const getAuthToken = async () => { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token ?? null; };
+    setDocumentTools(new DocumentTools(supabase, getAuthToken));
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => { checkAuth(); }, []);
+  useEffect(() => { scrollToBottom(); }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   };
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      router.push('/admin/login');
-      return;
-    }
-
+    if (!user) { router.push('/admin/login'); return; }
     setIsAuthenticated(true);
     setUserId(user.id);
-    
-    // Load API keys from database
     await loadUserSettings(user.id);
-    
-    // Load system message settings
     await loadSystemMessage();
-    
-    // Load conversations
     await loadConversations(user.id);
-    
     setIsLoading(false);
-  };
-
-  const toggleTheme = () => {
-    const newTheme = !isDarkMode;
-    setIsDarkMode(newTheme);
-    localStorage.setItem('chatTheme', newTheme ? 'dark' : 'light');
   };
 
   const loadSystemMessage = async () => {
@@ -124,16 +88,11 @@ export default function AdminChat() {
 
   const loadUserSettings = async (uid: string) => {
     const data = await userSettingsService.loadUserSettings(uid);
-    
     if (data) {
-      if (data.github_token) {
-        setGithubToken(data.github_token);
-      } else {
-        setIsTokenModalOpen(true);
-      }
-      if (data.tavily_api_key) {
-        setTavilyApiKey(data.tavily_api_key);
-      }
+      if (data.github_token) setGithubToken(data.github_token);
+      else setIsTokenModalOpen(true);
+      if (data.tavily_api_key)    setTavilyApiKey(data.tavily_api_key);
+      if (data.anthropic_api_key) setAnthropicKey(data.anthropic_api_key);
     } else {
       setIsTokenModalOpen(true);
     }
@@ -141,16 +100,12 @@ export default function AdminChat() {
 
   const saveSystemMessage = async () => {
     if (!userId) return;
-
     const result = await chatService.saveSystemMessage(userId, systemMessageEdit);
-    
     if (result.success) {
       setSystemMessage(systemMessageEdit);
       setIsEditingSettings(false);
-      alert('Settings saved successfully!');
     } else {
       console.error('Error saving system message:', result.error);
-      alert('Error saving settings');
     }
   };
 
@@ -160,22 +115,13 @@ export default function AdminChat() {
   };
 
   const loadConversation = async (conversationId: string) => {
-    // Before loading new conversation, try to summarize the current one
     if (currentConversationId && currentConversationId !== conversationId && githubToken && userId) {
-      console.log(`[Memory] Switching from conversation ${currentConversationId} to ${conversationId}`);
       try {
         const { ConversationMemoryService } = await import('@/lib/services/conversation-memory.service');
         const memoryService = new ConversationMemoryService(supabase, githubToken);
-        
-        // Check if current conversation should be summarized
         const shouldSummarize = await memoryService.shouldSummarizeConversation(currentConversationId);
-        console.log(`[Memory] Should summarize ${currentConversationId}:`, shouldSummarize);
-        
         if (shouldSummarize) {
-          console.log(`[Memory] Generating summary for conversation ${currentConversationId}...`);
-          // Generate summary in background (don't wait for it)
           memoryService.generateConversationSummary(currentConversationId, userId)
-            .then(summary => console.log('[Memory] Summary generated:', summary))
             .catch(err => console.error('[Memory] Failed to generate summary:', err));
         }
       } catch (error) {
@@ -189,48 +135,32 @@ export default function AdminChat() {
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('Error loading conversation:', error);
-      return;
-    }
+    if (error) { console.error('Error loading conversation:', error); return; }
 
-    const loadedMessages = data?.map(msg => ({
+    setMessages((data || []).map(msg => ({
       role: msg.role as 'user' | 'assistant' | 'system',
       content: msg.content,
       timestamp: new Date(msg.created_at),
-    })) || [];
-
-    setMessages(loadedMessages);
+    })));
     setCurrentConversationId(conversationId);
 
-    // Check if this conversation already has a memory
     const { data: existingMemory } = await supabase
       .from('conversation_summaries')
       .select('id')
       .eq('conversation_id', conversationId)
-      .single();
-    
+      .maybeSingle();
     setCurrentConversationHasMemory(!!existingMemory);
   };
 
   const createNewConversation = async (firstMessage: string) => {
     if (!userId) return null;
-
-    // Before creating new conversation, try to summarize the current one
     if (currentConversationId && githubToken) {
-      console.log(`[Memory] Creating new conversation, checking if ${currentConversationId} should be summarized`);
       try {
         const { ConversationMemoryService } = await import('@/lib/services/conversation-memory.service');
         const memoryService = new ConversationMemoryService(supabase, githubToken);
-        
         const shouldSummarize = await memoryService.shouldSummarizeConversation(currentConversationId);
-        console.log(`[Memory] Should summarize ${currentConversationId}:`, shouldSummarize);
-        
         if (shouldSummarize) {
-          console.log(`[Memory] Generating summary for conversation ${currentConversationId}...`);
-          // Generate summary in background
           memoryService.generateConversationSummary(currentConversationId, userId)
-            .then(summary => console.log('[Memory] Summary generated:', summary))
             .catch(err => console.error('[Memory] Failed to generate summary:', err));
         }
       } catch (error) {
@@ -239,21 +169,13 @@ export default function AdminChat() {
     }
 
     const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
-    
     const { data, error } = await supabase
       .from('chat_conversations')
-      .insert({
-        user_id: userId,
-        title: title,
-      })
+      .insert({ user_id: userId, title })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating conversation:', error);
-      return null;
-    }
-
+    if (error) { console.error('Error creating conversation:', error); return null; }
     setCurrentConversationId(data.id);
     if (userId) await loadConversations(userId);
     return data.id;
@@ -261,68 +183,38 @@ export default function AdminChat() {
 
   const handleGenerateSummary = async () => {
     if (!currentConversationId || !userId || !githubToken) {
-      setMemorySaveResult({
-        success: false,
-        message: 'No active conversation to save'
-      });
+      setMemorySaveResult({ success: false, message: 'No active conversation to save' });
       setIsMemorySaveModalOpen(true);
       return;
     }
-
-    // Check if conversation has enough messages (at least 2)
     if (messages.length < 2) {
-      setMemorySaveResult({
-        success: false,
-        message: 'Add at least 2 messages before saving to memory'
-      });
+      setMemorySaveResult({ success: false, message: 'Add at least 2 messages before saving to memory' });
       setIsMemorySaveModalOpen(true);
       return;
     }
-
-    // Open modal and show loading
     setIsMemorySaveModalOpen(true);
     setMemorySaveLoading(true);
     setMemorySaveResult(null);
-
     try {
       const { ConversationMemoryService } = await import('@/lib/services/conversation-memory.service');
       const memoryService = new ConversationMemoryService(supabase, githubToken);
-      
-      // Check if summary already exists
       const { data: existingSummary } = await supabase
         .from('conversation_summaries')
         .select('id')
         .eq('conversation_id', currentConversationId)
-        .single();
-
+        .maybeSingle();
       if (existingSummary) {
-        setMemorySaveResult({
-          success: false,
-          message: 'This conversation is already saved in memory. View it in the Memories section.'
-        });
+        setMemorySaveResult({ success: false, message: 'This conversation is already saved in memory.' });
         setMemorySaveLoading(false);
         return;
       }
-
-      // Generate summary
       const summary = await memoryService.generateConversationSummary(currentConversationId, userId);
-      
       if (summary) {
-        setMemorySaveResult({
-          success: true,
-          message: 'Successfully saved to memory!',
-          summary: summary.summary,
-          importance: summary.importance_score,
-          topics: summary.key_topics
-        });
+        setMemorySaveResult({ success: true, message: 'Successfully saved to memory!', summary: summary.summary, importance: summary.importance_score, topics: summary.key_topics });
         setCurrentConversationHasMemory(true);
       }
     } catch (error) {
-      console.error('Error saving to memory:', error);
-      setMemorySaveResult({
-        success: false,
-        message: 'Failed to save: ' + (error as Error).message
-      });
+      setMemorySaveResult({ success: false, message: 'Failed to save: ' + (error as Error).message });
     } finally {
       setMemorySaveLoading(false);
     }
@@ -334,44 +226,29 @@ export default function AdminChat() {
 
   const handleSaveToken = async () => {
     if (!userId) return;
-    
-    const newGithubToken = tokenInput.trim() || undefined;
-    const newTavilyKey = tavilyKeyInput.trim() || undefined;
-    
-    if (!newGithubToken && !newTavilyKey) return;
-    
-    const result = await userSettingsService.saveUserSettings(userId, newGithubToken, newTavilyKey);
-    
+    const newGithubToken    = tokenInput.trim()      || undefined;
+    const newTavilyKey      = tavilyKeyInput.trim()  || undefined;
+    const newAnthropicKey   = anthropicKeyInput.trim() || undefined;
+    if (!newGithubToken && !newTavilyKey && !newAnthropicKey) return;
+    const result = await userSettingsService.saveUserSettings(userId, newGithubToken, newTavilyKey, newAnthropicKey);
     if (result.success) {
-      if (tokenInput.trim()) {
-        setGithubToken(tokenInput.trim());
-        setTokenInput('');
-      }
-      if (tavilyKeyInput.trim()) {
-        setTavilyApiKey(tavilyKeyInput.trim());
-        setTavilyKeyInput('');
-      }
+      if (tokenInput.trim())       { setGithubToken(tokenInput.trim());         setTokenInput(''); }
+      if (tavilyKeyInput.trim())   { setTavilyApiKey(tavilyKeyInput.trim());    setTavilyKeyInput(''); }
+      if (anthropicKeyInput.trim()) { setAnthropicKey(anthropicKeyInput.trim()); setAnthropicKeyInput(''); }
       setIsTokenModalOpen(false);
     } else {
       console.error('Error saving API keys:', result.error);
-      alert('Erro ao salvar as chaves. Tente novamente.');
     }
   };
 
-  // Tool execution
   const executeTool = async (toolName: string, args: any) => {
     const searchWebTool = new SearchWebTool(supabase, tavilyApiKey);
-    
     switch (toolName) {
       case 'search_memories':
-        if (!userId) {
-          return 'Cannot search memories: user not authenticated.';
-        }
+        if (!userId) return 'Cannot search memories: user not authenticated.';
         return await memoryTools.searchMemories(args.query, userId);
       case 'search_documents':
-        if (!documentTools) {
-          return 'Document search is not available. Please ensure your GitHub token is configured.';
-        }
+        if (!documentTools) return 'Document search is not available. Please ensure your GitHub token is configured.';
         return await documentTools.searchDocuments(args.query);
       case 'search_web':
         return await searchWebTool.execute(args.query);
@@ -381,715 +258,466 @@ export default function AdminChat() {
         return await guestTools.listGuests(args.filter);
       case 'list_events':
         return await eventTools.listEvents();
+      case 'get_transport_overview':
+        return await weddingTools.getTransportOverview();
+      case 'get_accommodation_overview':
+        return await weddingTools.getAccommodationOverview();
+      case 'get_planning_tasks':
+        return await weddingTools.getPlanningTasks(args.filter || 'all');
+      case 'get_communications_history':
+        return await weddingTools.getCommunicationsHistory();
+      case 'get_rsvp_details':
+        return await weddingTools.getRsvpDetails();
+      case 'get_guest_email_status':
+        return await weddingTools.getGuestEmailStatus();
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isSending || !githubToken) return;
+    const isAnthropicModel = selectedModel.startsWith('claude-');
+    if (!inputMessage.trim() || isSending) return;
+    if (isAnthropicModel && !anthropicKey) return;
+    if (!isAnthropicModel && !githubToken) return;
 
-    const userMessage: Message = {
-      role: 'user',
-      content: inputMessage,
-      timestamp: new Date(),
-    };
-
+    const userMessage: Message = { role: 'user', content: inputMessage, timestamp: new Date() };
     const messageContent = inputMessage;
     setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsSending(true);
 
     try {
-      // Create new conversation if needed
       let convId = currentConversationId;
       if (!convId) {
         convId = await createNewConversation(messageContent);
         if (!convId) throw new Error('Failed to create conversation');
       }
-
-      // Save user message
       await saveMessage(convId, 'user', messageContent);
 
-      // Step 1: Get conversation memories from past chats
       let conversationMemories = '';
       if (userId) {
         try {
           const { ConversationMemoryService } = await import('@/lib/services/conversation-memory.service');
           const memoryService = new ConversationMemoryService(supabase, githubToken);
-          
-          // Get recent summaries (exclude current conversation)
           const summaries = await memoryService.getRecentSummaries(userId, 3, 4);
-          if (summaries.length > 0) {
-            conversationMemories = memoryService.formatMemoryContext(summaries);
-          }
-        } catch (error) {
-          console.log('Failed to load conversation memories:', error);
-        }
+          if (summaries.length > 0) conversationMemories = memoryService.formatMemoryContext(summaries);
+        } catch {}
       }
 
-      // Step 2: Search for relevant documents using RAG
       let relevantContext = '';
       try {
-        const { EmbeddingService } = await import('@/lib/services/embedding.service');
-        const { VectorSearchService } = await import('@/lib/services/vector-search.service');
-        
-        const embeddingService = new EmbeddingService(githubToken);
-        const vectorSearchService = new VectorSearchService(supabase, embeddingService);
-        
-        // Get relevant context from documents
-        relevantContext = await vectorSearchService.getRelevantContext(messageContent, {
-          limit: 3,
-          similarityThreshold: 0.6,
-        });
-      } catch (error) {
-        console.log('No documents available or search failed:', error);
-        // Continue without document context
-      }
+        const { data: docCheck } = await supabase
+          .from('documents').select('id').eq('status', 'completed').limit(1);
+        if (docCheck && docCheck.length > 0) {
+          const { EmbeddingService } = await import('@/lib/services/embedding.service');
+          const { VectorSearchService } = await import('@/lib/services/vector-search.service');
+          const getAuthToken = async () => { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token ?? null; };
+          const embeddingService = new EmbeddingService(getAuthToken);
+          const vectorSearchService = new VectorSearchService(supabase, embeddingService);
+          relevantContext = await vectorSearchService.getRelevantContext(messageContent, { limit: 3, similarityThreshold: 0.6 });
+        }
+      } catch {}
 
-      // Step 3: Build conversation messages with all context
-      let systemMessageWithContext = systemMessage || 'You are a helpful AI assistant for wedding planning. You have access to multiple tools:\n\n- **search_memories**: Search saved conversation memories from previous discussions\n- **search_documents**: Search uploaded wedding documents (PDFs, contracts, etc.)\n- **search_web**: Search the internet for current information\n- **get_guest_statistics**: Get statistics about wedding guests\n- **list_guests**: List guests filtered by status\n- **list_events**: List all wedding events\n\nIMPORTANT: When asked about past discussions or decisions, use search_memories. When asked about costs, budgets, or vendor details, use search_documents FIRST. Use database tools for guest/event info, and search_web for general information.';
-      
-      // Prepend conversation memories if available
-      if (conversationMemories) {
-        systemMessageWithContext = conversationMemories + '\n\n' + systemMessageWithContext;
-      }
-      
-      // Append document context if available
-      if (relevantContext && !relevantContext.includes('No relevant documents found')) {
-        systemMessageWithContext += '\n\n' + relevantContext;
-      }
+      const defaultSystemMessage = [
+        'You are a helpful AI assistant for wedding planning. You have access to the following tools:',
+        '',
+        '**Guest & RSVP:**',
+        '- **get_guest_statistics**: Overall guest counts and RSVP summary',
+        '- **list_guests**: List guests filtered by status',
+        '- **get_rsvp_details**: Detailed RSVP per event including dietary requirements',
+        '- **get_guest_email_status**: Per-guest email status — who has an email, who received the save the date, who has not yet',
+        '',
+        '**Events & Logistics:**',
+        '- **list_events**: All wedding events with details',
+        '- **get_transport_overview**: Transport options and which guests are assigned to each',
+        '- **get_accommodation_overview**: Venue room assignments, stay requests by night, and external hotels',
+        '',
+        '**Planning & Communications:**',
+        '- **get_planning_tasks**: Wedding planning task list, filterable by status',
+        '- **get_communications_history**: History of email campaigns sent to guests',
+        '',
+        '**Knowledge & Search:**',
+        '- **search_memories**: Search saved conversation memories from previous discussions',
+        '- **search_documents**: Search uploaded wedding documents (PDFs, contracts, etc.)',
+        '- **search_web**: Search the internet for current information',
+        '',
+        'IMPORTANT: Always use the appropriate tool to fetch live data before answering. When asked about past discussions or decisions, use search_memories. When asked about costs or vendor details, use search_documents FIRST.',
+      ].join('\n');
+      let systemMessageWithContext = systemMessage || defaultSystemMessage;
+      if (conversationMemories) systemMessageWithContext = conversationMemories + '\n\n' + systemMessageWithContext;
+      if (relevantContext && !relevantContext.includes('No relevant documents found')) systemMessageWithContext += '\n\n' + relevantContext;
 
-      const conversationMessages: Array<{
-        role: string;
-        content: string;
-        tool_call_id?: string;
-        tool_calls?: any;
-      }> = [
-        {
-          role: 'system',
-          content: systemMessageWithContext,
-        },
+      const conversationMessages: Array<{ role: string; content: string; tool_call_id?: string; tool_calls?: any }> = [
+        { role: 'system', content: systemMessageWithContext },
         ...messages.map(m => ({ role: m.role, content: m.content })),
         { role: 'user', content: inputMessage },
       ];
 
-      console.log('🔑 GitHub Token (first 10 chars):', githubToken?.substring(0, 10));
-      console.log('🤖 Selected Model:', selectedModel);
-      console.log('📨 Sending request to GitHub Models API...');
-      
-      // Use LLM service with automatic metrics tracking
-      const llmService = new LLMService(githubToken);
-      
-      let data = await llmService.chatCompletion({
-        messages: conversationMessages,
-        model: selectedModel,
-        temperature: 0.7,
-        max_tokens: 2000,
-        tools: TOOLS,
-        tool_choice: 'auto',
-      });
+      const llmService = new LLMService(
+        githubToken,
+        anthropicKey,
+        async () => { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token ?? null; },
+      );
+      let data = await llmService.chatCompletion({ messages: conversationMessages, model: selectedModel, temperature: 0.7, max_tokens: 2000, tools: TOOLS, tool_choice: 'auto' });
       let assistantMessage = data.choices[0].message;
 
-      // Handle tool calls
       while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
         conversationMessages.push(assistantMessage);
-
-        // Execute all tool calls
         for (const toolCall of assistantMessage.tool_calls) {
-          const toolName = toolCall.function.name;
-          const toolArgs = JSON.parse(toolCall.function.arguments || '{}');
-          
           try {
-            const toolResult = await executeTool(toolName, toolArgs);
-            conversationMessages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: JSON.stringify(toolResult),
-            });
+            const toolResult = await executeTool(toolCall.function.name, JSON.parse(toolCall.function.arguments || '{}'));
+            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(toolResult) });
           } catch (error: any) {
-            conversationMessages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: JSON.stringify({ error: error.message }),
-            });
+            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: error.message }) });
           }
         }
-
-        // Get final response from model
-        console.log('🔄 Sending follow-up request after tool execution...');
-        data = await llmService.chatCompletion({
-          messages: conversationMessages,
-          model: selectedModel,
-          temperature: 0.7,
-          max_tokens: 2000,
-          tools: TOOLS,
-          tool_choice: 'auto',
-        });
+        data = await llmService.chatCompletion({ messages: conversationMessages, model: selectedModel, temperature: 0.7, max_tokens: 2000, tools: TOOLS, tool_choice: 'auto' });
         assistantMessage = data.choices[0].message;
       }
 
-      const finalMessage: Message = {
-        role: 'assistant',
-        content: assistantMessage.content,
-        timestamp: new Date(),
-      };
-
+      const finalMessage: Message = { role: 'assistant', content: assistantMessage.content, timestamp: new Date() };
       setMessages(prev => [...prev, finalMessage]);
-      
-      // Save assistant message
-      if (convId) {
-        await saveMessage(convId, 'assistant', assistantMessage.content);
-      }
+      if (convId) await saveMessage(convId, 'assistant', assistantMessage.content);
     } catch (error: any) {
-      console.error('❌ Error sending message:', error);
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: error.message,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, { role: 'assistant', content: error.message, timestamp: new Date() }]);
     } finally {
       setIsSending(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
   };
 
-  const clearChat = () => {
-    setMessages([]);
-    setCurrentConversationId(null);
-  };
+  const clearChat = () => { setMessages([]); setCurrentConversationId(null); };
 
   const deleteConversation = async (conversationId: string) => {
-    const { error } = await supabase
-      .from('chat_conversations')
-      .delete()
-      .eq('id', conversationId);
-
-    if (error) {
-      console.error('Error deleting conversation:', error);
-      return;
-    }
-
-    if (currentConversationId === conversationId) {
-      clearChat();
-    }
-
+    const { error } = await supabase.from('chat_conversations').delete().eq('id', conversationId);
+    if (error) { console.error('Error deleting conversation:', error); return; }
+    if (currentConversationId === conversationId) clearChat();
     if (userId) await loadConversations(userId);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/admin/login');
   };
 
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <div className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Loading...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
+        <p style={{ color: '#9ca3af', fontSize: 14 }}>Loading…</p>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
+
+  const currentModel = MODELS.find((m: Model) => m.id === selectedModel);
 
   return (
-    <div className={`h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-      {/* Mobile sidebar overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+    <div style={{ height: '100%', display: 'flex', overflow: 'hidden' }}>
 
-      {/* Sidebar + Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div className={`fixed md:relative inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col border-r border-gray-800 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-          <div className="p-4 border-b border-gray-800 space-y-2">
-            {/* Close button for mobile */}
-            <button
-              onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden w-full flex items-center justify-end px-2 py-2 text-gray-400 hover:text-white transition-colors"
+      {/* ── Left panel: conversations + model ── */}
+      <div style={{ width: 240, flexShrink: 0, background: '#fff', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column' }}>
+
+        {/* New chat */}
+        <div style={{ padding: '12px', borderBottom: '1px solid #e5e7eb' }}>
+          <button
+            onClick={clearChat}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#374151' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M7 1v12M1 7h12"/></svg>
+            New Chat
+          </button>
+        </div>
+
+        {/* Conversations list */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af', padding: '4px 8px 6px', margin: 0 }}>Conversations</p>
+          {conversations.length === 0 ? (
+            <p style={{ fontSize: 12, color: '#9ca3af', padding: '4px 8px' }}>No conversations yet</p>
+          ) : conversations.map(conv => (
+            <div
+              key={conv.id}
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setHoveredConvId(conv.id)}
+              onMouseLeave={() => { setHoveredConvId(null); setConfirmDeleteId(null); }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <button
-              onClick={toggleTheme}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500/10 transition-colors text-left"
-              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            >
-              {isDarkMode ? (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                  <span>Light</span>
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                  <span>Dark</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => router.push('/admin')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="font-medium">Back to Admin</span>
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4">
-            <button
-              onClick={clearChat}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-700 hover:bg-gray-800 transition-colors text-left mb-4"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>New Chat</span>
-            </button>
-            
-            <div className="space-y-2 mb-6">
-              <p className="text-xs uppercase text-gray-400 px-2 mb-2">Conversations</p>
-              {conversations.length === 0 ? (
-                <p className="text-xs text-gray-500 px-2">No conversations yet</p>
-              ) : (
-                conversations.map((conv) => (
-                  <div key={conv.id} className="group relative">
-                    <button
-                      onClick={() => loadConversation(conv.id)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
-                        currentConversationId === conv.id
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-300 hover:bg-gray-800'
-                      }`}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                      </svg>
-                      <span className="truncate flex-1">{conv.title}</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteConversation(conv.id);
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-600 rounded transition-all"
-                      title="Delete conversation"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <p className="text-xs uppercase text-gray-400 px-2 mb-2">Model</p>
-              {MODELS.map((model) => (
+              <button
+                onClick={() => loadConversation(conv.id)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 28px 7px 8px', borderRadius: 5, border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12,
+                  background: currentConversationId === conv.id ? '#111827' : hoveredConvId === conv.id ? '#f3f4f6' : 'transparent',
+                  color: currentConversationId === conv.id ? '#fff' : '#4b5563',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M14 10.5a1 1 0 0 1-1 1H5l-3 3V2.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8z"/></svg>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{conv.title}</span>
+              </button>
+              {confirmDeleteId === conv.id ? (
+                <div style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <button
+                    onClick={e => { e.stopPropagation(); setConfirmDeleteId(null); deleteConversation(conv.id); }}
+                    title="Confirm delete"
+                    style={{ border: 'none', background: '#ef4444', cursor: 'pointer', padding: '2px 6px', borderRadius: 3, color: '#fff', fontSize: 10, fontWeight: 600 }}
+                  >Delete</button>
+                  <button
+                    onClick={e => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                    title="Cancel"
+                    style={{ border: 'none', background: '#e5e7eb', cursor: 'pointer', padding: '2px 6px', borderRadius: 3, color: '#374151', fontSize: 10, fontWeight: 600 }}
+                  >Cancel</button>
+                </div>
+              ) : hoveredConvId === conv.id && (
                 <button
-                  key={model.id}
-                  onClick={() => setSelectedModel(model.id)}
-                  className={`w-full flex items-start gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selectedModel === model.id
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-800'
-                  }`}
+                  onClick={e => { e.stopPropagation(); setConfirmDeleteId(conv.id); }}
+                  title="Delete conversation"
+                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', padding: '3px', borderRadius: 3, color: '#9ca3af', display: 'flex', alignItems: 'center' }}
+                  onMouseEnter={e => { (e.currentTarget.style.color = '#ef4444'); (e.currentTarget.style.background = '#fee2e2'); }}
+                  onMouseLeave={e => { (e.currentTarget.style.color = '#9ca3af'); (e.currentTarget.style.background = 'none'); }}
                 >
-                  <span className="text-lg mt-0.5">{model.icon}</span>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium">{model.name}</div>
-                    {model.description && (
-                      <div className="text-xs text-gray-400 mt-0.5">{model.description}</div>
-                    )}
-                  </div>
-                  {selectedModel === model.id && (
-                    <svg className="h-4 w-4 text-blue-400 mt-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
                 </button>
-              ))}
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Model selector */}
+        <div style={{ padding: '8px', borderTop: '1px solid #e5e7eb' }}>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af', padding: '4px 8px 6px', margin: 0 }}>Model</p>
+          {MODELS.map((model: Model) => (
+            <button
+              key={model.id}
+              onClick={() => setSelectedModel(model.id)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 5, border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12,
+                background: selectedModel === model.id ? '#111827' : 'transparent',
+                color: selectedModel === model.id ? '#fff' : '#4b5563',
+              }}
+              onMouseEnter={e => { if (selectedModel !== model.id) (e.currentTarget.style.background = '#f3f4f6'); }}
+              onMouseLeave={e => { if (selectedModel !== model.id) (e.currentTarget.style.background = 'transparent'); }}
+            >
+              <span style={{ fontSize: 14 }}>{model.icon}</span>
+              <span style={{ fontWeight: 500 }}>{model.name}</span>
+              {selectedModel === model.id && <span style={{ marginLeft: 'auto', fontSize: 10 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Bottom action buttons */}
+        <div style={{ padding: '8px', borderTop: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[
+            { label: 'API Keys', onClick: () => setIsTokenModalOpen(true) },
+            { label: 'Memory Settings', onClick: () => { setSystemMessageEdit(systemMessage); setIsEditingSettings(true); } },
+            { label: 'Documents', onClick: () => setIsDocumentModalOpen(true) },
+            { label: 'Memories', onClick: () => setIsMemoryModalOpen(true) },
+          ].map(({ label, onClick }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              style={{ width: '100%', padding: '7px 8px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12, color: '#6b7280', borderRadius: 5 }}
+              onMouseEnter={e => { (e.currentTarget.style.background = '#f3f4f6'); (e.currentTarget.style.color = '#111827'); }}
+              onMouseLeave={e => { (e.currentTarget.style.background = 'none'); (e.currentTarget.style.color = '#6b7280'); }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Right: chat area ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f9fafb', minWidth: 0 }}>
+
+        {/* Chat header */}
+        <div style={{ padding: '12px 20px', background: '#fff', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: 14 }}>{currentModel?.icon || '🤖'}</span>
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: 0 }}>{currentModel?.name || 'AI Assistant'}</p>
+              {currentModel?.description && <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>{currentModel.description}</p>}
             </div>
           </div>
-          
-          <div className="p-4 border-t border-gray-800 space-y-2">
+          {currentConversationId && (
             <button
-              onClick={() => setIsTokenModalOpen(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-              <span className="text-sm">Token</span>
-            </button>
-            <button
-              onClick={() => {
-                setSystemMessageEdit(systemMessage);
-                setIsEditingSettings(true);
+              onClick={handleGenerateSummary}
+              title={currentConversationHasMemory ? 'Already saved to memory' : 'Save to long-term memory'}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 500, color: '#fff',
+                background: currentConversationHasMemory ? '#16a34a' : '#7c3aed',
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors text-left"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="text-sm">Memory Settings</span>
+              {currentConversationHasMemory ? '★' : '☆'} Remember It
             </button>
-            <button
-              onClick={() => setIsDocumentModalOpen(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="text-sm">Documents</span>
-            </button>
-            <button
-              onClick={() => setIsMemoryModalOpen(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              <span className="text-sm">Memories</span>
-            </button>
-            <button
-              onClick={() => router.push('/admin/metrics')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm">Metrics</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-900 transition-colors text-left"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span className="text-sm">Logout</span>
-            </button>
+          )}
+        </div>
+
+        {/* Messages */}
+        <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '24px 20px', minHeight: 0 }}>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+
+            {messages.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: '#111827', margin: '0 0 6px' }}>How can I help you today?</h3>
+                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 24px' }}>Ask me anything about wedding planning, guests, or events.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 560, margin: '0 auto' }}>
+                  {[
+                    { title: 'Check RSVP Status', desc: 'View confirmation statistics', msg: "How many guests have confirmed their attendance?" },
+                    { title: 'Draft Follow-up Email', desc: 'Compose reminder message', msg: "Help me draft an email to send to guests who haven't responded" },
+                    { title: 'Get Decoration Ideas', desc: 'Explore creative options', msg: "What are some creative ideas for wedding decorations?" },
+                    { title: 'Plan Seating', desc: 'Organize guest placement', msg: "Help me organize the seating arrangement" },
+                  ].map(({ title, desc, msg }) => (
+                    <button
+                      key={title}
+                      onClick={() => setInputMessage(msg)}
+                      style={{ padding: '14px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', cursor: 'pointer', textAlign: 'left' }}
+                      onMouseEnter={e => { (e.currentTarget.style.borderColor = '#6b7280'); }}
+                      onMouseLeave={e => { (e.currentTarget.style.borderColor = '#e5e7eb'); }}
+                    >
+                      <p style={{ fontSize: 13, fontWeight: 500, color: '#111827', margin: '0 0 3px' }}>{title}</p>
+                      <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>{desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {messages.map((message, index) => (
+                <div key={index} style={{ display: 'flex', gap: 12, flexDirection: message.role === 'user' ? 'row-reverse' : 'row' }}>
+                  {message.role === 'assistant' && (
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 12 }}>{currentModel?.icon || '🤖'}</span>
+                    </div>
+                  )}
+                  {message.role === 'user' && (
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      padding: '10px 14px', borderRadius: 12, fontSize: 13, lineHeight: 1.65,
+                      ...(message.role === 'user'
+                        ? { background: '#111827', color: '#fff', marginLeft: 48 }
+                        : { background: '#fff', border: '1px solid #e5e7eb', color: '#111827', marginRight: 48 }
+                      ),
+                    }}>
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-900 prose-li:text-gray-900 prose-strong:text-gray-900 prose-a:text-blue-600">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" /> }}>
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{message.content}</p>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0', paddingLeft: 4 }}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {isSending && (
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: 12 }}>{currentModel?.icon || '🤖'}</span>
+                  </div>
+                  <div style={{ padding: '10px 14px', borderRadius: 12, background: '#fff', border: '1px solid #e5e7eb', marginRight: 48 }}>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {[0, 150, 300].map(delay => (
+                        <div key={delay} style={{ width: 6, height: 6, borderRadius: '50%', background: '#d1d5db', animation: 'bounce 1s infinite', animationDelay: `${delay}ms` }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className={`border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <div className="px-3 sm:px-6 py-3 sm:py-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  {/* Mobile menu button */}
-                  <button
-                    onClick={() => setIsSidebarOpen(true)}
-                    className={`md:hidden p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                  </button>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-base sm:text-xl">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
-                  </div>
-                  <div>
-                    <h2 className={`text-sm sm:text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-                      {MODELS.find((m: Model) => m.id === selectedModel)?.name || 'AI Assistant'}
-                    </h2>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} hidden sm:block`}>Online</p>
-                  </div>
-                </div>
-                {currentConversationId && (
-                  <button
-                    onClick={handleGenerateSummary}
-                    className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-white text-xs sm:text-sm rounded-lg transition-colors flex-shrink-0 ${
-                      currentConversationHasMemory
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-purple-600 hover:bg-purple-700'
-                    }`}
-                    title={currentConversationHasMemory
-                      ? 'This conversation is already saved in memory'
-                      : 'Save this conversation to long-term memory'
-                    }
-                  >
-                    {currentConversationHasMemory ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                    )}
-                    <span className="hidden sm:inline">Remember It</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Messages Container */}
-          <div className={`flex-1 overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-              {messages.length === 0 && (
-                <div className="text-center py-8 sm:py-16">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 sm:h-10 sm:w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                  </div>
-                  <h3 className={`text-xl sm:text-2xl font-semibold mb-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>How can I help you today?</h3>
-                  <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Ask me anything about wedding planning, guest management, or events.</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-6 sm:mt-8 max-w-2xl mx-auto">
-                    <button
-                      onClick={() => setInputMessage("How many guests have confirmed their attendance?")}
-                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
-                    >
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Check RSVP Status</p>
-                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>View confirmation statistics</p>
-                    </button>
-                    <button
-                      onClick={() => setInputMessage("Help me draft an email to send to guests who haven't responded")}
-                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
-                    >
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Draft Follow-up Email</p>
-                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Compose reminder message</p>
-                    </button>
-                    <button
-                      onClick={() => setInputMessage("What are some creative ideas for wedding decorations?")}
-                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
-                    >
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Get Decoration Ideas</p>
-                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Explore creative options</p>
-                    </button>
-                    <button
-                      onClick={() => setInputMessage("Help me organize the seating arrangement")}
-                      className={`p-4 rounded-xl border transition-all text-left ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-500 hover:shadow-md'}`}
-                    >
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Plan Seating</p>
-                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Organize guest placement</p>
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-6">
-                {messages.map((message, index) => (
-                  <div key={index} className={`flex gap-2 sm:gap-4 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {message.role === 'assistant' && (
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs sm:text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
-                      </div>
-                    )}
-                    {message.role === 'user' && (
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 ${
-                        message.role === 'user'
-                          ? 'bg-gray-900 text-white ml-4 sm:ml-12'
-                          : isDarkMode
-                          ? 'bg-gray-800 border border-gray-700 mr-4 sm:mr-12 text-gray-100'
-                          : 'bg-white border border-gray-200 mr-4 sm:mr-12 text-black'
-                      }`}>
-                        {message.role === 'assistant' ? (
-                          <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${isDarkMode ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-100 prose-li:text-gray-100 prose-strong:text-gray-100 prose-code:text-gray-100 prose-pre:bg-gray-900 prose-pre:text-gray-100' : 'prose-headings:text-black prose-p:text-black prose-li:text-black prose-strong:text-black prose-code:text-black prose-pre:bg-gray-100 prose-pre:text-black'} prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium`}>
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                a: ({ node, ...props }) => (
-                                  <a
-                                    {...props}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
-                                  />
-                                ),
-                              }}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
-                        ) : (
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                        )}
-                      </div>
-                      <p className={`text-xs mt-1 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                
-                {isSending && (
-                  <div className="flex gap-2 sm:gap-4">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs sm:text-sm">{MODELS.find((m: Model) => m.id === selectedModel)?.icon || '🤖'}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 mr-4 sm:mr-12 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-1">
-                            <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`} style={{ animationDelay: '0ms' }}></div>
-                            <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`} style={{ animationDelay: '150ms' }}></div>
-                            <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-500' : 'bg-gray-400'}`} style={{ animationDelay: '300ms' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          {/* Input Area */}
-          <div className={`border-t ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-              {!githubToken && (
-                <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-xs sm:text-sm text-red-800">
-                    Please configure your GitHub token to start chatting
+        {/* Input area */}
+        <div style={{ padding: '12px 20px', background: '#fff', borderTop: '1px solid #e5e7eb', flexShrink: 0 }}>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            {(() => {
+              const needsAnthropicKey = selectedModel.startsWith('claude-') && !anthropicKey;
+              const needsGithubToken  = !selectedModel.startsWith('claude-') && !githubToken;
+              if (needsAnthropicKey || needsGithubToken) return (
+                <div style={{ marginBottom: 10, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6 }}>
+                  <p style={{ fontSize: 12, color: '#991b1b', margin: 0 }}>
+                    {needsAnthropicKey ? 'Configure your Anthropic API key to use Claude models.' : 'Configure your GitHub token to start chatting.'}
                   </p>
                 </div>
-              )}
-              <div className="flex gap-2 sm:gap-3 items-end">
-                <div className="flex-1 relative">
-                  <textarea
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Type your message..."
-                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 sm:pr-12 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50 text-sm sm:text-base ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-400' : 'border-gray-300 bg-white text-black placeholder-gray-400'}`}
-                    rows={1}
-                    disabled={isSending || !githubToken}
-                    style={{ minHeight: '44px', maxHeight: '200px' }}
-                  />
-                </div>
-                <button
-                  onClick={handleSendMessage}
-                  disabled={isSending || !inputMessage.trim() || !githubToken}
-                  className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 shadow-lg hover:shadow-xl"
-                >
-                  {isSending ? (
-                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-2 text-center hidden sm:block">
-                Press Enter to send • Shift+Enter for new line
-              </p>
+              );
+              return null;
+            })()}
+            {(() => {
+              const isAnthropicModel = selectedModel.startsWith('claude-');
+              const blocked = isSending || (isAnthropicModel ? !anthropicKey : !githubToken);
+              const canSend = !blocked && !!inputMessage.trim();
+              return (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+              <textarea
+                value={inputMessage}
+                onChange={e => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message…"
+                disabled={blocked}
+                rows={1}
+                style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 10, outline: 'none', fontSize: 13, color: '#111827', background: '#fff', resize: 'none', minHeight: 42, maxHeight: 200, lineHeight: 1.5, fontFamily: 'inherit' }}
+                onFocus={e => (e.currentTarget.style.borderColor = '#6b7280')}
+                onBlur={e => (e.currentTarget.style.borderColor = '#e5e7eb')}
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!canSend}
+                style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: canSend ? 'pointer' : 'not-allowed', background: canSend ? '#111827' : '#e5e7eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >
+                {isSending
+                  ? <div style={{ width: 14, height: 14, border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                }
+              </button>
             </div>
+              );
+            })()}
+            <p style={{ fontSize: 11, color: '#9ca3af', margin: '6px 0 0', textAlign: 'center' }}>Enter to send · Shift+Enter for new line</p>
           </div>
         </div>
       </div>
 
-      {/* Token Configuration Modal */}
+      {/* ── Token modal ── */}
       {isTokenModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)' }}>
-          <div className={`rounded-lg shadow-xl p-6 w-full max-w-md ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
-            <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Configure API Keys</h2>
-            <div className="space-y-4">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 24, width: '100%', maxWidth: 440, border: '1px solid #e5e7eb' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 16px' }}>Configure API Keys</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  GitHub Personal Access Token
-                </label>
-                <input
-                  type="password"
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  placeholder="ghp_..."
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
-                />
-                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Create a token at{' '}
-                  <a
-                    href="https://github.com/settings/tokens"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    github.com/settings/tokens
-                  </a>
-                  {' '}with &quot;models&quot; scope
-                </p>
+                <label style={labelStyle}>GitHub Personal Access Token</label>
+                <input type="password" value={tokenInput} onChange={e => setTokenInput(e.target.value)} placeholder="ghp_…" style={inputStyle} />
+                <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>Token with "models" scope from <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6' }}>github.com/settings/tokens</a></p>
               </div>
-              
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Tavily API Key (Optional - for web search)
-                </label>
-                <input
-                  type="password"
-                  value={tavilyKeyInput}
-                  onChange={(e) => setTavilyKeyInput(e.target.value)}
-                  placeholder="tvly-..."
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
-                />
-                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Get a free API key at{' '}
-                  <a
-                    href="https://app.tavily.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    tavily.com
-                  </a>
-                  {' '}to enable web search capabilities
-                </p>
+                <label style={labelStyle}>Anthropic API Key <span style={{ fontWeight: 400, color: '#9ca3af' }}>(for Claude models)</span></label>
+                <input type="password" value={anthropicKeyInput} onChange={e => setAnthropicKeyInput(e.target.value)} placeholder="sk-ant-…" style={inputStyle} />
               </div>
-              
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSaveToken}
-                  disabled={!tokenInput.trim() && !tavilyKeyInput.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
+              <div>
+                <label style={labelStyle}>Tavily API Key <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional — web search)</span></label>
+                <input type="password" value={tavilyKeyInput} onChange={e => setTavilyKeyInput(e.target.value)} placeholder="tvly-…" style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <button onClick={handleSaveToken} disabled={!tokenInput.trim() && !tavilyKeyInput.trim() && !anthropicKeyInput.trim()} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500, background: '#111827', color: '#fff' }}>
                   Save Keys
                 </button>
                 {githubToken && (
-                  <button
-                    onClick={() => {
-                      setIsTokenModalOpen(false);
-                      setTokenInput('');
-                      setTavilyKeyInput('');
-                    }}
-                    className={`flex-1 px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
-                  >
+                  <button onClick={() => { setIsTokenModalOpen(false); setTokenInput(''); setTavilyKeyInput(''); setAnthropicKeyInput(''); }} style={{ flex: 1, padding: '9px', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 13, background: '#fff', color: '#374151' }}>
                     Cancel
                   </button>
                 )}
@@ -1099,133 +727,76 @@ export default function AdminChat() {
         </div>
       )}
 
-      {/* Settings Modal */}
+      {/* ── Memory settings modal ── */}
       {isEditingSettings && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`backdrop-blur-md rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col ${isDarkMode ? 'bg-gray-800/95 border border-gray-700' : 'bg-white/95 border border-gray-200'}`}>
-            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Memory Settings</h2>
-              <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Configure the global memory that will be shared across all conversations and all admin users.
-                This helps the AI remember important wedding details.
-              </p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 10, width: '100%', maxWidth: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column', border: '1px solid #e5e7eb' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>Memory Settings</h2>
+              <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Global memory shared across all conversations. Helps the AI remember important wedding details.</p>
             </div>
-            <div className="p-6 flex-1 overflow-y-auto">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  System Message (Global Memory)
-                </label>
-                <textarea
-                  value={systemMessageEdit}
-                  onChange={(e) => setSystemMessageEdit(e.target.value)}
-                  placeholder="Enter wedding details and information that the AI should remember..."
-                  rows={12}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-300 bg-white text-gray-900'}`}
-                />
-                <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  💡 Include information like: bride and groom names, wedding date, venue, important contacts, 
-                  special instructions, etc. This will be included in every conversation as context for the AI.
-                </p>
-              </div>
-            </div>
-            <div className={`p-6 border-t flex gap-3 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <button
-                onClick={async () => {
-                  await saveSystemMessage();
-                  setIsEditingSettings(false);
-                }}
-                disabled={!systemMessageEdit.trim()}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                Save Memory
-              </button>
-              <button
-                onClick={() => {
-                  setSystemMessageEdit(systemMessage);
-                  setIsEditingSettings(false);
-                }}
-                className={`flex-1 px-4 py-2 rounded-md transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-300 text-gray-700 hover:bg-gray-400'}`}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Documents Modal */}
-      {isDocumentModalOpen && userId && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col ${isDarkMode ? 'bg-gray-800/95 border border-gray-700' : 'bg-white/95 border border-gray-200'}`}>
-            <div className={`p-6 border-b flex items-center justify-between ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <div>
-                <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Knowledge Base Documents</h2>
-                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Upload documents to enhance the AI's knowledge. The AI will search these documents to answer questions.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsDocumentModalOpen(false)}
-                className={`transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 flex-1 overflow-y-auto">
-              {/* Lazy load DocumentUpload component */}
-              {githubToken && (
-                <DocumentUploadWrapper 
-                  githubToken={githubToken} 
-                  userId={userId}
-                  isDarkMode={isDarkMode}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Memories Modal */}
-      {isMemoryModalOpen && userId && githubToken && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`backdrop-blur-md rounded-lg shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col ${isDarkMode ? 'bg-gray-800/95 border border-gray-700' : 'bg-white/95 border border-gray-200'}`}>
-            <div className={`p-6 border-b flex items-center justify-between ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <div>
-                <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Conversation Memories</h2>
-                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  AI-generated summaries of your past conversations. These help maintain context across chats.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsMemoryModalOpen(false)}
-                className={`transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 flex-1 overflow-y-auto">
-              <ConversationMemoriesView 
-                supabase={supabase}
-                githubToken={githubToken}
-                userId={userId}
-                isDarkMode={isDarkMode}
+            <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+              <label style={labelStyle}>System Message (Global Memory)</label>
+              <textarea
+                value={systemMessageEdit}
+                onChange={e => setSystemMessageEdit(e.target.value)}
+                placeholder="Enter wedding details and information…"
+                rows={12}
+                style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.6, padding: '10px 12px' }}
               />
             </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
+              <button onClick={saveSystemMessage} disabled={!systemMessageEdit.trim()} style={{ flex: 1, padding: '9px', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500, background: '#111827', color: '#fff' }}>Save Memory</button>
+              <button onClick={() => { setSystemMessageEdit(systemMessage); setIsEditingSettings(false); }} style={{ flex: 1, padding: '9px', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 13, background: '#fff', color: '#374151' }}>Cancel</button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Memory Save Modal */}
+      {/* ── Documents modal ── */}
+      {isDocumentModalOpen && userId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 10, width: '100%', maxWidth: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column', border: '1px solid #e5e7eb' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>Knowledge Base Documents</h2>
+                <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>Upload documents to enhance the AI's knowledge.</p>
+              </div>
+              <button onClick={() => setIsDocumentModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+              </button>
+            </div>
+            <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+              {userId && <DocumentUploadWrapper userId={userId} />}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Memories modal ── */}
+      {isMemoryModalOpen && userId && githubToken && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 10, width: '100%', maxWidth: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column', border: '1px solid #e5e7eb' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>Conversation Memories</h2>
+                <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>AI-generated summaries of past conversations.</p>
+              </div>
+              <button onClick={() => setIsMemoryModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+              </button>
+            </div>
+            <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+              <ConversationMemoriesView supabase={supabase} githubToken={githubToken} userId={userId} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Memory save modal ── */}
       <MemorySaveModal
         isOpen={isMemorySaveModalOpen}
-        onClose={() => {
-          setIsMemorySaveModalOpen(false);
-          setMemorySaveResult(null);
-        }}
+        onClose={() => { setIsMemorySaveModalOpen(false); setMemorySaveResult(null); }}
         loading={memorySaveLoading}
         result={memorySaveResult}
       />
@@ -1233,42 +804,38 @@ export default function AdminChat() {
   );
 }
 
-/**
- * Component to display conversation memories
- */
-function ConversationMemoriesView({ 
-  supabase, 
-  githubToken, 
-  userId,
-  isDarkMode
-}: { 
-  supabase: any; 
-  githubToken: string; 
-  userId: string;
-  isDarkMode: boolean;
-}) {
+/* ── Shared styles ── */
+
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.07em',
+  textTransform: 'uppercase', color: '#6b7280', marginBottom: 6,
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 6,
+  fontSize: 13, color: '#111827', background: '#fff', outline: 'none', boxSizing: 'border-box',
+};
+
+/* ── ConversationMemoriesView ── */
+
+function ConversationMemoriesView({ supabase, githubToken, userId }: { supabase: any; githubToken: string; userId: string }) {
   const [memories, setMemories] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [memoryToDelete, setMemoryToDelete] = useState<{ id: string; summary: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    loadMemories();
-  }, []);
+  useEffect(() => { loadMemories(); }, []);
 
   const loadMemories = async () => {
     setIsLoading(true);
     try {
       const { ConversationMemoryService } = await import('@/lib/services/conversation-memory.service');
       const memoryService = new ConversationMemoryService(supabase, githubToken);
-      
       const [summaries, statistics] = await Promise.all([
         memoryService.getRecentSummaries(userId, 10, 1),
         memoryService.getSummaryStats(userId),
       ]);
-      
       setMemories(summaries);
       setStats(statistics);
     } catch (error) {
@@ -1278,173 +845,87 @@ function ConversationMemoriesView({
     }
   };
 
-  const handleDeleteClick = (memoryId: string, summary: string) => {
-    setMemoryToDelete({ id: memoryId, summary });
-    setDeleteConfirmOpen(true);
-  };
-
   const handleDeleteConfirm = async () => {
     if (!memoryToDelete) return;
-
     setIsDeleting(true);
     try {
       const { ConversationMemoryService } = await import('@/lib/services/conversation-memory.service');
       const memoryService = new ConversationMemoryService(supabase, githubToken);
       await memoryService.deleteSummary(memoryToDelete.id);
       await loadMemories();
-      setDeleteConfirmOpen(false);
       setMemoryToDelete(null);
     } catch (error) {
       console.error('Error deleting memory:', error);
-      alert('Failed to delete memory');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  if (isLoading) {
-    return <div className="text-center text-gray-500 py-8">Loading memories...</div>;
-  }
+  if (isLoading) return <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading memories…</p>;
 
   return (
-    <div className="space-y-4">
-      {/* Stats */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {stats && (
-        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
-          <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-blue-900'} mb-2`}>Memory Statistics</h3>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} font-medium`}>{stats.totalSummaries}</p>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-blue-700'}>Conversations</p>
-            </div>
-            <div>
-              <p className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} font-medium`}>{stats.totalMessages}</p>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-blue-700'}>Messages</p>
-            </div>
-            <div>
-              <p className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} font-medium`}>{stats.averageImportance}/10</p>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-blue-700'}>Avg Importance</p>
-            </div>
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: 14 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 10px' }}>Statistics</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            {[
+              { value: stats.totalSummaries, label: 'Conversations' },
+              { value: stats.totalMessages, label: 'Messages' },
+              { value: `${stats.averageImportance}/10`, label: 'Avg Importance' },
+            ].map(({ value, label }) => (
+              <div key={label}>
+                <p style={{ fontSize: 18, fontWeight: 600, color: '#111827', margin: '0 0 2px' }}>{value}</p>
+                <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>{label}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Memories List */}
       {memories.length === 0 ? (
-        <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} py-8`}>
-          <p>No conversation memories yet.</p>
-          <p className="text-sm mt-2">Have at least 4 messages in a conversation, then switch to a new one to create a summary.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {memories.map((memory) => (
-            <div
-              key={memory.id}
-              className={`${isDarkMode ? 'border-gray-700 hover:border-gray-600' : 'border-gray-200 hover:border-blue-300'} border rounded-lg p-4 transition-colors`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {new Date(memory.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-700'} rounded`}>
-                      Importance: {memory.importance_score}/10
-                    </span>
-                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {memory.message_count} messages
-                    </span>
-                  </div>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} mb-2`}>{memory.summary}</p>
-                  {memory.key_topics && memory.key_topics.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {memory.key_topics.map((topic: string, idx: number) => (
-                        <span
-                          key={idx}
-                          className={`text-xs px-2 py-0.5 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'} rounded`}
-                        >
-                          {topic}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDeleteClick(memory.id, memory.summary)}
-                  className="text-gray-400 hover:text-red-600 transition-colors"
-                  title="Delete memory"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+        <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: '32px 0' }}>No conversation memories yet.</p>
+      ) : memories.map(memory => (
+        <div key={memory.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: '#6b7280' }}>{new Date(memory.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span style={{ fontSize: 11, padding: '1px 6px', background: '#eff6ff', color: '#1d4ed8', borderRadius: 4 }}>Importance: {memory.importance_score}/10</span>
+                <span style={{ fontSize: 11, color: '#9ca3af' }}>{memory.message_count} messages</span>
               </div>
+              <p style={{ fontSize: 13, color: '#111827', margin: '0 0 8px', lineHeight: 1.5 }}>{memory.summary}</p>
+              {memory.key_topics?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {memory.key_topics.map((topic: string, idx: number) => (
+                    <span key={idx} style={{ fontSize: 11, padding: '2px 7px', background: '#f3f4f6', color: '#6b7280', borderRadius: 4 }}>{topic}</span>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+            <button onClick={() => setMemoryToDelete({ id: memory.id, summary: memory.summary })} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2, flexShrink: 0 }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 9a1 1 0 001 1h6a1 1 0 001-1l1-9"/></svg>
+            </button>
+          </div>
         </div>
-      )}
+      ))}
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmOpen && memoryToDelete && (
-        <div className={`fixed inset-0 ${isDarkMode ? 'bg-black/50' : 'bg-black/30'} backdrop-blur-sm flex items-center justify-center z-50 p-4`}>
-          <div className={`${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-lg max-w-lg w-full shadow-2xl`}>
-            <div className="p-6">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                  <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} mb-2`}>
-                    Delete Memory?
-                  </h3>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-3`}>
-                    Are you sure you want to delete this memory? This action cannot be undone.
-                  </p>
-                  <div className={`p-3 ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} border rounded-lg`}>
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-700'} line-clamp-3`}>
-                      {memoryToDelete.summary}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => {
-                    setDeleteConfirmOpen(false);
-                    setMemoryToDelete(null);
-                  }}
-                  disabled={isDeleting}
-                  className={`px-4 py-2 ${isDarkMode ? 'text-gray-200 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  disabled={isDeleting}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isDeleting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Deleting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      <span>Delete</span>
-                    </>
-                  )}
-                </button>
-              </div>
+      {memoryToDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 10, padding: 24, maxWidth: 440, width: '100%', border: '1px solid #e5e7eb' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: '0 0 8px' }}>Delete Memory?</h3>
+            <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 12px' }}>This action cannot be undone.</p>
+            <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: 10, marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: '#374151', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>{memoryToDelete.summary}</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setMemoryToDelete(null)} disabled={isDeleting} style={{ padding: '8px 16px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151' }}>Cancel</button>
+              <button onClick={handleDeleteConfirm} disabled={isDeleting} style={{ padding: '8px 16px', border: 'none', borderRadius: 6, background: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {isDeleting ? 'Deleting…' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>
@@ -1453,156 +934,72 @@ function ConversationMemoriesView({
   );
 }
 
-/**
- * Memory Save Modal Component
- */
-function MemorySaveModal({ 
-  isOpen, 
-  onClose, 
-  loading, 
-  result 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  loading: boolean;
-  result: {
-    success: boolean;
-    message: string;
-    summary?: string;
-    importance?: number;
-    topics?: string[];
-  } | null;
+/* ── MemorySaveModal ── */
+
+function MemorySaveModal({ isOpen, onClose, loading, result }: {
+  isOpen: boolean; onClose: () => void; loading: boolean;
+  result: { success: boolean; message: string; summary?: string; importance?: number; topics?: string[] } | null;
 }) {
   if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {loading ? 'Saving to Memory...' : result?.success ? 'Saved Successfully!' : 'Unable to Save'}
-            </h2>
-            {!loading && (
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
-              <p className="text-gray-600 text-center">
-                Analyzing conversation and generating memory...
-              </p>
-            </div>
-          )}
-
-          {!loading && result && (
-            <div className="space-y-4">
-              {result.success ? (
-                <>
-                  <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <svg className="h-8 w-8 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-green-800 font-medium">{result.message}</p>
-                  </div>
-
-                  {result.importance !== undefined && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-gray-900">Importance Score:</span>
-                        <span className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold">
-                          {result.importance}/10
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        This score helps prioritize which memories to recall in future conversations.
-                      </p>
-                    </div>
-                  )}
-
-                  {result.topics && result.topics.length > 0 && (
-                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <h3 className="font-semibold text-gray-900 mb-2">Key Topics:</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {result.topics.map((topic, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm"
-                          >
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {result.summary && (
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <h3 className="font-semibold text-gray-900 mb-2">Memory Summary:</h3>
-                      <p className="text-gray-700 leading-relaxed">{result.summary}</p>
-                    </div>
-                  )}
-
-                  <div className="pt-4">
-                    <button
-                      onClick={onClose}
-                      className="w-full px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <svg className="h-8 w-8 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-red-800">{result.message}</p>
-                  </div>
-
-                  <div className="pt-4">
-                    <button
-                      onClick={onClose}
-                      className="w-full px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+      <div style={{ background: '#fff', borderRadius: 10, padding: 24, maxWidth: 520, width: '100%', maxHeight: '80vh', overflowY: 'auto', border: '1px solid #e5e7eb' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>
+            {loading ? 'Saving to Memory…' : result?.success ? 'Saved Successfully!' : 'Unable to Save'}
+          </h2>
+          {!loading && <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+          </button>}
         </div>
+
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+            <p style={{ fontSize: 13, color: '#6b7280' }}>Analysing conversation and generating memory…</p>
+          </div>
+        )}
+
+        {!loading && result && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ padding: '10px 14px', background: result.success ? '#f0fdf4' : '#fef2f2', border: `1px solid ${result.success ? '#bbf7d0' : '#fecaca'}`, borderRadius: 8 }}>
+              <p style={{ fontSize: 13, color: result.success ? '#166534' : '#991b1b', margin: 0, fontWeight: 500 }}>{result.message}</p>
+            </div>
+            {result.importance !== undefined && (
+              <div style={{ padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
+                <p style={{ fontSize: 12, color: '#1e40af', margin: '0 0 2px', fontWeight: 600 }}>Importance Score: {result.importance}/10</p>
+                <p style={{ fontSize: 11, color: '#3b82f6', margin: 0 }}>Helps prioritise which memories to recall in future conversations.</p>
+              </div>
+            )}
+            {result.topics && result.topics.length > 0 && (
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 6px' }}>Key Topics</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {result.topics.map((topic, idx) => (
+                    <span key={idx} style={{ fontSize: 12, padding: '3px 8px', background: '#f5f3ff', color: '#6d28d9', borderRadius: 4 }}>{topic}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {result.summary && (
+              <div style={{ padding: '10px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#6b7280', margin: '0 0 6px' }}>Summary</p>
+                <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.55 }}>{result.summary}</p>
+              </div>
+            )}
+            <button onClick={onClose} style={{ padding: '9px', border: 'none', borderRadius: 6, background: '#111827', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, marginTop: 4 }}>Close</button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/**
- * Wrapper component to lazy load DocumentUpload
- */
-function DocumentUploadWrapper({ githubToken, userId, isDarkMode }: { githubToken: string; userId: string; isDarkMode: boolean }) {
+/* ── DocumentUploadWrapper ── */
+
+function DocumentUploadWrapper({ userId }: { userId: string }) {
   const [DocumentUpload, setDocumentUpload] = useState<any>(null);
-
-  useEffect(() => {
-    import('./components/DocumentUpload').then((mod) => {
-      setDocumentUpload(() => mod.default);
-    });
-  }, []);
-
-  if (!DocumentUpload) {
-    return <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading...</div>;
-  }
-
-  return <DocumentUpload githubToken={githubToken} userId={userId} isDarkMode={isDarkMode} />;
+  useEffect(() => { import('./components/DocumentUpload').then(mod => setDocumentUpload(() => mod.default)); }, []);
+  if (!DocumentUpload) return <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading…</p>;
+  return <DocumentUpload userId={userId} isDarkMode={false} />;
 }

@@ -10,8 +10,8 @@ import { EmbeddingService } from '@/lib/services/embedding.service';
 export class DocumentTools {
   private vectorSearchService: VectorSearchService;
 
-  constructor(supabase: SupabaseClient, githubToken: string) {
-    const embeddingService = new EmbeddingService(githubToken);
+  constructor(supabase: SupabaseClient, getAuthToken: () => Promise<string | null>) {
+    const embeddingService = new EmbeddingService(getAuthToken);
     this.vectorSearchService = new VectorSearchService(supabase, embeddingService);
   }
 

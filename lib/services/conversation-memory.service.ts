@@ -242,7 +242,7 @@ ${memoryItems.join('\n\n')}
         .from('conversation_summaries')
         .select('id')
         .eq('conversation_id', conversationId)
-        .single();
+        .maybeSingle();
 
       if (existingSummary) {
         return false; // Already has a summary
