@@ -7,24 +7,42 @@ export default function TransportPage() {
   const [options, setOptions] = useState<any[]>([]);
   const [signups, setSignups] = useState<any[]>([]);
   const [guests, setGuests] = useState<any[]>([]);
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ name: '', direction: 'to_venue', departure_location: '', departure_time: '', return_time: '', capacity: '', notes: '' });
   const [saving, setSaving] = useState(false);
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [guestSearch, setGuestSearch] = useState('');
+  const [addingGuestId, setAddingGuestId] = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
-    const [optRes, signRes, gRes] = await Promise.all([
+    const [optRes, signRes, gRes, rsvpRes] = await Promise.all([
       supabase.from('transport_options').select('*').order('sort_order'),
       supabase.from('guest_transport').select('*, guests(name)'),
       supabase.from('guests').select('id, name').order('name'),
+      supabase.from('rsvp_responses').select('guest_id, status'),
     ]);
     setOptions(optRes.data || []);
     setSignups(signRes.data || []);
     setGuests(gRes.data || []);
+    setConfirmedIds(new Set((rsvpRes.data || []).filter(r => r.status === 'attending').map(r => r.guest_id)));
     setLoading(false);
+  };
+
+  const addGuest = async (optionId: string, guestId: string) => {
+    setAddingGuestId(guestId);
+    await supabase.from('guest_transport').insert({ transport_option_id: optionId, guest_id: guestId });
+    await fetchAll();
+    setAddingGuestId(null);
+  };
+
+  const removeGuest = async (signupId: string) => {
+    await supabase.from('guest_transport').delete().eq('id', signupId);
+    await fetchAll();
   };
 
   const save = async () => {
@@ -96,16 +114,65 @@ export default function TransportPage() {
                     <button onClick={() => deleteOption(opt.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                   </div>
                 </div>
-                {optSignups.length > 0 && (
-                  <div className="pt-3 border-t border-gray-100">
-                    <p className="text-xs font-medium text-gray-400 mb-2">Signed up</p>
-                    <div className="flex flex-wrap gap-2">
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-gray-400">Signed up{opt.capacity ? ` (${optSignups.length}/${opt.capacity})` : optSignups.length > 0 ? ` (${optSignups.length})` : ''}</p>
+                    <button
+                      onClick={() => { setAddingTo(addingTo === opt.id ? null : opt.id); setGuestSearch(''); }}
+                      className="text-xs text-gray-500 hover:text-gray-900 font-medium"
+                    >
+                      {addingTo === opt.id ? 'Close' : '+ Add guest'}
+                    </button>
+                  </div>
+                  {optSignups.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
                       {optSignups.map((s: any) => (
-                        <span key={s.id} className="text-xs bg-gray-100 text-gray-700 rounded px-2 py-1">{s.guests?.name}</span>
+                        <span key={s.id} className="text-xs bg-gray-100 text-gray-700 rounded pl-2 pr-1 py-1 flex items-center gap-1.5">
+                          {s.guests?.name}
+                          <button onClick={() => removeGuest(s.id)} className="text-gray-400 hover:text-red-500 leading-none">×</button>
+                        </span>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                  {optSignups.length === 0 && addingTo !== opt.id && (
+                    <p className="text-xs text-gray-300">No guests yet.</p>
+                  )}
+                  {addingTo === opt.id && (() => {
+                    const available = guests
+                      .filter(g => confirmedIds.has(g.id))
+                      .filter(g => !optSignups.some((s: any) => s.guest_id === g.id))
+                      .filter(g => g.name.toLowerCase().includes(guestSearch.toLowerCase()));
+                    return (
+                      <div className="border border-gray-200 rounded-md p-2">
+                        <input
+                          type="text"
+                          value={guestSearch}
+                          onChange={e => setGuestSearch(e.target.value)}
+                          placeholder="Search confirmed guests…"
+                          className="input mb-2"
+                          autoFocus
+                        />
+                        <div className="max-h-40 overflow-y-auto space-y-0.5">
+                          {available.map(g => (
+                            <button
+                              key={g.id}
+                              onClick={() => addGuest(opt.id, g.id)}
+                              disabled={addingGuestId === g.id}
+                              className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-gray-50 text-gray-700 disabled:opacity-40"
+                            >
+                              {addingGuestId === g.id ? 'Adding…' : g.name}
+                            </button>
+                          ))}
+                          {available.length === 0 && (
+                            <p className="text-xs text-gray-400 px-2 py-1">
+                              {guests.filter(g => confirmedIds.has(g.id)).length === 0 ? 'No confirmed guests yet.' : 'No matching confirmed guests left to add.'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             );
           })}
