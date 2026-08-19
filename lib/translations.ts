@@ -130,6 +130,19 @@ export const translations = {
       backToInvitation: 'Back to invitation',
       editRsvp: 'Edit RSVP',
     },
+
+    // Transport
+    transportLabel: 'Transport',
+    transportNeeded: 'Do you need transport to the wedding?',
+    transportFrom: 'Where will you be travelling from?',
+    transportFromPlaceholder: 'e.g. Hotel name, city…',
+    transportBrunch: 'Do you need transport to and from the Sunday brunch?',
+    transportYes: 'Yes',
+    transportNo: 'No',
+    transportSubmit: 'Send',
+    transportSubmitting: 'Sending…',
+    transportDone: 'Got it, thank you.',
+    transportError: 'Something went wrong. Please try again.',
   },
   pt: {
     // Common
@@ -262,6 +275,20 @@ export const translations = {
       backToInvitation: 'Voltar ao convite',
       editRsvp: 'Editar RSVP',
     },
+
+    // Transport
+    transportLabel: 'Transporte',
+    transportNeeded: 'Você vai precisar de transporte para o casamento?',
+    transportFrom: 'De onde você vai partir?',
+    transportFromPlaceholder: 'Ex: nome do hotel, cidade…',
+    transportBrunch: 'Você vai precisar de transporte para ir e voltar do brunch de domingo?',
+    transportYes: 'Sim',
+    transportNo: 'Não',
+    transportSubmit: 'Enviar',
+    transportSubmitting: 'Enviando…',
+    transportDone: 'Recebido, obrigado.',
+    transportError: 'Algo deu errado. Por favor, tente novamente.',
+  },
     faqs: [
       { question: 'Qual é o código de vestuário?', answer: 'Smart-casual a semi-formal. É um venue ao ar livre em outubro, por isso recomendamos trazer uma camada extra para a noite. Pensa numa festa de jardim com um toque de elegância — não é preciso traje formal.' },
       { question: 'Como chego ao venue?', answer: 'La Garriga de Castelladral fica a cerca de 1h30 de Barcelona de carro. Estamos também a organizar transporte desde Barcelona — detalhes a confirmar. Indica no teu RSVP se precisas de lugar no autocarro.' },
@@ -405,6 +432,20 @@ export const translations = {
       backToInvitation: 'Volver a la invitación',
       editRsvp: 'Editar RSVP',
     },
+
+    // Transport
+    transportLabel: 'Transporte',
+    transportNeeded: '¿Necesitas transporte para llegar al casamiento?',
+    transportFrom: '¿Desde dónde vas a viajar?',
+    transportFromPlaceholder: 'Ej: nombre del hotel, ciudad…',
+    transportBrunch: '¿Necesitas transporte de ida y vuelta para el brunch del domingo?',
+    transportYes: 'Sí',
+    transportNo: 'No',
+    transportSubmit: 'Enviar',
+    transportSubmitting: 'Enviando…',
+    transportDone: 'Recibido, gracias.',
+    transportError: 'Algo salió mal. Por favor, inténtalo de nuevo.',
+  },
     faqs: [
       { question: '¿Cuál es el código de vestimenta?', answer: 'Smart-casual a semi-formal. Es un venue al aire libre en octubre, así que te recomendamos traer una capa extra para la noche. Piensa en una fiesta de jardín con un toque de elegancia — no hace falta traje formal.' },
       { question: '¿Cómo llego al venue?', answer: 'La Garriga de Castelladral está a unos 1h30 de Barcelona en coche. También estamos organizando transporte desde Barcelona — detalles por confirmar. Indícalo en tu RSVP si necesitas plaza en el autobús.' },
