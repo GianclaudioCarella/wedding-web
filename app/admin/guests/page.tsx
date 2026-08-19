@@ -332,7 +332,7 @@ export default function GuestsPage() {
         allDietaryNotes,
         stayNightsList.join(', '),
         g.notes || '',
-      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+      ].map(v => `"${String(v).replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`).join(',');
     });
 
     const csv = [headers.join(','), ...rows].join('\n');
