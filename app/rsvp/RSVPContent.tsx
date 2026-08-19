@@ -338,10 +338,10 @@ export default function RSVPContent() {
               borderTop: '2px solid var(--color-text)',
               paddingTop: 28,
               marginTop: 8,
-              border: transportError ? '2px solid #cc0000' : '2px solid var(--color-border)',
-              borderRadius: 'var(--radius-card)',
+              borderRadius: 12,
               padding: 24,
-              background: transportError ? '#fff8f8' : 'var(--color-surface)',
+              background: 'var(--color-surface)',
+              borderLeft: transportError ? '3px solid var(--color-green)' : '3px solid transparent',
             }}>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase' as const, color: 'var(--color-label)', margin: '0 0 4px' }}>Transport</p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, margin: '0 0 20px', fontWeight: 500 }}>Do you need transport to the wedding?</p>
