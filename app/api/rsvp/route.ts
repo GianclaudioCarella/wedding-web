@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
 
   const { data: guest, error: guestError } = await supabaseAdmin
     .from('guests')
-    .select('id, name, email, notes, venue_stay_invited, party_role, party_leader_id')
+    .select('id, name, email, notes, venue_stay_invited, party_role, party_leader_id, transport_needed, transport_from, transport_return')
     .eq('invite_token', token)
     .single()
 
@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
       id: guest.id, name: guest.name, email: guest.email,
       notes: guest.notes || '',
       venue_stay_invited: guest.venue_stay_invited,
+      transport_needed: guest.transport_needed ?? null,
+      transport_from: guest.transport_from ?? null,
+      transport_return: guest.transport_return ?? null,
     },
     events,
     partyMembers: partyMembers || [],
@@ -72,7 +75,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email, party_dietary, party_dietary_notes, party_rsvps } = body
+  const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email, party_dietary, party_dietary_notes, party_rsvps, transport_needed, transport_from, transport_return } = body
 
   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
@@ -174,6 +177,9 @@ export async function POST(request: NextRequest) {
   if (notes !== undefined) guestUpdate.notes = notes
   if (plus_one_name !== undefined) guestUpdate.plus_one_name = plus_one_name || null
   if (plus_one_email !== undefined) guestUpdate.plus_one_email = plus_one_email || null
+  if (transport_needed !== undefined) guestUpdate.transport_needed = transport_needed ?? null
+  if (transport_from !== undefined) guestUpdate.transport_from = transport_from || null
+  if (transport_return !== undefined) guestUpdate.transport_return = transport_return ?? null
   if (Object.keys(guestUpdate).length > 0) {
     await supabaseAdmin.from('guests').update(guestUpdate).eq('id', guest.id)
   }
