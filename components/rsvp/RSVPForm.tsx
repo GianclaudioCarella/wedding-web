@@ -111,6 +111,9 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const [partyRsvps, setPartyRsvps] = useState<Record<string, Record<string, string>>>({});
   const [stayNights, setStayNights] = useState({ sunday_night: true, friday_night: true, saturday_night: true });
   const [notes, setNotes]           = useState('');
+  const [transportNeeded, setTransportNeeded] = useState<boolean | null>(null);
+  const [transportFrom, setTransportFrom]     = useState('');
+  const [transportReturn, setTransportReturn] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!token) { setNotFound(true); setLoading(false); return; }
@@ -159,6 +162,9 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
             saturday_night: data.stayRequest.saturday_night,
           });
         }
+        if (data.guest.transport_needed !== null) setTransportNeeded(data.guest.transport_needed);
+        if (data.guest.transport_from) setTransportFrom(data.guest.transport_from);
+        if (data.guest.transport_return !== null) setTransportReturn(data.guest.transport_return);
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -226,8 +232,12 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
   const ceremonyDeclined  = ceremonyRsvp?.status === 'declined'
   const anyAttending      = ceremonyAttending
   const dietaryAnswered   = !anyAttending || dietary.length > 0
+  const transportAnswered = !anyAttending || (
+    transportNeeded === false ||
+    (transportNeeded === true && transportFrom.trim() !== '' && transportReturn !== null)
+  )
   const allAnswered       = !!ceremonyEvent && !!rsvps[ceremonyEvent.id]?.status && (
-    ceremonyDeclined || (otherEvents.every(e => rsvps[e.id]?.status) && dietaryAnswered)
+    ceremonyDeclined || (otherEvents.every(e => rsvps[e.id]?.status) && dietaryAnswered && transportAnswered)
   )
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -250,6 +260,9 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
         party_dietary:       partyDietary,
         party_dietary_notes: partyDietaryNotes,
         party_rsvps:         partyRsvps,
+        transport_needed:    anyAttending ? transportNeeded : null,
+        transport_from:      anyAttending && transportNeeded ? transportFrom : null,
+        transport_return:    anyAttending && transportNeeded ? transportReturn : null,
       }),
     });
 
@@ -498,6 +511,63 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                 placeholder={t.notesPlaceholder}
                 style={inputStyle}
               />
+            </div>
+          )}
+
+          {/* Transport */}
+          {anyAttending && (
+            <div style={{
+              ...sectionStyle,
+              border: !transportAnswered ? '2px solid #cc0000' : '2px solid var(--color-border)',
+              borderRadius: 12,
+              padding: 24,
+              background: !transportAnswered ? '#fff8f8' : 'var(--color-surface)',
+            }}>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase' as const, color: 'var(--color-label)', margin: '0 0 4px' }}>
+                {t.transportLabel}
+              </p>
+              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 16px', fontWeight: 400 }}>
+                {t.transportNeeded}
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([true, false] as const).map(v => (
+                  <button
+                    key={String(v)} type="button"
+                    onClick={() => { setTransportNeeded(v); if (!v) { setTransportFrom(''); setTransportReturn(null); } }}
+                    style={toggleBtn(transportNeeded === v)}
+                  >{v ? t.transportYes : t.transportNo}</button>
+                ))}
+              </div>
+
+              {transportNeeded === true && (
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column' as const, gap: 20 }}>
+                  <div>
+                    <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 8px', fontWeight: 400 }}>
+                      {t.transportFrom}
+                    </p>
+                    <input
+                      type="text" value={transportFrom}
+                      onChange={e => setTransportFrom(e.target.value)}
+                      placeholder={t.transportFromPlaceholder}
+                      style={{ ...inputStyle, resize: undefined }}
+                    />
+                  </div>
+                  <div>
+                    <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 16px', fontWeight: 400 }}>
+                      {t.transportReturn}
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {([true, false] as const).map(v => (
+                        <button
+                          key={String(v)} type="button"
+                          onClick={() => setTransportReturn(v)}
+                          style={toggleBtn(transportReturn === v)}
+                        >{v ? t.transportYes : t.transportNo}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
