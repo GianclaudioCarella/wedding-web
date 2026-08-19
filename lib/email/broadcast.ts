@@ -17,9 +17,12 @@ export function generateBroadcastHtml(
 
   const htmlBody = withValues
     .split(/\n{2,}/)
-    .map(para =>
-      `<p style="margin:0 0 16px;font-size:15px;color:#262626;line-height:1.7;">${para.replace(/\n/g, '<br>')}</p>`
-    )
+    .map(para => {
+      const formatted = para
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      return `<p style="margin:0 0 16px;font-size:15px;color:#262626;line-height:1.7;">${formatted}</p>`
+    })
     .join('')
 
   return `<!DOCTYPE html>
@@ -62,7 +65,8 @@ export function generateBroadcastText(
     body
       .replace(/\{\{first_name\}\}/g, firstName)
       .replace(/\{\{invitation_link\}\}/g, inviteUrl)
-      .replace(/\{\{rsvp_link\}\}/g, rsvpUrl ?? '') +
+      .replace(/\{\{rsvp_link\}\}/g, rsvpUrl ?? '')
+      .replace(/\*\*(.+?)\*\*/g, '$1') +
     '\n\nWith love,\nGian & Cat'
   )
 }
