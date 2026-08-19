@@ -334,9 +334,9 @@ export default function RSVPContent() {
 
           {/* Transport */}
           {anyAttending && (
-            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 28 }}>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 4px', fontWeight: 400 }}>Transport</p>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: '0 0 16px' }}>Do you need transport to the wedding?</p>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 12, padding: 24 }}>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 20px', fontWeight: 400 }}>Transport</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: '0 0 8px' }}>Do you need transport to the wedding?</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 {([true, false] as const).map(v => (
                   <button
@@ -346,7 +346,7 @@ export default function RSVPContent() {
                       flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)', padding: '10px 16px',
                       borderRadius: 'var(--radius-pill)', border: 'none', cursor: 'pointer',
                       transition: 'background var(--transition), color var(--transition)',
-                      background: transportNeeded === v ? TEXT : 'var(--color-surface)',
+                      background: transportNeeded === v ? TEXT : 'var(--color-bg)',
                       color: transportNeeded === v ? '#fff' : TEXT,
                     }}
                   >{v ? 'Yes' : 'No'}</button>
@@ -355,16 +355,16 @@ export default function RSVPContent() {
               {transportNeeded === true && (
                 <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column' as const, gap: 20 }}>
                   <div>
-                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, margin: '0 0 8px' }}>Where will you be travelling from?</p>
+                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: '0 0 8px' }}>Where will you be travelling from?</p>
                     <input
                       type="text" value={transportFrom}
                       onChange={e => { setTransportFrom(e.target.value); setTransportError(false) }}
                       placeholder="e.g. Hotel name, city…"
-                      style={inputStyle}
+                      style={{ ...inputStyle, background: 'var(--color-bg)' }}
                     />
                   </div>
                   <div>
-                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, margin: '0 0 8px' }}>Do you need a return journey?</p>
+                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: '0 0 8px' }}>Do you need a return journey?</p>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {([true, false] as const).map(v => (
                         <button
@@ -374,7 +374,7 @@ export default function RSVPContent() {
                             flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)', padding: '10px 16px',
                             borderRadius: 'var(--radius-pill)', border: 'none', cursor: 'pointer',
                             transition: 'background var(--transition), color var(--transition)',
-                            background: transportReturn === v ? TEXT : 'var(--color-surface)',
+                            background: transportReturn === v ? TEXT : 'var(--color-bg)',
                             color: transportReturn === v ? '#fff' : TEXT,
                           }}
                         >{v ? 'Yes' : 'No'}</button>
