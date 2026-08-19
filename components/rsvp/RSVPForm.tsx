@@ -521,7 +521,6 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               borderRadius: 12,
               padding: 24,
               background: 'var(--color-surface)',
-              borderLeft: !transportAnswered ? '3px solid var(--color-green)' : '3px solid transparent',
             }}>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase' as const, color: 'var(--color-label)', margin: '0 0 4px' }}>
                 {t.transportLabel}
@@ -534,7 +533,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                   <button
                     key={String(v)} type="button"
                     onClick={() => { setTransportNeeded(v); if (!v) { setTransportFrom(''); setTransportReturn(null); } }}
-                    style={toggleBtn(transportNeeded === v)}
+                    style={{ ...toggleBtn(transportNeeded === v), background: transportNeeded === v ? 'var(--color-pink)' : 'var(--color-bg)' }}
                   >{v ? t.transportYes : t.transportNo}</button>
                 ))}
               </div>
@@ -549,7 +548,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                       type="text" value={transportFrom}
                       onChange={e => setTransportFrom(e.target.value)}
                       placeholder={t.transportFromPlaceholder}
-                      style={{ ...inputStyle, resize: undefined }}
+                      style={{ ...inputStyle, resize: undefined, background: 'var(--color-bg)' }}
                     />
                   </div>
                   <div>
@@ -561,7 +560,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                         <button
                           key={String(v)} type="button"
                           onClick={() => setTransportReturn(v)}
-                          style={toggleBtn(transportReturn === v)}
+                          style={{ ...toggleBtn(transportReturn === v), background: transportReturn === v ? 'var(--color-pink)' : 'var(--color-bg)' }}
                         >{v ? t.transportYes : t.transportNo}</button>
                       ))}
                     </div>
