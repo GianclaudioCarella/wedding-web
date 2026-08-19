@@ -34,7 +34,7 @@ export const translations = {
     venueCarLabel: '• By Car',
     venueCarText: 'Parking details TBC.',
     venueBusLabel: '• Organised transport',
-    venueBusText: 'We\'re arranging transport from Barcelona — details to be confirmed, we\'ll be in touch.',
+    venueBusText: 'We\'re arranging some transport for guests who need it — details to be confirmed, we\'ll be in touch.',
 
     // Invite schedule
     scheduleLabel: 'The Schedule',
@@ -166,7 +166,7 @@ export const translations = {
     venueCarLabel: '• De carro',
     venueCarText: 'Detalhes de estacionamento serão confirmados.',
     venueBusLabel: '• Transporte',
-    venueBusText: 'Estamos organizando o transporte a partir de Barcelona — os detalhes serão confirmados em breve, entraremos em contato.',
+    venueBusText: 'Estamos organizando transporte para os convidados que precisarem — os detalhes serão confirmados em breve, entraremos em contato.',
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
@@ -309,7 +309,7 @@ export const translations = {
     venueCarLabel: '• En coche',
     venueCarText: 'Los detalles del aparcamiento se confirmarán.',
     venueBusLabel: '• Transporte',
-    venueBusText: 'Estamos organizando el transporte desde Barcelona; los detalles se confirmarán próximamente, nos pondremos en contacto con ustedes.',
+    venueBusText: 'Estamos organizando transporte para los invitados que lo necesiten — los detalles se confirmarán próximamente, nos pondremos en contacto.',
 
     // Invite schedule
     scheduleLabel: 'Cronograma',
