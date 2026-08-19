@@ -341,7 +341,6 @@ export default function RSVPContent() {
               borderRadius: 12,
               padding: 24,
               background: 'var(--color-surface)',
-              borderLeft: transportError ? '3px solid var(--color-green)' : '3px solid transparent',
             }}>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase' as const, color: 'var(--color-label)', margin: '0 0 4px' }}>Transport</p>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, margin: '0 0 20px', fontWeight: 500 }}>Do you need transport to the wedding?</p>
@@ -355,7 +354,7 @@ export default function RSVPContent() {
                       flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)', padding: '10px 16px',
                       borderRadius: 'var(--radius-pill)', border: 'none', cursor: 'pointer',
                       transition: 'background var(--transition), color var(--transition)',
-                      background: transportNeeded === v ? TEXT : 'var(--color-background)',
+                      background: transportNeeded === v ? TEXT : 'var(--color-bg)',
                       color: transportNeeded === v ? '#fff' : TEXT,
                     }}
                   >{v ? 'Yes' : 'No'}</button>
@@ -370,7 +369,7 @@ export default function RSVPContent() {
                       type="text" value={transportFrom}
                       onChange={e => { setTransportFrom(e.target.value); setTransportError(false) }}
                       placeholder="e.g. Hotel name, city…"
-                      style={inputStyle}
+                      style={{ ...inputStyle, background: 'var(--color-bg)' }}
                     />
                   </div>
                   <div>
@@ -384,7 +383,7 @@ export default function RSVPContent() {
                             flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)', padding: '10px 16px',
                             borderRadius: 'var(--radius-pill)', border: 'none', cursor: 'pointer',
                             transition: 'background var(--transition), color var(--transition)',
-                            background: transportReturn === v ? TEXT : 'var(--color-background)',
+                            background: transportReturn === v ? TEXT : 'var(--color-bg)',
                             color: transportReturn === v ? '#fff' : TEXT,
                           }}
                         >{v ? 'Yes' : 'No'}</button>
