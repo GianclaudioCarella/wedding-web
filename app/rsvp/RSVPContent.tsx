@@ -71,6 +71,10 @@ export default function RSVPContent() {
   const [plusOneDietary, setPlusOneDietary] = useState<string[]>([])
   const [plusOneDietaryNotes, setPlusOneDietaryNotes] = useState('')
   const [stayNights, setStayNights]   = useState({ sunday_night: false, friday_night: false, saturday_night: false })
+  const [transportNeeded, setTransportNeeded] = useState<boolean | null>(null)
+  const [transportFrom, setTransportFrom]     = useState('')
+  const [transportReturn, setTransportReturn] = useState<boolean | null>(null)
+  const [transportError, setTransportError]   = useState(false)
 
   useEffect(() => {
     if (!token) { setNotFound(true); setLoading(false); return }
@@ -92,6 +96,9 @@ export default function RSVPContent() {
           friday_night: data.stayRequest.friday_night || false,
           saturday_night: data.stayRequest.saturday_night || false,
         })
+        if (data.guest.transport_needed !== null) setTransportNeeded(data.guest.transport_needed)
+        if (data.guest.transport_from) setTransportFrom(data.guest.transport_from)
+        if (data.guest.transport_return !== null) setTransportReturn(data.guest.transport_return)
       })
       .finally(() => setLoading(false))
   }, [token])
@@ -103,6 +110,10 @@ export default function RSVPContent() {
     if (!token || !guest) return
     if (Object.keys(responses).length === 0) { setError('Please let us know if you can make it.'); return }
     if (plusOne && !plusOneName.trim()) { setError('Please enter your +1\'s name.'); return }
+    if (anyAttending && transportNeeded === null) { setTransportError(true); setError('Please let us know if you need transport.'); return }
+    if (anyAttending && transportNeeded === true && !transportFrom.trim()) { setTransportError(true); setError('Please let us know where you\'ll be travelling from.'); return }
+    if (anyAttending && transportNeeded === true && transportReturn === null) { setTransportError(true); setError('Please let us know if you need a return journey.'); return }
+    setTransportError(false)
 
     setIsSubmitting(true)
     setError('')
@@ -132,6 +143,9 @@ export default function RSVPContent() {
         notes: allNotes || null,
         plus_one_name: plusOne ? plusOneName : null,
         plus_one_email: null,
+        transport_needed: anyAttending ? transportNeeded : null,
+        transport_from: anyAttending && transportNeeded ? transportFrom : null,
+        transport_return: anyAttending && transportNeeded ? transportReturn : null,
       }),
     })
 
@@ -315,6 +329,70 @@ export default function RSVPContent() {
                   >{label}</button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Transport — only shown if attending anything */}
+          {anyAttending && (
+            <div style={{
+              borderTop: '2px solid var(--color-text)',
+              paddingTop: 28,
+              marginTop: 8,
+              border: transportError ? '2px solid #cc0000' : '2px solid var(--color-border)',
+              borderRadius: 'var(--radius-card)',
+              padding: 24,
+              background: transportError ? '#fff8f8' : 'var(--color-surface)',
+            }}>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase' as const, color: 'var(--color-label)', margin: '0 0 4px' }}>Transport</p>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: TEXT, margin: '0 0 20px', fontWeight: 500 }}>Do you need transport to the wedding?</p>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([true, false] as const).map(v => (
+                  <button
+                    key={String(v)} type="button"
+                    onClick={() => { setTransportNeeded(v); setTransportError(false); if (!v) { setTransportFrom(''); setTransportReturn(null) } }}
+                    style={{
+                      flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)', padding: '10px 16px',
+                      borderRadius: 'var(--radius-pill)', border: 'none', cursor: 'pointer',
+                      transition: 'background var(--transition), color var(--transition)',
+                      background: transportNeeded === v ? TEXT : 'var(--color-background)',
+                      color: transportNeeded === v ? '#fff' : TEXT,
+                    }}
+                  >{v ? 'Yes' : 'No'}</button>
+                ))}
+              </div>
+
+              {transportNeeded === true && (
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column' as const, gap: 20 }}>
+                  <div>
+                    <label style={labelStyle}>Where will you be travelling from?</label>
+                    <input
+                      type="text" value={transportFrom}
+                      onChange={e => { setTransportFrom(e.target.value); setTransportError(false) }}
+                      placeholder="e.g. Hotel name, city…"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, marginBottom: 8 }}>Do you need a return journey?</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {([true, false] as const).map(v => (
+                        <button
+                          key={String(v)} type="button"
+                          onClick={() => { setTransportReturn(v); setTransportError(false) }}
+                          style={{
+                            flex: 1, fontFamily: SANS, fontSize: 'var(--text-sm)', padding: '10px 16px',
+                            borderRadius: 'var(--radius-pill)', border: 'none', cursor: 'pointer',
+                            transition: 'background var(--transition), color var(--transition)',
+                            background: transportReturn === v ? TEXT : 'var(--color-background)',
+                            color: transportReturn === v ? '#fff' : TEXT,
+                          }}
+                        >{v ? 'Yes' : 'No'}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
