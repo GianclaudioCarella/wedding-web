@@ -232,7 +232,7 @@ export default function CommsPage() {
                 ))}
               </div>
               <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>
-                Click a placeholder to insert it at the cursor. Each guest receives their own values.
+                Click a placeholder to insert it at the cursor. Each guest receives their own values. Use <span style={{ fontFamily: 'monospace' }}>**bold**</span> to bold text.
               </p>
             </div>
 
@@ -540,7 +540,7 @@ export default function CommsPage() {
 /* ── BodyPreview: renders body text with {{placeholders}} highlighted ── */
 
 function BodyPreview({ text }: { text: string }) {
-  const parts = text.split(/(\{\{[^}]+\}\})/g)
+  const parts = text.split(/(\{\{[^}]+\}\}|\*\*[^*]+\*\*)/g)
   return (
     <div style={{ fontSize: 14, color: '#262626', lineHeight: 1.7, whiteSpace: 'pre-wrap' as const, fontFamily: 'inherit' }}>
       {parts.map((part, i) =>
@@ -548,6 +548,8 @@ function BodyPreview({ text }: { text: string }) {
           <mark key={i} style={{ background: '#fef9c3', color: '#854d0e', borderRadius: 3, padding: '0 2px', fontFamily: 'monospace', fontSize: 12 }}>
             {part}
           </mark>
+        ) : /^\*\*[^*]+\*\*$/.test(part) ? (
+          <strong key={i}>{part.slice(2, -2)}</strong>
         ) : (
           <span key={i}>{part}</span>
         )
