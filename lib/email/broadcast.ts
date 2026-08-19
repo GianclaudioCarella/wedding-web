@@ -1,13 +1,18 @@
 export function generateBroadcastHtml(
   body: string,
   firstName: string,
-  inviteUrl: string
+  inviteUrl: string,
+  transportUrl?: string
 ): string {
   const withValues = body
     .replace(/\{\{first_name\}\}/g, firstName)
     .replace(
       /\{\{invitation_link\}\}/g,
       `<a href="${inviteUrl}" style="color:#2D6B52;text-underline-offset:3px;">${inviteUrl}</a>`
+    )
+    .replace(
+      /\{\{transport_link\}\}/g,
+      transportUrl ? `<a href="${transportUrl}" style="color:#2D6B52;text-underline-offset:3px;">${transportUrl}</a>` : ''
     )
 
   const htmlBody = withValues
@@ -50,12 +55,14 @@ export function generateBroadcastHtml(
 export function generateBroadcastText(
   body: string,
   firstName: string,
-  inviteUrl: string
+  inviteUrl: string,
+  transportUrl?: string
 ): string {
   return (
     body
       .replace(/\{\{first_name\}\}/g, firstName)
-      .replace(/\{\{invitation_link\}\}/g, inviteUrl) +
+      .replace(/\{\{invitation_link\}\}/g, inviteUrl)
+      .replace(/\{\{transport_link\}\}/g, transportUrl ?? '') +
     '\n\nWith love,\nGian & Cat'
   )
 }
