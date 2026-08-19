@@ -518,10 +518,10 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
           {anyAttending && (
             <div style={{
               ...sectionStyle,
-              border: !transportAnswered ? '2px solid #cc0000' : '2px solid var(--color-border)',
               borderRadius: 12,
               padding: 24,
-              background: !transportAnswered ? '#fff8f8' : 'var(--color-surface)',
+              background: 'var(--color-surface)',
+              borderLeft: !transportAnswered ? '3px solid var(--color-green)' : '3px solid transparent',
             }}>
               <p style={{ fontFamily: SANS, fontSize: 'var(--text-xs)', letterSpacing: 'var(--tracking-widest)', textTransform: 'uppercase' as const, color: 'var(--color-label)', margin: '0 0 4px' }}>
                 {t.transportLabel}
