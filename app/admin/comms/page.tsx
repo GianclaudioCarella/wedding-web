@@ -213,6 +213,7 @@ export default function CommsPage() {
                 {[
                   { tag: '{{first_name}}',     hint: "Replaced with the guest's first name" },
                   { tag: '{{invitation_link}}', hint: 'Replaced with their personal invite URL' },
+                  { tag: '{{rsvp_link}}',       hint: 'Replaced with a direct link to their RSVP form' },
                 ].map(({ tag, hint }) => (
                   <button
                     key={tag}
