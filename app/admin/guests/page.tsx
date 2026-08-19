@@ -20,12 +20,18 @@ interface Guest {
   venue_stay_invited: boolean; invited_at: string | null; attending: string | null; events: string[];
   rsvps: Record<string, RsvpDetail>;
   stayRequest: StayRequest | null;
+  transport_needed: boolean | null;
+  transport_from: string | null;
+  transport_return: boolean | null;
 }
 
 const EMPTY_FORM = {
   name: '', email: '', phone: '', tags: [] as string[], language: 'en', notes: '',
   party_role: 'primary', party_leader_id: '', venue_stay_invited: false, attending: '',
   event_ids: [] as string[],
+  transport_needed: null as boolean | null,
+  transport_from: '',
+  transport_return: null as boolean | null,
 };
 
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
@@ -139,7 +145,11 @@ export default function GuestsPage() {
     setForm({ name: g.name, email: g.email || '', phone: g.phone || '',
       tags: g.tags || [], language: g.language, notes: g.notes || '', attending: g.attending || '',
       party_role: g.party_role || 'primary', party_leader_id: g.party_leader_id || '',
-      venue_stay_invited: g.venue_stay_invited || false, event_ids: g.events });
+      venue_stay_invited: g.venue_stay_invited || false, event_ids: g.events,
+      transport_needed: g.transport_needed ?? null,
+      transport_from: g.transport_from || '',
+      transport_return: g.transport_return ?? null,
+    });
     setEditingId(g.id); setShowForm(true);
   };
 
@@ -153,6 +163,9 @@ export default function GuestsPage() {
         attending: form.attending || null,
         party_role: form.party_role, party_leader_id: form.party_leader_id || null,
         venue_stay_invited: form.venue_stay_invited,
+        transport_needed: form.transport_needed ?? null,
+        transport_from: form.transport_needed ? (form.transport_from || null) : null,
+        transport_return: form.transport_needed ? (form.transport_return ?? null) : null,
       };
       if (editingId) {
         // Update primary guest
@@ -309,7 +322,7 @@ export default function GuestsPage() {
 
   const exportCSV = () => {
     const eventNames = events.map(e => (e.name as any)?.en || 'Event');
-    const headers = ['Name', 'Email', 'Tags', ...eventNames, 'Dietary', 'Dietary Notes', 'Stay Nights', 'Notes'];
+    const headers = ['Name', 'Email', 'Tags', ...eventNames, 'Dietary', 'Dietary Notes', 'Stay Nights', 'Transport', 'From', 'Return Journey', 'Notes'];
 
     const rows = sortedFiltered.map(g => {
       const allDietary = [...new Set(
@@ -331,6 +344,9 @@ export default function GuestsPage() {
         allDietary.join(', '),
         allDietaryNotes,
         stayNightsList.join(', '),
+        g.transport_needed ? 'Yes' : '',
+        g.transport_from || '',
+        g.transport_return ? 'Yes' : '',
         g.notes || '',
       ].map(v => `"${String(v).replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`).join(',');
     });
@@ -428,6 +444,7 @@ export default function GuestsPage() {
                   ))}
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Dietary restrictions">Dietary</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Staying at venue">Stay</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Transport needs">Transport</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="RSVP notes and status">Notes / RSVP</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Formal invitation sent">Invited</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Invitation link">Link</th>
@@ -528,6 +545,18 @@ export default function GuestsPage() {
                           : guest.stayRequest
                           ? <span className="text-gray-500">Not staying</span>
                           : <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>Pending</span>}
+                      </td>
+
+                      {/* Transport */}
+                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                        {guest.transport_needed === true
+                          ? <div>
+                              <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>Needs lift</span>
+                              {guest.transport_from && <p className="text-gray-500 mt-0.5">{guest.transport_from}</p>}
+                              {guest.transport_return && <p className="text-gray-400 mt-0.5 italic">+ return</p>}
+                            </div>
+                          : <span className="text-gray-300">—</span>
+                        }
                       </td>
 
                       {/* Notes */}
@@ -737,6 +766,26 @@ export default function GuestsPage() {
                   </label>
                 </div>
               )}
+              {/* Transport */}
+              <div className="border border-gray-100 rounded-lg p-3 space-y-3">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Transport</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.transport_needed === true} onChange={e => setForm(f => ({ ...f, transport_needed: e.target.checked ? true : null, transport_from: '', transport_return: null }))} className="rounded border-gray-300" />
+                  <span className="text-sm text-gray-700">Needs transport to wedding</span>
+                </label>
+                {form.transport_needed && (
+                  <>
+                    <Field label="From where?">
+                      <input type="text" value={form.transport_from} onChange={e => setForm(f => ({ ...f, transport_from: e.target.value }))} placeholder="e.g. Hotel name, city…" className="input" />
+                    </Field>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={form.transport_return === true} onChange={e => setForm(f => ({ ...f, transport_return: e.target.checked ? true : null }))} className="rounded border-gray-300" />
+                      <span className="text-sm text-gray-700">Needs return journey</span>
+                    </label>
+                  </>
+                )}
+              </div>
+
               <Field label="Admin notes"><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="input resize-none" rows={2} placeholder="Accessibility, internal reminders…" /></Field>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex justify-between gap-3 sticky bottom-0 bg-white">
@@ -1020,6 +1069,18 @@ export default function GuestsPage() {
                   <p className="text-sm text-gray-600 mt-2 italic">{viewingGuest.save_the_date_notes}</p>
                 )}
               </div>
+
+              {/* Transport */}
+              {viewingGuest.transport_needed && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Transport</p>
+                  <div className="text-sm border border-gray-100 rounded p-3 space-y-1">
+                    <p className="text-gray-900">Needs transport to wedding</p>
+                    {viewingGuest.transport_from && <p className="text-xs text-gray-500">From: {viewingGuest.transport_from}</p>}
+                    {viewingGuest.transport_return && <p className="text-xs text-gray-500">Needs return journey</p>}
+                  </div>
+                </div>
+              )}
 
               {/* Notes */}
               {viewingGuest.notes && (
