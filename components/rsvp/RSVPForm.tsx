@@ -497,11 +497,11 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
 
           {/* Transport */}
           {anyAttending && (
-            <div style={sectionStyle}>
-              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: 0, marginBottom: 4, fontWeight: 400 }}>
+            <div style={{ ...sectionStyle, background: 'var(--color-surface)', borderRadius: 12, padding: 24 }}>
+              <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 20px', fontWeight: 400 }}>
                 {t.transportLabel}
               </p>
-              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: 0, marginBottom: 16, lineHeight: 'var(--leading-normal)' }}>
+              <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: '0 0 8px', lineHeight: 'var(--leading-normal)' }}>
                 {t.transportNeeded}
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -509,7 +509,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                   <button
                     key={String(v)} type="button"
                     onClick={() => { setTransportNeeded(v); if (!v) { setTransportFrom(''); setTransportReturn(null); } }}
-                    style={toggleBtn(transportNeeded === v)}
+                    style={{ ...toggleBtn(transportNeeded === v), background: transportNeeded === v ? 'var(--color-pink)' : 'var(--color-bg)' }}
                   >{v ? t.transportYes : t.transportNo}</button>
                 ))}
               </div>
@@ -517,18 +517,18 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
               {transportNeeded === true && (
                 <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column' as const, gap: 20 }}>
                   <div>
-                    <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 8px', fontWeight: 400 }}>
+                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: '0 0 8px', lineHeight: 'var(--leading-normal)' }}>
                       {t.transportFrom}
                     </p>
                     <input
                       type="text" value={transportFrom}
                       onChange={e => setTransportFrom(e.target.value)}
                       placeholder={t.transportFromPlaceholder}
-                      style={{ ...inputStyle, resize: undefined }}
+                      style={{ ...inputStyle, resize: undefined, background: 'var(--color-bg)' }}
                     />
                   </div>
                   <div>
-                    <p style={{ fontFamily: SERIF, fontSize: 'var(--text-lg)', color: TEXT, margin: '0 0 16px', fontWeight: 400 }}>
+                    <p style={{ fontFamily: SANS, fontSize: 'var(--text-sm)', color: MUTED, margin: '0 0 8px', lineHeight: 'var(--leading-normal)' }}>
                       {t.transportReturn}
                     </p>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -536,7 +536,7 @@ export default function RSVPForm({ locale = 'en' }: { locale?: string }) {
                         <button
                           key={String(v)} type="button"
                           onClick={() => setTransportReturn(v)}
-                          style={toggleBtn(transportReturn === v)}
+                          style={{ ...toggleBtn(transportReturn === v), background: transportReturn === v ? 'var(--color-pink)' : 'var(--color-bg)' }}
                         >{v ? t.transportYes : t.transportNo}</button>
                       ))}
                     </div>
