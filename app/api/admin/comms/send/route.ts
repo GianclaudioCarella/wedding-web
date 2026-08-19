@@ -32,13 +32,14 @@ export async function POST(request: NextRequest) {
     const locale = guest.language || 'en'
     const localePath = locale === 'en' ? '' : `/${locale}`
     const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
+    const rsvpUrl = `${baseUrl}${localePath}/rsvp?guest=${guest.invite_token}`
 
     try {
       await sendEmail({
         to: guest.email,
         subject,
-        html: generateBroadcastHtml(body, firstName, inviteUrl),
-        text: generateBroadcastText(body, firstName, inviteUrl),
+        html: generateBroadcastHtml(body, firstName, inviteUrl, rsvpUrl),
+        text: generateBroadcastText(body, firstName, inviteUrl, rsvpUrl),
       })
       sent++
       sentNames.push(guest.name)
