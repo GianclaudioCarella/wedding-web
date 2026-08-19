@@ -20,6 +20,9 @@ interface Guest {
   venue_stay_invited: boolean; invited_at: string | null; attending: string | null; events: string[];
   rsvps: Record<string, RsvpDetail>;
   stayRequest: StayRequest | null;
+  transport_needed: boolean | null;
+  transport_from: string | null;
+  transport_brunch: boolean | null;
 }
 
 const EMPTY_FORM = {
@@ -428,6 +431,7 @@ export default function GuestsPage() {
                   ))}
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Dietary restrictions">Dietary</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Staying at venue">Stay</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Transport needs">Transport</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="RSVP notes and status">Notes / RSVP</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Formal invitation sent">Invited</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 whitespace-nowrap" title="Invitation link">Link</th>
@@ -528,6 +532,20 @@ export default function GuestsPage() {
                           : guest.stayRequest
                           ? <span className="text-gray-500">Not staying</span>
                           : <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>Pending</span>}
+                      </td>
+
+                      {/* Transport */}
+                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                        {guest.transport_needed === null
+                          ? <span className="text-gray-300">—</span>
+                          : guest.transport_needed === false
+                          ? <span className="text-gray-400">No</span>
+                          : <div>
+                              <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>Yes</span>
+                              {guest.transport_from && <p className="text-gray-500 mt-0.5">{guest.transport_from}</p>}
+                              {guest.transport_brunch && <p className="text-gray-400 mt-0.5 italic">+ brunch</p>}
+                            </div>
+                        }
                       </td>
 
                       {/* Notes */}
@@ -1020,6 +1038,20 @@ export default function GuestsPage() {
                   <p className="text-sm text-gray-600 mt-2 italic">{viewingGuest.save_the_date_notes}</p>
                 )}
               </div>
+
+              {/* Transport */}
+              {viewingGuest.transport_needed !== null && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase mb-2">Transport</p>
+                  <div className="text-sm border border-gray-100 rounded p-3 space-y-1">
+                    <p className="text-gray-900">{viewingGuest.transport_needed ? 'Needs transport to wedding' : 'No transport needed'}</p>
+                    {viewingGuest.transport_from && <p className="text-xs text-gray-500">From: {viewingGuest.transport_from}</p>}
+                    {viewingGuest.transport_brunch !== null && (
+                      <p className="text-xs text-gray-500">Sunday brunch: {viewingGuest.transport_brunch ? 'Yes' : 'No'}</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Notes */}
               {viewingGuest.notes && (
