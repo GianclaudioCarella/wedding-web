@@ -27,13 +27,8 @@ export function generateBroadcastHtml(
 
   return `<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="margin:0;padding:24px 16px;font-family:Georgia,serif;font-size:15px;color:#262626;line-height:1.7;max-width:520px;">
-  ${htmlBody}
-</body>
+<head><meta charset="utf-8"></head>
+<body>${htmlBody}</body>
 </html>`
 }
 
