@@ -25,12 +25,11 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hideDeclined, setHideDeclined] = useState(true);
-
-  useEffect(() => {
+  const [hideDeclined, setHideDeclined] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
     const stored = localStorage.getItem('hideDeclined');
-    if (stored !== null) setHideDeclined(stored === 'true');
-  }, []);
+    return stored === null ? true : stored === 'true';
+  });
 
   const toggleHideDeclined = (val: boolean) => {
     setHideDeclined(val);
