@@ -70,6 +70,16 @@ export default function GuestsPage() {
   const [groupFilter, setGroupFilter]   = useState<string[]>([]);
   const [rsvpFilter, setRsvpFilter]     = useState('');
   const [hideDeclined, setHideDeclined] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('hideDeclined');
+    if (stored !== null) setHideDeclined(stored === 'true');
+  }, []);
+
+  const toggleHideDeclined = (val: boolean) => {
+    setHideDeclined(val);
+    localStorage.setItem('hideDeclined', String(val));
+  };
   const [showForm, setShowForm]         = useState(false);
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [editingId, setEditingId]       = useState<string | null>(null);
@@ -400,7 +410,7 @@ export default function GuestsPage() {
       <div className="flex gap-3 mb-5 flex-wrap items-center">
         <input type="text" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-64 focus:outline-none focus:border-gray-400" />
         <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
-          <input type="checkbox" checked={hideDeclined} onChange={e => setHideDeclined(e.target.checked)} className="rounded border-gray-300" />
+          <input type="checkbox" checked={hideDeclined} onChange={e => toggleHideDeclined(e.target.checked)} className="rounded border-gray-300" />
           Hide declined
         </label>
 
