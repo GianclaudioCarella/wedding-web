@@ -299,7 +299,7 @@ export default function GuestsPage() {
     const matchTag    = groupFilter.length === 0 || (g.tags || []).some(t => groupFilter.includes(t));
     const hasRsvp     = Object.values(g.rsvps).some(r => r.status);
     const isAttending = Object.values(g.rsvps).some(r => r.status === 'attending');
-    const isDeclined  = Object.values(g.rsvps).every(r => !r.status || r.status === 'declined') && Object.values(g.rsvps).some(r => r.status === 'declined');
+    const isDeclined  = (Object.values(g.rsvps).every(r => !r.status || r.status === 'declined') && Object.values(g.rsvps).some(r => r.status === 'declined')) || (g.attending === 'no' && Object.keys(g.rsvps).length === 0);
     const matchRsvp   = !rsvpFilter
       || (rsvpFilter === 'responded' && hasRsvp)
       || (rsvpFilter === 'pending'   && !hasRsvp)
@@ -318,7 +318,7 @@ export default function GuestsPage() {
       result.push(p);
       // Always include all party members of a matching primary, regardless of filter (unless hidden)
       if (showAllGuests) {
-        result.push(...guests.filter(g => g.party_leader_id === p.id));
+        result.push(...filtered.filter(g => g.party_leader_id === p.id));
       }
     }
     // Party members whose primary didn't match the filter — still include them if they matched (and shown)
