@@ -41,7 +41,7 @@ export default function AdminDashboard() {
 
   const fetchDashboard = async () => {
     const [guestsRes, rsvpRes, geRes, eventsRes, roomsRes, assignRes] = await Promise.all([
-      supabase.from('guests').select('id, invited_at, email'),
+      supabase.from('guests').select('id, invited_at, email, attending'),
       supabase.from('rsvp_responses').select('guest_id, event_id, status'),
       supabase.from('guest_events').select('guest_id, event_id'),
       supabase.from('events').select('id, name, event_date, event_time, sort_order').order('sort_order'),
@@ -57,13 +57,25 @@ export default function AdminDashboard() {
     const respondedGuestIds  = new Set(rsvps.map(r => r.guest_id));
     const attendingGuestIds  = new Set(rsvps.filter(r => r.status === 'attending').map(r => r.guest_id));
 
+    const guestRsvpStatuses: Record<string, string[]> = {};
+    for (const r of rsvps) {
+      if (!guestRsvpStatuses[r.guest_id]) guestRsvpStatuses[r.guest_id] = [];
+      guestRsvpStatuses[r.guest_id].push(r.status);
+    }
+    const declinedGuestIds = new Set(guests.filter(g => {
+      const statuses = guestRsvpStatuses[g.id] || [];
+      const allRsvpDeclined = statuses.length > 0 && statuses.every(s => !s || s === 'declined') && statuses.some(s => s === 'declined');
+      const saveTheDateDeclined = g.attending === 'no' && statuses.length === 0;
+      return allRsvpDeclined || saveTheDateDeclined;
+    }).map(g => g.id));
+
     const summary: Summary = {
       totalGuests:    guests.length,
       invitedCount:   guests.filter(g => g.invited_at).length,
       responding:     respondedGuestIds.size,
       attending:      attendingGuestIds.size,
-      declined:       guests.filter(g => respondedGuestIds.has(g.id) && !attendingGuestIds.has(g.id)).length,
-      pending:        guests.filter(g => !respondedGuestIds.has(g.id)).length,
+      declined:       declinedGuestIds.size,
+      pending:        guests.filter(g => !respondedGuestIds.has(g.id) && !declinedGuestIds.has(g.id)).length,
       roomsFilled:    assignRes.count || 0,
       roomsTotal:     (roomsRes.data || []).reduce((s, r) => s + (r.capacity || 0), 0),
       unsentWithEmail: guests.filter(g => g.email && !g.invited_at).length,
@@ -121,7 +133,6 @@ export default function AdminDashboard() {
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">Total guests</p>
               <p className="text-3xl font-semibold text-gray-900">{displayTotal}</p>
-              <p className="text-xs text-gray-400 mt-1">{summary.invitedCount} invited</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">Attending</p>
