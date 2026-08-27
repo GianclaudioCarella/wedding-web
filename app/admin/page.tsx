@@ -89,8 +89,9 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
-  const responseRate = summary && summary.totalGuests > 0
-    ? Math.round((summary.responding / summary.totalGuests) * 100)
+  const displayTotal = summary ? summary.totalGuests - (hideDeclined ? summary.declined : 0) : 0;
+  const responseRate = displayTotal > 0
+    ? Math.round((summary!.responding / displayTotal) * 100)
     : 0;
 
   return (
@@ -119,7 +120,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">Total guests</p>
-              <p className="text-3xl font-semibold text-gray-900">{summary.totalGuests}</p>
+              <p className="text-3xl font-semibold text-gray-900">{displayTotal}</p>
               <p className="text-xs text-gray-400 mt-1">{summary.invitedCount} invited</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
@@ -130,7 +131,7 @@ export default function AdminDashboard() {
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">No response</p>
               <p className="text-3xl font-semibold text-amber-500">{summary.pending}</p>
-              <p className="text-xs text-gray-400 mt-1">of {summary.totalGuests} guests</p>
+              <p className="text-xs text-gray-400 mt-1">of {displayTotal} guests</p>
             </div>
           </div>
 
