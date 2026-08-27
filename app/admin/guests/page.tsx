@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-interface Event { id: string; name: string; sort_order: number }
+interface Event { id: string; name: string; sort_order: number; slug: string | null }
 interface RsvpDetail {
   event_id: string; status: string;
   dietary_requirements: string[] | null;
@@ -114,7 +114,7 @@ export default function GuestsPage() {
     setLoading(true);
     const [guestsRes, eventsRes, geRes, rsvpRes, stayRes] = await Promise.all([
       supabase.from('guests').select('*').order('name'),
-      supabase.from('events').select('id, name, sort_order').order('sort_order'),
+      supabase.from('events').select('id, name, sort_order, slug').order('sort_order'),
       supabase.from('guest_events').select('guest_id, event_id'),
       supabase.from('rsvp_responses').select('guest_id, event_id, status, dietary_requirements, dietary_notes, notes'),
       supabase.from('guest_stay_requests').select('guest_id, sunday_night, friday_night, saturday_night'),
@@ -143,7 +143,7 @@ export default function GuestsPage() {
     setLoading(false);
   };
 
-  const ceremonyEvent = events.find(e => ((e.name as any)?.en || '').toLowerCase().includes('ceremon')) || events[0];
+  const ceremonyEvent = events.find(e => e.slug === 'wedding') || events.find(e => ((e.name as any)?.en || '').toLowerCase().includes('wedding')) || events[0];
   const extraEvents   = events.filter(e => e.id !== ceremonyEvent?.id);
 
   const openNew  = () => {
@@ -298,7 +298,8 @@ export default function GuestsPage() {
     const matchTag    = groupFilter.length === 0 || (g.tags || []).some(t => groupFilter.includes(t));
     const hasRsvp     = Object.values(g.rsvps).some(r => r.status);
     const isAttending = Object.values(g.rsvps).some(r => r.status === 'attending');
-    const isDeclined  = (Object.values(g.rsvps).every(r => !r.status || r.status === 'declined') && Object.values(g.rsvps).some(r => r.status === 'declined')) || (g.attending === 'no' && Object.keys(g.rsvps).length === 0);
+    const weddingRsvp = ceremonyEvent ? g.rsvps[ceremonyEvent.id] : null;
+    const isDeclined  = weddingRsvp?.status === 'declined' || (!weddingRsvp && g.attending === 'no');
     const matchRsvp   = !rsvpFilter
       || (rsvpFilter === 'responded' && hasRsvp)
       || (rsvpFilter === 'pending'   && !hasRsvp)
