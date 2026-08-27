@@ -69,6 +69,7 @@ export default function GuestsPage() {
   const [search, setSearch]             = useState('');
   const [groupFilter, setGroupFilter]   = useState<string[]>([]);
   const [rsvpFilter, setRsvpFilter]     = useState('');
+  const [hideDeclined, setHideDeclined] = useState(true);
   const [showForm, setShowForm]         = useState(false);
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [editingId, setEditingId]       = useState<string | null>(null);
@@ -294,7 +295,8 @@ export default function GuestsPage() {
       || (rsvpFilter === 'pending'   && !hasRsvp)
       || (rsvpFilter === 'attending' && isAttending)
       || (rsvpFilter === 'declined'  && isDeclined);
-    return matchSearch && matchTag && matchRsvp;
+    const matchDeclined = !hideDeclined || !isDeclined;
+    return matchSearch && matchTag && matchRsvp && matchDeclined;
   });
 
   // Sort so party members always appear directly below their primary guest,
@@ -397,6 +399,10 @@ export default function GuestsPage() {
 
       <div className="flex gap-3 mb-5 flex-wrap items-center">
         <input type="text" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-64 focus:outline-none focus:border-gray-400" />
+        <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
+          <input type="checkbox" checked={hideDeclined} onChange={e => setHideDeclined(e.target.checked)} className="rounded border-gray-300" />
+          Hide declined
+        </label>
 
         <div className="flex flex-wrap gap-2">
           {tags.map(tag => (
