@@ -25,6 +25,17 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hideDeclined, setHideDeclined] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('hideDeclined');
+    if (stored !== null) setHideDeclined(stored === 'true');
+  }, []);
+
+  const toggleHideDeclined = (val: boolean) => {
+    setHideDeclined(val);
+    localStorage.setItem('hideDeclined', String(val));
+  };
 
   useEffect(() => { fetchDashboard(); }, []);
 
@@ -87,13 +98,19 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gian &amp; Cat · Saturday 4 October 2026</p>
+          <p className="text-sm text-gray-500 mt-0.5">Gian &amp; Cat · Saturday 3 October 2026</p>
         </div>
-        {summary && summary.unsentWithEmail > 0 && (
-          <Link href="/admin/guests" className="border border-gray-200 text-sm text-gray-700 font-medium px-4 py-2 rounded-md hover:bg-gray-50">
-            {summary.unsentWithEmail} unsent invite{summary.unsentWithEmail !== 1 ? 's' : ''} →
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
+            <input type="checkbox" checked={hideDeclined} onChange={e => toggleHideDeclined(e.target.checked)} className="rounded border-gray-300" />
+            Hide declined
+          </label>
+          {summary && summary.unsentWithEmail > 0 && (
+            <Link href="/admin/guests" className="border border-gray-200 text-sm text-gray-700 font-medium px-4 py-2 rounded-md hover:bg-gray-50">
+              {summary.unsentWithEmail} unsent invite{summary.unsentWithEmail !== 1 ? 's' : ''} →
+            </Link>
+          )}
+        </div>
       </div>
 
       {loading ? <p className="text-sm text-gray-400">Loading…</p> : summary && (
@@ -108,7 +125,7 @@ export default function AdminDashboard() {
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">Attending</p>
               <p className="text-3xl font-semibold text-green-600">{summary.attending}</p>
-              <p className="text-xs text-gray-400 mt-1">{summary.declined} declined</p>
+              {!hideDeclined && <p className="text-xs text-gray-400 mt-1">{summary.declined} declined</p>}
             </div>
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
               <p className="text-xs text-gray-500 mb-1">No response</p>
@@ -134,7 +151,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex gap-4 mt-3">
               <span className="text-xs text-green-600">{summary.attending} attending</span>
-              <span className="text-xs text-red-500">{summary.declined} declined</span>
+              {!hideDeclined && <span className="text-xs text-red-500">{summary.declined} declined</span>}
               <span className="text-xs text-amber-500">{summary.pending} pending</span>
             </div>
           </div>
@@ -149,7 +166,7 @@ export default function AdminDashboard() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Date</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-500">Invited</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-500 text-green-600">Attending</th>
-                  <th className="text-center px-4 py-3 font-medium text-gray-500 text-red-500">Declined</th>
+                  {!hideDeclined && <th className="text-center px-4 py-3 font-medium text-gray-500 text-red-500">Declined</th>}
                   <th className="text-center px-4 py-3 font-medium text-gray-500 text-amber-500">Pending</th>
                 </tr>
               </thead>
@@ -162,7 +179,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3 text-center text-gray-700">{e.invited}</td>
                     <td className="px-4 py-3 text-center text-green-600 font-medium">{e.attending}</td>
-                    <td className="px-4 py-3 text-center text-red-500">{e.declined}</td>
+                    {!hideDeclined && <td className="px-4 py-3 text-center text-red-500">{e.declined}</td>}
                     <td className="px-4 py-3 text-center text-amber-500">{e.pending}</td>
                   </tr>
                 ))}
