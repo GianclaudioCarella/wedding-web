@@ -16,6 +16,10 @@ export default function TransportPage() {
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [guestSearch, setGuestSearch] = useState('');
   const [addingGuestId, setAddingGuestId] = useState<string | null>(null);
+  const [requestSearch, setRequestSearch] = useState('');
+  const [onlyUnassigned, setOnlyUnassigned] = useState(false);
+  const [assigningRequestId, setAssigningRequestId] = useState<string | null>(null);
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -23,7 +27,7 @@ export default function TransportPage() {
     const [optRes, signRes, gRes, rsvpRes] = await Promise.all([
       supabase.from('transport_options').select('*').order('sort_order'),
       supabase.from('guest_transport').select('*, guests(name)'),
-      supabase.from('guests').select('id, name').order('name'),
+      supabase.from('guests').select('id, name, party_role, party_leader_id, transport_needed, transport_from, transport_return').order('name'),
       supabase.from('rsvp_responses').select('guest_id, status'),
     ]);
     setOptions(optRes.data || []);
@@ -43,6 +47,23 @@ export default function TransportPage() {
   const removeGuest = async (signupId: string) => {
     await supabase.from('guest_transport').delete().eq('id', signupId);
     await fetchAll();
+  };
+
+  const copyTransportFromPrimary = async (companionId: string, primary: any) => {
+    setReviewBusyId(companionId);
+    await supabase.from('guests').update({
+      transport_needed: true,
+      transport_from: primary.transport_from,
+      transport_return: primary.transport_return,
+    }).eq('id', companionId);
+    await fetchAll();
+    setReviewBusyId(null);
+  };
+  const markCompanionNoTransport = async (companionId: string) => {
+    setReviewBusyId(companionId);
+    await supabase.from('guests').update({ transport_needed: false, transport_from: null, transport_return: null }).eq('id', companionId);
+    await fetchAll();
+    setReviewBusyId(null);
   };
 
   const save = async () => {
@@ -80,6 +101,27 @@ export default function TransportPage() {
   const directionLabel: Record<string, string> = { to_venue: 'To venue', from_venue: 'From venue', both: 'Both ways' };
   const directionColor: Record<string, string> = { to_venue: 'bg-blue-50 text-blue-700', from_venue: 'bg-purple-50 text-purple-700', both: 'bg-green-50 text-green-700' };
 
+  const activeOptions = options.filter(o => o.is_active);
+  const getSignupsFor = (guestId: string) => signups.filter(s => s.guest_id === guestId);
+  const requestedGuests = guests
+    .filter(g => g.transport_needed === true)
+    .filter(g => g.name.toLowerCase().includes(requestSearch.toLowerCase()))
+    .filter(g => !onlyUnassigned || getSignupsFor(g.id).length === 0);
+  const unassignedCount = guests.filter(g => g.transport_needed === true && getSignupsFor(g.id).length === 0).length;
+
+  const guestsById = new Map(guests.map(g => [g.id, g]));
+  const needsReview = guests.filter(g => {
+    if (!g.party_leader_id) return false;
+    const primary = guestsById.get(g.party_leader_id);
+    return primary?.transport_needed === true && g.transport_needed !== true && g.transport_needed !== false;
+  });
+
+  const assignFromRequest = async (optionId: string, guestId: string) => {
+    setAssigningRequestId(guestId);
+    await addGuest(optionId, guestId);
+    setAssigningRequestId(null);
+  };
+
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -91,6 +133,104 @@ export default function TransportPage() {
       </div>
 
       {loading ? <p className="text-sm text-gray-400">Loading…</p> : (
+        <>
+        {needsReview.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 mb-6">
+            <h2 className="font-semibold text-amber-900 mb-1">Party members to review ({needsReview.length})</h2>
+            <p className="text-xs text-amber-700 mb-3">Their travel companion needs transport, but they don't have an answer yet — new RSVPs copy this automatically, these are from before that.</p>
+            <div className="space-y-1.5">
+              {needsReview.map(g => {
+                const primary = guestsById.get(g.party_leader_id);
+                return (
+                  <div key={g.id} className="flex items-center justify-between gap-3 text-sm bg-white border border-amber-100 rounded-md px-3 py-2">
+                    <div className="min-w-0">
+                      <span className="font-medium text-gray-900">{g.name}</span>
+                      <span className="text-gray-500"> · travels with {primary?.name}{primary?.transport_from ? ` (from ${primary.transport_from})` : ''}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => copyTransportFromPrimary(g.id, primary)}
+                        disabled={reviewBusyId === g.id}
+                        className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded hover:bg-gray-700 disabled:opacity-40"
+                      >{reviewBusyId === g.id ? '…' : `Same as ${primary?.name}`}</button>
+                      <button
+                        onClick={() => markCompanionNoTransport(g.id)}
+                        disabled={reviewBusyId === g.id}
+                        className="text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded hover:bg-gray-50 disabled:opacity-40"
+                      >Doesn't need it</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+          <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
+            <div>
+              <h2 className="font-semibold text-gray-900">Requested transport ({requestedGuests.length}{requestSearch || onlyUnassigned ? ` of ${guests.filter(g => g.transport_needed === true).length}` : ''})</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{unassignedCount} without an option yet</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
+                <input type="checkbox" checked={onlyUnassigned} onChange={e => setOnlyUnassigned(e.target.checked)} className="rounded border-gray-300" />
+                Only unassigned
+              </label>
+              <input
+                type="text"
+                value={requestSearch}
+                onChange={e => setRequestSearch(e.target.value)}
+                placeholder="Search…"
+                className="input"
+                style={{ width: 200 }}
+              />
+            </div>
+          </div>
+
+          {requestedGuests.length === 0 ? (
+            <p className="text-xs text-gray-400">
+              {guests.filter(g => g.transport_needed === true).length === 0 ? 'No guests have requested transport yet.' : 'No guests match.'}
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {requestedGuests.map(g => {
+                const guestSignups = getSignupsFor(g.id);
+                return (
+                  <div key={g.id} className="flex items-center justify-between gap-3 text-sm border-b border-gray-50 last:border-0 py-1.5">
+                    <div className="min-w-0">
+                      <span className="font-medium text-gray-900">{g.name}</span>
+                      {g.transport_from && <span className="text-gray-500"> · from {g.transport_from}</span>}
+                      <span className="text-gray-400"> · return: {g.transport_return ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {guestSignups.map(s => {
+                        const opt = options.find(o => o.id === s.transport_option_id);
+                        return (
+                          <span key={s.id} className="text-xs bg-gray-100 text-gray-700 rounded pl-2 pr-1 py-1 flex items-center gap-1.5 whitespace-nowrap">
+                            {opt?.name || 'Option'}
+                            <button onClick={() => removeGuest(s.id)} className="text-gray-400 hover:text-red-500 leading-none">×</button>
+                          </span>
+                        );
+                      })}
+                      {guestSignups.length === 0 && (
+                        <select
+                          value=""
+                          disabled={assigningRequestId === g.id}
+                          onChange={e => { if (e.target.value) assignFromRequest(e.target.value, g.id); }}
+                          className="text-xs border border-amber-200 bg-amber-50 text-amber-800 rounded px-2 py-1.5 disabled:opacity-40"
+                        >
+                          <option value="">{assigningRequestId === g.id ? 'Adding…' : 'Add to option…'}</option>
+                          {activeOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <div className="space-y-4">
           {options.map(opt => {
             const optSignups = signups.filter(s => s.transport_option_id === opt.id);
@@ -178,6 +318,7 @@ export default function TransportPage() {
           })}
           {options.length === 0 && <p className="text-sm text-gray-400">No transport options yet.</p>}
         </div>
+        </>
       )}
 
       {showModal && (

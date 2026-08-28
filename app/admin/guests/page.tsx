@@ -29,6 +29,7 @@ const EMPTY_FORM = {
   name: '', email: '', phone: '', tags: [] as string[], language: 'en', notes: '',
   party_role: 'primary', party_leader_id: '', venue_stay_invited: false, attending: '',
   event_ids: [] as string[],
+  rsvp_status: {} as Record<string, string>,
   transport_needed: null as boolean | null,
   transport_from: '',
   transport_return: null as boolean | null,
@@ -156,10 +157,13 @@ export default function GuestsPage() {
     setEditingId(null); setShowForm(true);
   };
   const openEdit = (g: Guest) => {
+    const rsvpStatus: Record<string, string> = {};
+    for (const eid of g.events) rsvpStatus[eid] = g.rsvps[eid]?.status || 'pending';
     setForm({ name: g.name, email: g.email || '', phone: g.phone || '',
       tags: g.tags || [], language: g.language, notes: g.notes || '', attending: g.attending || '',
       party_role: g.party_role || 'primary', party_leader_id: g.party_leader_id || '',
       venue_stay_invited: g.venue_stay_invited || false, event_ids: g.events,
+      rsvp_status: rsvpStatus,
       transport_needed: g.transport_needed ?? null,
       transport_from: g.transport_from || '',
       transport_return: g.transport_return ?? null,
@@ -189,6 +193,20 @@ export default function GuestsPage() {
         await supabase.from('guest_events').delete().eq('guest_id', editingId);
         if (form.event_ids.length > 0)
           await supabase.from('guest_events').insert(form.event_ids.map(eid => ({ guest_id: editingId, event_id: eid })));
+
+        // Update RSVP statuses for invited events (requires service role, so goes through the API)
+        if (form.event_ids.length > 0) {
+          const statuses: Record<string, string> = {};
+          for (const eid of form.event_ids) statuses[eid] = form.rsvp_status[eid] || 'pending';
+          const rsvpResponse = await fetch('/api/admin/update-rsvp-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guest_id: editingId, statuses }),
+          });
+          if (!rsvpResponse.ok) {
+            console.error('Failed to update RSVP status');
+          }
+        }
 
         // Sync party members' events if this is a primary guest
         if (form.party_role === 'primary') {
@@ -775,10 +793,23 @@ export default function GuestsPage() {
                 <div className="border border-gray-100 rounded-lg p-3 space-y-2">
                   <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Events</p>
                   {events.map(e => (
-                    <label key={e.id} className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={form.event_ids.includes(e.id)} onChange={ev => setForm(f => ({ ...f, event_ids: ev.target.checked ? [...f.event_ids, e.id] : f.event_ids.filter(id => id !== e.id) }))} className="rounded border-gray-300" />
-                      <span className="text-sm text-gray-700">{(e.name as any)?.en || 'Event'}</span>
-                    </label>
+                    <div key={e.id} className="flex items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={form.event_ids.includes(e.id)} onChange={ev => setForm(f => ({ ...f, event_ids: ev.target.checked ? [...f.event_ids, e.id] : f.event_ids.filter(id => id !== e.id) }))} className="rounded border-gray-300" />
+                        <span className="text-sm text-gray-700">{(e.name as any)?.en || 'Event'}</span>
+                      </label>
+                      {form.event_ids.includes(e.id) && (
+                        <select
+                          value={form.rsvp_status[e.id] || 'pending'}
+                          onChange={ev => setForm(f => ({ ...f, rsvp_status: { ...f.rsvp_status, [e.id]: ev.target.value } }))}
+                          className="text-xs border border-gray-200 rounded px-2 py-1"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="attending">Attending</option>
+                          <option value="declined">Declined</option>
+                        </select>
+                      )}
+                    </div>
                   ))}
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={form.venue_stay_invited} onChange={e => setForm(f => ({ ...f, venue_stay_invited: e.target.checked }))} className="rounded border-gray-300" />

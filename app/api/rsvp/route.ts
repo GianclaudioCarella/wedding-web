@@ -184,6 +184,24 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin.from('guests').update(guestUpdate).eq('id', guest.id)
   }
 
+  // Replicate transport answer to party members — they travel together
+  if (transport_needed !== undefined) {
+    const { data: partyMembersForTransport } = await supabaseAdmin
+      .from('guests')
+      .select('id')
+      .eq('party_leader_id', guest.id)
+    if (partyMembersForTransport?.length) {
+      const transportUpdate = {
+        transport_needed: transport_needed ?? null,
+        transport_from: transport_needed ? (transport_from || null) : null,
+        transport_return: transport_needed ? (transport_return ?? null) : null,
+      }
+      for (const member of partyMembersForTransport) {
+        await supabaseAdmin.from('guests').update(transportUpdate).eq('id', member.id)
+      }
+    }
+  }
+
   // Auto-create +1 as a party member if name provided and not already exists
   if (plus_one_name) {
     const { data: existingParty } = await supabaseAdmin

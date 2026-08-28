@@ -12,6 +12,7 @@ const nav = [
   { href: '/admin/events',       label: 'Events',        icon: IconCalendar },
   { href: '/admin/accommodation', label: 'Accommodation', icon: IconBed },
   { href: '/admin/transport',    label: 'Transport',     icon: IconCar },
+  { href: '/admin/seating',      label: 'Seating',       icon: IconSeat },
   { href: '/admin/registry',     label: 'Registry',      icon: IconGift },
   { href: '/admin/content',      label: 'Content',       icon: IconDoc },
   { href: '/admin/planning',     label: 'Planning',      icon: IconClipboard },
@@ -201,6 +202,20 @@ function IconCar() {
       <rect x="1" y="9" width="14" height="4" rx="1" />
       <circle cx="4" cy="13" r="1.5" fill="currentColor" stroke="none" />
       <circle cx="12" cy="13" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function IconSeat() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="6.5" width="12" height="3" rx="1" />
+      <circle cx="4" cy="4" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="4" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="4" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="12" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="12" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none" />
     </svg>
   );
 }

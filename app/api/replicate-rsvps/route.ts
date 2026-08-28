@@ -39,6 +39,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Replicate primary guest's transport answer
+    const { data: primaryGuest } = await supabaseAdmin
+      .from('guests')
+      .select('transport_needed, transport_from, transport_return')
+      .eq('id', primary_guest_id)
+      .single()
+
+    if (primaryGuest) {
+      await supabaseAdmin.from('guests').update({
+        transport_needed: primaryGuest.transport_needed,
+        transport_from: primaryGuest.transport_from,
+        transport_return: primaryGuest.transport_return,
+      }).eq('id', new_guest_id)
+    }
+
     // Replicate primary guest's stay request
     const { data: primaryStay, error: stayError } = await supabaseAdmin
       .from('guest_stay_requests')
