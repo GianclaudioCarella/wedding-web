@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Message, Conversation, MemorySaveResult, Model } from './types';
-import { MODELS, TOOLS } from './constants';
+import { MODELS, TOOLS, WRITE_TOOL_NAMES, describeWriteAction } from './constants';
 import { UserSettingsService } from './services/user-settings.service';
 import { ChatSupabaseService } from './services/supabase.service';
 import { SearchWebTool } from './tools/search-web.tool';
@@ -15,6 +15,7 @@ import { EventTools } from './tools/event.tools';
 import { DocumentTools } from './tools/document.tools';
 import { MemoryTools } from './tools/memory.tools';
 import { WeddingTools } from './tools/wedding.tools';
+import { ActionTools } from './tools/action.tools';
 import { LLMService } from './services/llm.service';
 
 export default function AdminChat() {
@@ -55,7 +56,15 @@ export default function AdminChat() {
   const eventTools = new EventTools(supabase);
   const memoryTools = new MemoryTools(supabase);
   const weddingTools = new WeddingTools(supabase);
+  const actionTools = new ActionTools(supabase);
   const [documentTools, setDocumentTools] = useState<DocumentTools | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    toolCall: any;
+    toolCalls: any[];
+    index: number;
+    conversationMessages: Array<{ role: string; content: string; tool_call_id?: string; tool_calls?: any }>;
+    convId: string;
+  } | null>(null);
 
   useEffect(() => {
     const getAuthToken = async () => { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token ?? null; };
@@ -272,9 +281,102 @@ export default function AdminChat() {
         return await weddingTools.getRsvpDetails();
       case 'get_guest_email_status':
         return await weddingTools.getGuestEmailStatus();
+      case 'create_guest':
+        return await actionTools.createGuest(args);
+      case 'update_guest':
+        return await actionTools.updateGuest(args);
+      case 'update_rsvp_status':
+        return await actionTools.updateRsvpStatus(args);
+      case 'mark_guest_not_attending':
+        return await actionTools.markGuestNotAttending(args);
+      case 'create_transport_option':
+        return await actionTools.createTransportOption(args);
+      case 'assign_guest_to_transport':
+        return await actionTools.assignGuestToTransport(args);
+      case 'create_room':
+        return await actionTools.createRoom(args);
+      case 'assign_guest_to_room':
+        return await actionTools.assignGuestToRoom(args);
+      case 'create_seating_table':
+        return await actionTools.createSeatingTable(args);
+      case 'assign_guest_to_seat':
+        return await actionTools.assignGuestToSeat(args);
+      case 'create_planning_task':
+        return await actionTools.createPlanningTask(args);
+      case 'update_planning_task_status':
+        return await actionTools.updatePlanningTaskStatus(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
+  };
+
+  // Continues the tool-calling loop from `toolCalls[index]` onward. Read tools run
+  // immediately; a write tool pauses here (via pendingConfirmation) until the user
+  // clicks Confirm or Cancel in resolvePendingAction, which then resumes the loop.
+  const runToolLoop = async (
+    conversationMessages: Array<{ role: string; content: string; tool_call_id?: string; tool_calls?: any }>,
+    toolCalls: any[],
+    index: number,
+    convId: string,
+  ) => {
+    if (index < toolCalls.length) {
+      const toolCall = toolCalls[index];
+      if (WRITE_TOOL_NAMES.has(toolCall.function.name)) {
+        setPendingConfirmation({ toolCall, toolCalls, index, conversationMessages, convId });
+        return;
+      }
+      try {
+        const toolResult = await executeTool(toolCall.function.name, JSON.parse(toolCall.function.arguments || '{}'));
+        conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(toolResult) });
+      } catch (error: any) {
+        conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: error.message }) });
+      }
+      await runToolLoop(conversationMessages, toolCalls, index + 1, convId);
+      return;
+    }
+
+    try {
+      const llmService = new LLMService(
+        githubToken,
+        anthropicKey,
+        async () => { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token ?? null; },
+      );
+      const data = await llmService.chatCompletion({ messages: conversationMessages, model: selectedModel, temperature: 0.7, max_tokens: 2000, tools: TOOLS, tool_choice: 'auto' });
+      const assistantMessage = data.choices[0].message;
+
+      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+        conversationMessages.push(assistantMessage);
+        await runToolLoop(conversationMessages, assistantMessage.tool_calls, 0, convId);
+        return;
+      }
+
+      const finalMessage: Message = { role: 'assistant', content: assistantMessage.content, timestamp: new Date() };
+      setMessages(prev => [...prev, finalMessage]);
+      if (convId) await saveMessage(convId, 'assistant', assistantMessage.content);
+      setIsSending(false);
+    } catch (error: any) {
+      setMessages(prev => [...prev, { role: 'assistant', content: error.message, timestamp: new Date() }]);
+      setIsSending(false);
+    }
+  };
+
+  const resolvePendingAction = async (confirmed: boolean) => {
+    if (!pendingConfirmation) return;
+    const { toolCall, toolCalls, index, conversationMessages, convId } = pendingConfirmation;
+    setPendingConfirmation(null);
+
+    let toolResult: any;
+    if (confirmed) {
+      try {
+        toolResult = await executeTool(toolCall.function.name, JSON.parse(toolCall.function.arguments || '{}'));
+      } catch (error: any) {
+        toolResult = { error: error.message };
+      }
+    } else {
+      toolResult = { cancelled: true, message: 'The user declined this action in the confirmation prompt.' };
+    }
+    conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(toolResult) });
+    await runToolLoop(conversationMessages, toolCalls, index + 1, convId);
   };
 
   const handleSendMessage = async () => {
@@ -344,7 +446,15 @@ export default function AdminChat() {
         '- **search_documents**: Search uploaded wedding documents (PDFs, contracts, etc.)',
         '- **search_web**: Search the internet for current information',
         '',
-        'IMPORTANT: Always use the appropriate tool to fetch live data before answering. When asked about past discussions or decisions, use search_memories. When asked about costs or vendor details, use search_documents FIRST.',
+        '**Actions (these change data — the user sees a confirm/cancel card before anything is saved, so call them freely):**',
+        '- Guests: **create_guest**, **update_guest**, **update_rsvp_status**, **mark_guest_not_attending**',
+        '- Transport: **create_transport_option**, **assign_guest_to_transport**',
+        '- Accommodation & seating: **create_room**, **assign_guest_to_room**, **create_seating_table**, **assign_guest_to_seat**',
+        '- Planning: **create_planning_task**, **update_planning_task_status**',
+        '',
+        'There are NO tools to delete or remove anything (no deleting guests, no removing someone from transport/a room/a seat) — that is intentional, those actions must be done manually in the admin screens. If asked to delete or remove something, say you cannot do that from chat and point to the relevant admin page instead.',
+        '',
+        'IMPORTANT: Always use the appropriate tool to fetch live data before answering. When asked about past discussions or decisions, use search_memories. When asked about costs or vendor details, use search_documents FIRST. When the user asks you to do something (mark someone attending, add them to transport, seat them, create a task, etc.), call the matching action tool directly instead of just describing what you would do — the confirmation card is the safety net, not you asking permission in text first. All action tools take names (guest, event, table, room, option, task), not IDs; if a tool returns an error saying multiple things matched, ask the user which one they meant instead of guessing.',
       ].join('\n');
       let systemMessageWithContext = systemMessage || defaultSystemMessage;
       if (conversationMemories) systemMessageWithContext = conversationMemories + '\n\n' + systemMessageWithContext;
@@ -361,29 +471,21 @@ export default function AdminChat() {
         anthropicKey,
         async () => { const { data: s } = await supabase.auth.getSession(); return s.session?.access_token ?? null; },
       );
-      let data = await llmService.chatCompletion({ messages: conversationMessages, model: selectedModel, temperature: 0.7, max_tokens: 2000, tools: TOOLS, tool_choice: 'auto' });
-      let assistantMessage = data.choices[0].message;
+      const data = await llmService.chatCompletion({ messages: conversationMessages, model: selectedModel, temperature: 0.7, max_tokens: 2000, tools: TOOLS, tool_choice: 'auto' });
+      const assistantMessage = data.choices[0].message;
 
-      while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
         conversationMessages.push(assistantMessage);
-        for (const toolCall of assistantMessage.tool_calls) {
-          try {
-            const toolResult = await executeTool(toolCall.function.name, JSON.parse(toolCall.function.arguments || '{}'));
-            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(toolResult) });
-          } catch (error: any) {
-            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: error.message }) });
-          }
-        }
-        data = await llmService.chatCompletion({ messages: conversationMessages, model: selectedModel, temperature: 0.7, max_tokens: 2000, tools: TOOLS, tool_choice: 'auto' });
-        assistantMessage = data.choices[0].message;
+        await runToolLoop(conversationMessages, assistantMessage.tool_calls, 0, convId);
+        return;
       }
 
       const finalMessage: Message = { role: 'assistant', content: assistantMessage.content, timestamp: new Date() };
       setMessages(prev => [...prev, finalMessage]);
       if (convId) await saveMessage(convId, 'assistant', assistantMessage.content);
+      setIsSending(false);
     } catch (error: any) {
       setMessages(prev => [...prev, { role: 'assistant', content: error.message, timestamp: new Date() }]);
-    } finally {
       setIsSending(false);
     }
   };
@@ -627,7 +729,33 @@ export default function AdminChat() {
                 </div>
               ))}
 
-              {isSending && (
+              {pendingConfirmation && (
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: 12 }}>{currentModel?.icon || '🤖'}</span>
+                  </div>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', marginRight: 48, maxWidth: 420 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#92400e', margin: '0 0 6px' }}>Confirm action</p>
+                    <div className="prose prose-sm max-w-none" style={{ fontSize: 13, color: '#78350f' }}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {describeWriteAction(pendingConfirmation.toolCall.function.name, (() => { try { return JSON.parse(pendingConfirmation.toolCall.function.arguments || '{}'); } catch { return {}; } })())}
+                      </ReactMarkdown>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                      <button
+                        onClick={() => resolvePendingAction(true)}
+                        style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, border: 'none', background: '#111827', color: '#fff', cursor: 'pointer' }}
+                      >Confirm</button>
+                      <button
+                        onClick={() => resolvePendingAction(false)}
+                        style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer' }}
+                      >Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isSending && !pendingConfirmation && (
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 12 }}>{currentModel?.icon || '🤖'}</span>

@@ -9,22 +9,24 @@ export class GuestTools {
    * Get statistics about wedding guests
    */
   async getGuestStatistics() {
-    const { data: guests, error } = await this.supabase
-      .from('guests')
-      .select('*');
-    
+    const [{ data: guests, error }, { data: rsvps }] = await Promise.all([
+      this.supabase.from('guests').select('id, attending, invited_at'),
+      this.supabase.from('rsvp_responses').select('guest_id, status'),
+    ]);
+
     if (error) throw error;
+
+    const formalAttendingIds = new Set((rsvps || []).filter(r => r.status === 'attending').map(r => r.guest_id));
 
     const stats = {
       total_guests: guests?.length || 0,
-      total_people: guests?.reduce((sum, g) => sum + (g.total_guests || 1), 0) || 0,
-      confirmed: guests?.filter(g => g.attending === 'yes').length || 0,
-      confirmed_people: guests?.filter(g => g.attending === 'yes').reduce((sum, g) => sum + (g.total_guests || 1), 0) || 0,
-      declined: guests?.filter(g => g.attending === 'no').length || 0,
-      maybe: guests?.filter(g => g.attending === 'perhaps').length || 0,
-      no_response: guests?.filter(g => !g.attending).length || 0,
-      invites_sent: guests?.filter(g => g.save_the_date_sent === true).length || 0,
-      invites_pending: guests?.filter(g => g.save_the_date_sent !== true).length || 0,
+      save_the_date_yes: guests?.filter(g => g.attending === 'yes').length || 0,
+      save_the_date_no: guests?.filter(g => g.attending === 'no').length || 0,
+      save_the_date_maybe: guests?.filter(g => g.attending === 'perhaps').length || 0,
+      save_the_date_no_response: guests?.filter(g => !g.attending).length || 0,
+      formal_rsvp_attending: formalAttendingIds.size,
+      invited: guests?.filter(g => g.invited_at).length || 0,
+      not_yet_invited: guests?.filter(g => !g.invited_at).length || 0,
     };
 
     return stats;
@@ -36,9 +38,9 @@ export class GuestTools {
   async listGuests(filter?: string) {
     const { data: guests, error } = await this.supabase
       .from('guests')
-      .select('id, name, email, phone, language, total_guests, attending, save_the_date_sent')
+      .select('id, name, email, phone, language, attending, invited_at')
       .order('name');
-    
+
     if (error) throw error;
 
     let filtered = guests || [];
@@ -46,8 +48,8 @@ export class GuestTools {
     if (filter === 'declined') filtered = filtered.filter(g => g.attending === 'no');
     if (filter === 'maybe') filtered = filtered.filter(g => g.attending === 'perhaps');
     if (filter === 'no_response') filtered = filtered.filter(g => !g.attending);
-    if (filter === 'sent') filtered = filtered.filter(g => g.save_the_date_sent === true);
-    if (filter === 'pending') filtered = filtered.filter(g => g.save_the_date_sent !== true);
+    if (filter === 'invited') filtered = filtered.filter(g => g.invited_at);
+    if (filter === 'not_invited') filtered = filtered.filter(g => !g.invited_at);
 
     return filtered;
   }

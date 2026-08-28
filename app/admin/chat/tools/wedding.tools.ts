@@ -158,7 +158,7 @@ export class WeddingTools {
     try {
       const { data: guests, error } = await this.supabase
         .from('guests')
-        .select('name, email, save_the_date_sent, attending, invited_at')
+        .select('name, email, attending, invited_at')
         .order('name');
 
       if (error) throw error;
@@ -166,8 +166,8 @@ export class WeddingTools {
 
       const withEmail    = guests.filter(g => g.email);
       const withoutEmail = guests.filter(g => !g.email);
-      const sent         = withEmail.filter(g => g.save_the_date_sent === true);
-      const notSent      = withEmail.filter(g => !g.save_the_date_sent);
+      const sent         = withEmail.filter(g => !!g.invited_at);
+      const notSent      = withEmail.filter(g => !g.invited_at);
 
       const sentLines = sent.map(g => `  • ${g.name} <${g.email}>${g.invited_at ? ` — sent ${new Date(g.invited_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}`);
       const notSentLines = notSent.map(g => `  • ${g.name} <${g.email}>`);
@@ -204,7 +204,7 @@ export class WeddingTools {
 
       const parts = events.map(ev => {
         const evResponses = (responses || []).filter(r => r.event_id === ev.id);
-        const confirmed = evResponses.filter(r => r.status === 'confirmed');
+        const confirmed = evResponses.filter(r => r.status === 'attending');
         const declined = evResponses.filter(r => r.status === 'declined');
         const pending = evResponses.filter(r => r.status === 'pending');
 

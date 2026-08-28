@@ -18,14 +18,14 @@ export default function TransportPage() {
   const [addingGuestId, setAddingGuestId] = useState<string | null>(null);
   const [requestSearch, setRequestSearch] = useState('');
   const [onlyUnassigned, setOnlyUnassigned] = useState(false);
-  const [assigningRequestId, setAssigningRequestId] = useState<string | null>(null);
   const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
+  const [cardSearch, setCardSearch] = useState('');
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     const [optRes, signRes, gRes, rsvpRes] = await Promise.all([
-      supabase.from('transport_options').select('*').order('sort_order'),
+      supabase.from('transport_options').select('*').order('name'),
       supabase.from('guest_transport').select('*, guests(name)'),
       supabase.from('guests').select('id, name, party_role, party_leader_id, transport_needed, transport_from, transport_return').order('name'),
       supabase.from('rsvp_responses').select('guest_id, status'),
@@ -42,6 +42,7 @@ export default function TransportPage() {
     await supabase.from('guest_transport').insert({ transport_option_id: optionId, guest_id: guestId });
     await fetchAll();
     setAddingGuestId(null);
+    setGuestSearch('');
   };
 
   const removeGuest = async (signupId: string) => {
@@ -101,7 +102,6 @@ export default function TransportPage() {
   const directionLabel: Record<string, string> = { to_venue: 'To venue', from_venue: 'From venue', both: 'Both ways' };
   const directionColor: Record<string, string> = { to_venue: 'bg-blue-50 text-blue-700', from_venue: 'bg-purple-50 text-purple-700', both: 'bg-green-50 text-green-700' };
 
-  const activeOptions = options.filter(o => o.is_active);
   const getSignupsFor = (guestId: string) => signups.filter(s => s.guest_id === guestId);
   const requestedGuests = guests
     .filter(g => g.transport_needed === true)
@@ -116,123 +116,83 @@ export default function TransportPage() {
     return primary?.transport_needed === true && g.transport_needed !== true && g.transport_needed !== false;
   });
 
-  const assignFromRequest = async (optionId: string, guestId: string) => {
-    setAssigningRequestId(guestId);
-    await addGuest(optionId, guestId);
-    setAssigningRequestId(null);
+  const filteredOptions = options.filter(opt => {
+    if (!cardSearch.trim()) return true;
+    const q = cardSearch.toLowerCase();
+    if (opt.name.toLowerCase().includes(q)) return true;
+    const optSignups = signups.filter(s => s.transport_option_id === opt.id);
+    return optSignups.some(s => (guestsById.get(s.guest_id)?.name || s.guests?.name || '').toLowerCase().includes(q));
+  });
+
+  const exportCSV = () => {
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const rows: string[] = [['Option', 'Direction', 'Departure Location', 'Departure Time', 'Return Time', 'Guest', 'Guest From', 'Guest Return Needed'].map(esc).join(',')];
+
+    for (const opt of options) {
+      const optSignups = signups.filter(s => s.transport_option_id === opt.id);
+      const base = [
+        opt.name,
+        directionLabel[opt.direction] || opt.direction,
+        opt.departure_location || '',
+        opt.departure_time ? new Date(opt.departure_time).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '',
+        opt.return_time ? new Date(opt.return_time).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '',
+      ];
+      if (optSignups.length === 0) {
+        rows.push([...base, '', '', ''].map(esc).join(','));
+      } else {
+        for (const s of optSignups) {
+          const g = guestsById.get(s.guest_id);
+          rows.push([...base, g?.name || s.guests?.name || '', g?.transport_from || '', g ? (g.transport_return ? 'Yes' : 'No') : ''].map(esc).join(','));
+        }
+      }
+    }
+
+    const unassigned = guests.filter(g => g.transport_needed === true && getSignupsFor(g.id).length === 0);
+    if (unassigned.length > 0) {
+      rows.push('');
+      rows.push(esc('Requested but unassigned'));
+      for (const g of unassigned) {
+        rows.push([g.name, '', '', '', '', '', g.transport_from || '', g.transport_return ? 'Yes' : 'No'].map(esc).join(','));
+      }
+    }
+
+    const csv = rows.join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transport-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Transport</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage transport options for guests</p>
         </div>
-        <button onClick={() => { setEditing(null); setForm({ name: '', direction: 'to_venue', departure_location: '', departure_time: '', return_time: '', capacity: '', notes: '' }); setShowModal(true); }} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add option</button>
+        <div className="flex items-center gap-3">
+          <button onClick={exportCSV} disabled={options.length === 0} className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-40">Export CSV</button>
+          <button onClick={() => { setEditing(null); setForm({ name: '', direction: 'to_venue', departure_location: '', departure_time: '', return_time: '', capacity: '', notes: '' }); setShowModal(true); }} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add option</button>
+        </div>
       </div>
 
       {loading ? <p className="text-sm text-gray-400">Loading…</p> : (
-        <>
-        {needsReview.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 mb-6">
-            <h2 className="font-semibold text-amber-900 mb-1">Party members to review ({needsReview.length})</h2>
-            <p className="text-xs text-amber-700 mb-3">Their travel companion needs transport, but they don't have an answer yet — new RSVPs copy this automatically, these are from before that.</p>
-            <div className="space-y-1.5">
-              {needsReview.map(g => {
-                const primary = guestsById.get(g.party_leader_id);
-                return (
-                  <div key={g.id} className="flex items-center justify-between gap-3 text-sm bg-white border border-amber-100 rounded-md px-3 py-2">
-                    <div className="min-w-0">
-                      <span className="font-medium text-gray-900">{g.name}</span>
-                      <span className="text-gray-500"> · travels with {primary?.name}{primary?.transport_from ? ` (from ${primary.transport_from})` : ''}</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => copyTransportFromPrimary(g.id, primary)}
-                        disabled={reviewBusyId === g.id}
-                        className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded hover:bg-gray-700 disabled:opacity-40"
-                      >{reviewBusyId === g.id ? '…' : `Same as ${primary?.name}`}</button>
-                      <button
-                        onClick={() => markCompanionNoTransport(g.id)}
-                        disabled={reviewBusyId === g.id}
-                        className="text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded hover:bg-gray-50 disabled:opacity-40"
-                      >Doesn't need it</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-          <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
-            <div>
-              <h2 className="font-semibold text-gray-900">Requested transport ({requestedGuests.length}{requestSearch || onlyUnassigned ? ` of ${guests.filter(g => g.transport_needed === true).length}` : ''})</h2>
-              <p className="text-xs text-gray-500 mt-0.5">{unassignedCount} without an option yet</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
-                <input type="checkbox" checked={onlyUnassigned} onChange={e => setOnlyUnassigned(e.target.checked)} className="rounded border-gray-300" />
-                Only unassigned
-              </label>
-              <input
-                type="text"
-                value={requestSearch}
-                onChange={e => setRequestSearch(e.target.value)}
-                placeholder="Search…"
-                className="input"
-                style={{ width: 200 }}
-              />
-            </div>
-          </div>
-
-          {requestedGuests.length === 0 ? (
-            <p className="text-xs text-gray-400">
-              {guests.filter(g => g.transport_needed === true).length === 0 ? 'No guests have requested transport yet.' : 'No guests match.'}
-            </p>
-          ) : (
-            <div className="space-y-1.5">
-              {requestedGuests.map(g => {
-                const guestSignups = getSignupsFor(g.id);
-                return (
-                  <div key={g.id} className="flex items-center justify-between gap-3 text-sm border-b border-gray-50 last:border-0 py-1.5">
-                    <div className="min-w-0">
-                      <span className="font-medium text-gray-900">{g.name}</span>
-                      {g.transport_from && <span className="text-gray-500"> · from {g.transport_from}</span>}
-                      <span className="text-gray-400"> · return: {g.transport_return ? 'Yes' : 'No'}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {guestSignups.map(s => {
-                        const opt = options.find(o => o.id === s.transport_option_id);
-                        return (
-                          <span key={s.id} className="text-xs bg-gray-100 text-gray-700 rounded pl-2 pr-1 py-1 flex items-center gap-1.5 whitespace-nowrap">
-                            {opt?.name || 'Option'}
-                            <button onClick={() => removeGuest(s.id)} className="text-gray-400 hover:text-red-500 leading-none">×</button>
-                          </span>
-                        );
-                      })}
-                      {guestSignups.length === 0 && (
-                        <select
-                          value=""
-                          disabled={assigningRequestId === g.id}
-                          onChange={e => { if (e.target.value) assignFromRequest(e.target.value, g.id); }}
-                          className="text-xs border border-amber-200 bg-amber-50 text-amber-800 rounded px-2 py-1.5 disabled:opacity-40"
-                        >
-                          <option value="">{assigningRequestId === g.id ? 'Adding…' : 'Add to option…'}</option>
-                          {activeOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                        </select>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        <div className="flex gap-6 items-start">
+        <div className="flex-1 space-y-4">
+          <input
+            type="text"
+            value={cardSearch}
+            onChange={e => setCardSearch(e.target.value)}
+            placeholder="Filter by option or guest name…"
+            className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 w-full focus:outline-none focus:border-gray-400"
+          />
+          {filteredOptions.length === 0 && (
+            <p className="text-sm text-gray-400">{options.length === 0 ? 'No transport options yet.' : 'No option name or guest matches that search.'}</p>
           )}
-        </div>
-
-        <div className="space-y-4">
-          {options.map(opt => {
+          {filteredOptions.map(opt => {
             const optSignups = signups.filter(s => s.transport_option_id === opt.id);
             return (
               <div key={opt.id} className={`bg-white border rounded-lg p-5 ${!opt.is_active ? 'opacity-50' : 'border-gray-200'}`}>
@@ -241,6 +201,7 @@ export default function TransportPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-gray-900">{opt.name}</h3>
                       <span className={`text-xs px-2 py-0.5 rounded font-medium ${directionColor[opt.direction]}`}>{directionLabel[opt.direction]}</span>
+                      <span className="text-xs text-gray-500 border border-gray-200 rounded px-2 py-0.5">{optSignups.length} {optSignups.length === 1 ? 'guest' : 'guests'}</span>
                       {!opt.is_active && <span className="text-xs text-gray-400 border border-gray-200 rounded px-2 py-0.5">Inactive</span>}
                     </div>
                     {opt.departure_location && <p className="text-sm text-gray-500">From: {opt.departure_location}</p>}
@@ -316,9 +277,99 @@ export default function TransportPage() {
               </div>
             );
           })}
-          {options.length === 0 && <p className="text-sm text-gray-400">No transport options yet.</p>}
         </div>
-        </>
+
+        <div className="w-96 flex-shrink-0 space-y-6">
+        {needsReview.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-5">
+            <h2 className="font-semibold text-amber-900 mb-1">Party members to review ({needsReview.length})</h2>
+            <p className="text-xs text-amber-700 mb-3">Their travel companion needs transport, but they don't have an answer yet — new RSVPs copy this automatically, these are from before that.</p>
+            <div className="space-y-1.5">
+              {needsReview.map(g => {
+                const primary = guestsById.get(g.party_leader_id);
+                return (
+                  <div key={g.id} className="text-sm bg-white border border-amber-100 rounded-md px-3 py-2">
+                    <div className="min-w-0">
+                      <span className="font-medium text-gray-900">{g.name}</span>
+                      <span className="text-gray-500"> · travels with {primary?.name}{primary?.transport_from ? ` (from ${primary.transport_from})` : ''}</span>
+                    </div>
+                    <div className="flex items-center flex-wrap gap-2 mt-1.5">
+                      <button
+                        onClick={() => copyTransportFromPrimary(g.id, primary)}
+                        disabled={reviewBusyId === g.id}
+                        className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded hover:bg-gray-700 disabled:opacity-40"
+                      >{reviewBusyId === g.id ? '…' : `Same as ${primary?.name}`}</button>
+                      <button
+                        onClick={() => markCompanionNoTransport(g.id)}
+                        disabled={reviewBusyId === g.id}
+                        className="text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded hover:bg-gray-50 disabled:opacity-40"
+                      >Doesn't need it</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+          <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
+            <div>
+              <h2 className="font-semibold text-gray-900">Requested transport ({requestedGuests.length}{requestSearch || onlyUnassigned ? ` of ${guests.filter(g => g.transport_needed === true).length}` : ''})</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{unassignedCount} without an option yet</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 select-none">
+                <input type="checkbox" checked={onlyUnassigned} onChange={e => setOnlyUnassigned(e.target.checked)} className="rounded border-gray-300" />
+                Only unassigned
+              </label>
+              <input
+                type="text"
+                value={requestSearch}
+                onChange={e => setRequestSearch(e.target.value)}
+                placeholder="Search…"
+                className="input"
+                style={{ width: 200 }}
+              />
+            </div>
+          </div>
+
+          {requestedGuests.length === 0 ? (
+            <p className="text-xs text-gray-400">
+              {guests.filter(g => g.transport_needed === true).length === 0 ? 'No guests have requested transport yet.' : 'No guests match.'}
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {requestedGuests.map(g => {
+                const guestSignups = getSignupsFor(g.id);
+                return (
+                  <div key={g.id} className="text-sm border-b border-gray-50 last:border-0 py-1.5">
+                    <div className="min-w-0">
+                      <span className="font-medium text-gray-900">{g.name}</span>
+                      {g.transport_from && <span className="text-gray-500"> · from {g.transport_from}</span>}
+                      <span className="text-gray-400"> · return: {g.transport_return ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div className="flex items-center flex-wrap gap-1.5 mt-1">
+                      {guestSignups.map(s => {
+                        const opt = options.find(o => o.id === s.transport_option_id);
+                        return (
+                          <span key={s.id} className="text-xs bg-gray-100 text-gray-700 rounded pl-2 pr-1 py-1 flex items-center gap-1.5 whitespace-nowrap">
+                            {opt?.name || 'Option'}
+                            <button onClick={() => removeGuest(s.id)} className="text-gray-400 hover:text-red-500 leading-none">×</button>
+                          </span>
+                        );
+                      })}
+                      {guestSignups.length === 0 && (
+                        <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-1 whitespace-nowrap">Unassigned</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        </div>
+        </div>
       )}
 
       {showModal && (

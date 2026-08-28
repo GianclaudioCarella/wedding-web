@@ -77,14 +77,14 @@ export const TOOLS = [
     type: 'function',
     function: {
       name: 'list_guests',
-      description: 'List all guests or filter by status (confirmed, declined, maybe, no_response, sent, pending)',
+      description: 'List all guests or filter by status (confirmed, declined, maybe, no_response, invited, not_invited)',
       parameters: {
         type: 'object',
         properties: {
           filter: {
             type: 'string',
-            enum: ['confirmed', 'declined', 'maybe', 'no_response', 'sent', 'pending', 'all'],
-            description: 'Filter guests by their status',
+            enum: ['confirmed', 'declined', 'maybe', 'no_response', 'invited', 'not_invited', 'all'],
+            description: 'Filter guests by their save-the-date status or whether they have been invited',
           },
         },
         required: [],
@@ -161,4 +161,254 @@ export const TOOLS = [
       parameters: { type: 'object', properties: {}, required: [] },
     },
   },
+
+  // ── Actions (write tools — gated behind a confirm/cancel step in the UI) ──
+
+  {
+    type: 'function',
+    function: {
+      name: 'create_guest',
+      description: 'Create a new guest. Defaults to inviting them to the main wedding ceremony unless specific events are given.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Full name of the guest' },
+          email: { type: 'string' },
+          phone: { type: 'string' },
+          language: { type: 'string', enum: ['en', 'pt', 'es'] },
+          tags: { type: 'array', items: { type: 'string' } },
+          party_role: { type: 'string', enum: ['primary', 'partner', 'child', 'other'], description: 'Defaults to primary' },
+          party_leader_name: { type: 'string', description: 'Name of the primary guest this person travels with, if party_role is not primary' },
+          event_names: { type: 'array', items: { type: 'string' }, description: 'Names of events to invite them to; omit to default to the main wedding event' },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_guest',
+      description: "Update fields on an existing guest: contact info, notes, tags, save-the-date answer, or transport needs. Only pass the fields that should change.",
+      parameters: {
+        type: 'object',
+        properties: {
+          guest_name: { type: 'string', description: 'Name of the guest to update' },
+          email: { type: 'string' },
+          phone: { type: 'string' },
+          notes: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+          attending: { type: 'string', enum: ['yes', 'no', 'perhaps'], description: 'Save-the-date answer' },
+          transport_needed: { type: 'boolean' },
+          transport_from: { type: 'string', description: 'Where they need pickup from, if transport_needed is true' },
+          transport_return: { type: 'boolean', description: 'Whether they also need the return journey' },
+        },
+        required: ['guest_name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_rsvp_status',
+      description: "Set a guest's formal RSVP status (attending/declined/pending) for a specific event.",
+      parameters: {
+        type: 'object',
+        properties: {
+          guest_name: { type: 'string' },
+          event_name: { type: 'string', description: 'Name of the event, e.g. "wedding ceremony"' },
+          status: { type: 'string', enum: ['attending', 'declined', 'pending'] },
+        },
+        required: ['guest_name', 'event_name', 'status'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'mark_guest_not_attending',
+      description: 'Mark a guest (and their whole party) as not attending any event, and clear their venue stay request. Use for a full decline, not a single-event change.',
+      parameters: {
+        type: 'object',
+        properties: { guest_name: { type: 'string' } },
+        required: ['guest_name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_transport_option',
+      description: 'Create a new transport option (e.g. a bus or shuttle) guests can be assigned to.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          direction: { type: 'string', enum: ['to_venue', 'from_venue', 'both'] },
+          departure_location: { type: 'string' },
+          departure_time: { type: 'string', description: 'ISO datetime' },
+          return_time: { type: 'string', description: 'ISO datetime' },
+          capacity: { type: 'number' },
+          notes: { type: 'string' },
+        },
+        required: ['name', 'direction'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'assign_guest_to_transport',
+      description: 'Add a guest to a transport option.',
+      parameters: {
+        type: 'object',
+        properties: { guest_name: { type: 'string' }, option_name: { type: 'string' } },
+        required: ['guest_name', 'option_name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_room',
+      description: 'Create a new venue room for guest accommodation.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          room_type: { type: 'string' },
+          capacity: { type: 'number' },
+          floor: { type: 'string' },
+          notes: { type: 'string' },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'assign_guest_to_room',
+      description: 'Assign a guest to a venue room (moves them if already assigned elsewhere).',
+      parameters: {
+        type: 'object',
+        properties: { guest_name: { type: 'string' }, room_name: { type: 'string' }, bed_label: { type: 'string' } },
+        required: ['guest_name', 'room_name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_seating_table',
+      description: 'Create a new seating table with two facing sides (A and B), each with the given number of seats.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          seats_per_side: { type: 'number', description: 'Number of seats on each of the two sides' },
+        },
+        required: ['name', 'seats_per_side'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'assign_guest_to_seat',
+      description: 'Seat a guest at a specific seat of a seating table (moves them if already seated elsewhere). Fails if the seat is already taken by someone else.',
+      parameters: {
+        type: 'object',
+        properties: {
+          guest_name: { type: 'string' },
+          table_name: { type: 'string' },
+          side: { type: 'string', enum: ['A', 'B'] },
+          position: { type: 'number', description: 'Seat number on that side, starting at 1' },
+        },
+        required: ['guest_name', 'table_name', 'side', 'position'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_planning_task',
+      description: 'Create a new wedding planning task on the calendar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          start_month: { type: 'number', description: '1-12' },
+          end_month: { type: 'number', description: '1-12' },
+          year: { type: 'number' },
+        },
+        required: ['name', 'start_month', 'end_month', 'year'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_planning_task_status',
+      description: 'Mark a planning task as done or pending.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_name: { type: 'string' },
+          status: { type: 'string', enum: ['pending', 'done'] },
+        },
+        required: ['task_name', 'status'],
+      },
+    },
+  },
 ];
+
+// Tool names that mutate data — every call to one of these is shown to the
+// user as a confirm/cancel card in the chat before it actually runs.
+export const WRITE_TOOL_NAMES = new Set([
+  'create_guest',
+  'update_guest',
+  'update_rsvp_status',
+  'mark_guest_not_attending',
+  'create_transport_option',
+  'assign_guest_to_transport',
+  'create_room',
+  'assign_guest_to_room',
+  'create_seating_table',
+  'assign_guest_to_seat',
+  'create_planning_task',
+  'update_planning_task_status',
+]);
+
+// One short, human-readable line per write tool, shown on the confirmation card.
+export function describeWriteAction(name: string, args: any): string {
+  switch (name) {
+    case 'create_guest':
+      return `Create guest **${args.name}**${args.party_leader_name ? ` (travelling with ${args.party_leader_name})` : ''}`;
+    case 'update_guest':
+      return `Update **${args.guest_name}**`;
+    case 'update_rsvp_status':
+      return `Mark **${args.guest_name}** as **${args.status}** for **${args.event_name}**`;
+    case 'mark_guest_not_attending':
+      return `Mark **${args.guest_name}** and their party as not attending anything`;
+    case 'create_transport_option':
+      return `Create transport option **${args.name}** (${args.direction})`;
+    case 'assign_guest_to_transport':
+      return `Add **${args.guest_name}** to transport **${args.option_name}**`;
+    case 'create_room':
+      return `Create room **${args.name}**`;
+    case 'assign_guest_to_room':
+      return `Assign **${args.guest_name}** to room **${args.room_name}**`;
+    case 'create_seating_table':
+      return `Create seating table **${args.name}** (${args.seats_per_side} seats per side)`;
+    case 'assign_guest_to_seat':
+      return `Seat **${args.guest_name}** at **${args.table_name}**, seat ${args.side}${args.position}`;
+    case 'create_planning_task':
+      return `Create planning task **${args.name}**`;
+    case 'update_planning_task_status':
+      return `Mark planning task **${args.task_name}** as **${args.status}**`;
+    default:
+      return `Run **${name}**`;
+  }
+}
