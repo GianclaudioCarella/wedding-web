@@ -69,11 +69,12 @@ export default function GuestsPage() {
   const [search, setSearch]             = useState('');
   const [groupFilter, setGroupFilter]   = useState<string[]>([]);
   const [rsvpFilter, setRsvpFilter]     = useState('');
-  const [hideDeclined, setHideDeclined] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
+  const [hideDeclined, setHideDeclined] = useState(true);
+
+  useEffect(() => {
     const stored = localStorage.getItem('hideDeclined');
-    return stored === null ? true : stored === 'true';
-  });
+    if (stored !== null) setHideDeclined(stored === 'true');
+  }, []);
 
   const toggleHideDeclined = (val: boolean) => {
     setHideDeclined(val);
