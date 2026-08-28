@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   useEffect(() => { fetchDashboard(); }, []);
 
   const fetchDashboard = async () => {
+    try {
     const [guestsRes, rsvpRes, geRes, eventsRes, roomsRes, assignRes] = await Promise.all([
       supabase.from('guests').select('id, invited_at, email, attending'),
       supabase.from('rsvp_responses').select('guest_id, event_id, status'),
@@ -98,7 +99,9 @@ export default function AdminDashboard() {
 
     setSummary(summary);
     setEventStats(stats);
-    setLoading(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const displayTotal = summary ? summary.totalGuests - (hideDeclined ? summary.declined : 0) : 0;
