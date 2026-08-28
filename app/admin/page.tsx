@@ -25,11 +25,12 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hideDeclined, setHideDeclined] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
+  const [hideDeclined, setHideDeclined] = useState(true);
+
+  useEffect(() => {
     const stored = localStorage.getItem('hideDeclined');
-    return stored === null ? true : stored === 'true';
-  });
+    if (stored !== null) setHideDeclined(stored === 'true');
+  }, []);
 
   const toggleHideDeclined = (val: boolean) => {
     setHideDeclined(val);
@@ -101,8 +102,9 @@ export default function AdminDashboard() {
   };
 
   const displayTotal = summary ? summary.totalGuests - (hideDeclined ? summary.declined : 0) : 0;
+  const responseNumerator = summary ? (hideDeclined ? summary.attending : summary.responding) : 0;
   const responseRate = displayTotal > 0
-    ? Math.round((summary!.responding / displayTotal) * 100)
+    ? Math.round((responseNumerator / displayTotal) * 100)
     : 0;
 
   return (
