@@ -113,35 +113,38 @@ export default function GuestsPage() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [guestsRes, eventsRes, geRes, rsvpRes, stayRes] = await Promise.all([
-      supabase.from('guests').select('*').order('name'),
-      supabase.from('events').select('id, name, sort_order, slug').order('sort_order'),
-      supabase.from('guest_events').select('guest_id, event_id'),
-      supabase.from('rsvp_responses').select('guest_id, event_id, status, dietary_requirements, dietary_notes, notes'),
-      supabase.from('guest_stay_requests').select('guest_id, sunday_night, friday_night, saturday_night'),
-    ]);
+    try {
+      const [guestsRes, eventsRes, geRes, rsvpRes, stayRes] = await Promise.all([
+        supabase.from('guests').select('*').order('name'),
+        supabase.from('events').select('id, name, sort_order, slug').order('sort_order'),
+        supabase.from('guest_events').select('guest_id, event_id'),
+        supabase.from('rsvp_responses').select('guest_id, event_id, status, dietary_requirements, dietary_notes, notes'),
+        supabase.from('guest_stay_requests').select('guest_id, sunday_night, friday_night, saturday_night'),
+      ]);
 
-    const guestEvents: Record<string, string[]> = {};
-    for (const ge of geRes.data || []) {
-      if (!guestEvents[ge.guest_id]) guestEvents[ge.guest_id] = [];
-      guestEvents[ge.guest_id].push(ge.event_id);
-    }
-    const guestRsvps: Record<string, Record<string, RsvpDetail>> = {};
-    for (const r of rsvpRes.data || []) {
-      if (!guestRsvps[r.guest_id]) guestRsvps[r.guest_id] = {};
-      guestRsvps[r.guest_id][r.event_id] = r;
-    }
-    const guestStay: Record<string, StayRequest> = {};
-    for (const s of stayRes.data || []) guestStay[s.guest_id] = s;
+      const guestEvents: Record<string, string[]> = {};
+      for (const ge of geRes.data || []) {
+        if (!guestEvents[ge.guest_id]) guestEvents[ge.guest_id] = [];
+        guestEvents[ge.guest_id].push(ge.event_id);
+      }
+      const guestRsvps: Record<string, Record<string, RsvpDetail>> = {};
+      for (const r of rsvpRes.data || []) {
+        if (!guestRsvps[r.guest_id]) guestRsvps[r.guest_id] = {};
+        guestRsvps[r.guest_id][r.event_id] = r;
+      }
+      const guestStay: Record<string, StayRequest> = {};
+      for (const s of stayRes.data || []) guestStay[s.guest_id] = s;
 
-    setGuests((guestsRes.data || []).map(g => ({
-      ...g,
-      events: guestEvents[g.id] || [],
-      rsvps: guestRsvps[g.id] || {},
-      stayRequest: guestStay[g.id] || null,
-    })));
-    setEvents(eventsRes.data || []);
-    setLoading(false);
+      setGuests((guestsRes.data || []).map(g => ({
+        ...g,
+        events: guestEvents[g.id] || [],
+        rsvps: guestRsvps[g.id] || {},
+        stayRequest: guestStay[g.id] || null,
+      })));
+      setEvents(eventsRes.data || []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const ceremonyEvent = events.find(e => e.slug === 'wedding') || events.find(e => ((e.name as any)?.en || '').toLowerCase().includes('wedding')) || events[0];
