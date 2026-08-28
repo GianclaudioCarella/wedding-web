@@ -70,6 +70,7 @@ export default function GuestsPage() {
   const [search, setSearch]             = useState('');
   const [groupFilter, setGroupFilter]   = useState<string[]>([]);
   const [rsvpFilter, setRsvpFilter]     = useState('');
+  const [eventFilter, setEventFilter]   = useState('');
   const [hideDeclined, setHideDeclined] = useState(true);
 
   useEffect(() => {
@@ -328,7 +329,8 @@ export default function GuestsPage() {
       || (rsvpFilter === 'attending' && isAttending)
       || (rsvpFilter === 'declined'  && isDeclined);
     const matchDeclined = !hideDeclined || !isDeclined;
-    return matchSearch && matchTag && matchRsvp && matchDeclined;
+    const matchEvent    = !eventFilter || g.events.includes(eventFilter);
+    return matchSearch && matchTag && matchRsvp && matchDeclined && matchEvent;
   });
 
   // Sort so party members always appear directly below their primary guest,
@@ -461,7 +463,14 @@ export default function GuestsPage() {
           </button>
         )}
 
-        <select value={rsvpFilter} onChange={e => setRsvpFilter(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-gray-400 ml-auto">
+        <select value={eventFilter} onChange={e => setEventFilter(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-gray-400 ml-auto">
+          <option value="">All events</option>
+          {events.map(e => (
+            <option key={e.id} value={e.id}>{((e.name as any)?.en || 'Event').split(' ')[0]}</option>
+          ))}
+        </select>
+
+        <select value={rsvpFilter} onChange={e => setRsvpFilter(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-gray-400">
           <option value="">All RSVPs</option>
           <option value="responded">Responded</option>
           <option value="pending">Pending</option>
