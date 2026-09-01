@@ -165,13 +165,12 @@ export default function AccommodationPage() {
   const canDropOnRoom = (room: Room, guestId: string) => {
     const existing = getGuestAssignment(guestId);
     if (existing && existing.room_id === room.id) return false;
-    if (room.reserved_for) return false;
     return getRoomAssignments(room.id).length < room.capacity;
   };
 
   const handleDragOverRoom = (e: React.DragEvent, room: Room) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = room.reserved_for || getRoomAssignments(room.id).length >= room.capacity ? 'none' : 'move';
+    e.dataTransfer.dropEffect = getRoomAssignments(room.id).length >= room.capacity ? 'none' : 'move';
     if (dragOverRoom !== room.id) setDragOverRoom(room.id);
   };
 
@@ -404,7 +403,6 @@ export default function AccommodationPage() {
                       {sectionRooms.map(room => {
                         const roomAssignments = getRoomAssignments(room.id);
                         const isFull = roomAssignments.length >= room.capacity;
-                        const isReserved = !!room.reserved_for;
                         const isDragOver = dragOverRoom === room.id;
                         return (
                           <div
@@ -413,7 +411,7 @@ export default function AccommodationPage() {
                             onDragLeave={() => handleDragLeaveRoom(room)}
                             onDrop={e => handleDropOnRoom(e, room)}
                             className={`group relative rounded-lg border p-2.5 transition-colors ${getSectionColor(room.section)} ${
-                              isDragOver ? (isReserved || isFull ? 'ring-2 ring-red-400' : 'ring-2 ring-gray-900') : ''
+                              isDragOver ? (isFull ? 'ring-2 ring-red-400' : 'ring-2 ring-gray-900') : ''
                             }`}
                           >
                             <div className="absolute top-1.5 right-1.5 hidden group-hover:flex gap-1.5 bg-white/90 rounded px-1">
