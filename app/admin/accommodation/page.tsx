@@ -86,8 +86,7 @@ export default function AccommodationPage() {
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showRoomModal, setShowRoomModal] = useState(false);
-  const [assigningFamily, setAssigningFamily] = useState<{ guestId: string; familyName: string; familySize: number; isChanging: boolean } | null>(null);
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [dragOverRoom, setDragOverRoom] = useState<string | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [roomForm, setRoomForm] = useState({ name: '', room_type: 'private', capacity: 2, floor: '', section: 'Second Floor', amenities: [] as string[], extra_bed_type: '', notes: '', reserved_for: '' });
   const [showExtModal, setShowExtModal] = useState(false);
@@ -104,8 +103,6 @@ export default function AccommodationPage() {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setShowRoomModal(false);
-        setAssigningFamily(null);
-        setSelectedRoom(null);
         setShowExtModal(false);
         setShowAddStayModal(false);
       }
@@ -146,24 +143,6 @@ export default function AccommodationPage() {
     await fetchAll();
   };
 
-  const assignGuest = async (guestId: string, roomId: string, isChanging: boolean = false) => {
-    if (isChanging) {
-      // Delete old assignment first
-      const { error: deleteError } = await supabase.from('guest_room_assignments').delete().eq('guest_id', guestId);
-      if (deleteError) {
-        console.error('Delete error:', deleteError);
-        return;
-      }
-    }
-    // Insert new assignment
-    const { error: insertError } = await supabase.from('guest_room_assignments').insert({ room_id: roomId, guest_id: guestId });
-    if (insertError) {
-      console.error('Insert error:', insertError);
-      return;
-    }
-    await fetchAll();
-  };
-
   const removeAssignment = async (id: string) => {
     await supabase.from('guest_room_assignments').delete().eq('id', id);
     await fetchAll();
@@ -174,6 +153,42 @@ export default function AccommodationPage() {
       await supabase.from('guest_room_assignments').delete().eq('guest_id', guestId);
     }
     await supabase.from('guests').update({ venue_stay_invited: invited }).eq('id', guestId);
+    await fetchAll();
+  };
+
+  // Drag and drop
+  const handleDragStart = (e: React.DragEvent, guestId: string) => {
+    e.dataTransfer.setData('text/plain', guestId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const canDropOnRoom = (room: Room, guestId: string) => {
+    const existing = getGuestAssignment(guestId);
+    if (existing && existing.room_id === room.id) return false;
+    if (room.reserved_for) return false;
+    return getRoomAssignments(room.id).length < room.capacity;
+  };
+
+  const handleDragOverRoom = (e: React.DragEvent, room: Room) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = room.reserved_for || getRoomAssignments(room.id).length >= room.capacity ? 'none' : 'move';
+    if (dragOverRoom !== room.id) setDragOverRoom(room.id);
+  };
+
+  const handleDragLeaveRoom = (room: Room) => {
+    setDragOverRoom(prev => (prev === room.id ? null : prev));
+  };
+
+  const handleDropOnRoom = async (e: React.DragEvent, room: Room) => {
+    e.preventDefault();
+    setDragOverRoom(null);
+    const guestId = e.dataTransfer.getData('text/plain');
+    if (!guestId || !canDropOnRoom(room, guestId)) return;
+    const existing = getGuestAssignment(guestId);
+    if (existing) {
+      await supabase.from('guest_room_assignments').delete().eq('id', existing.id);
+    }
+    await supabase.from('guest_room_assignments').insert({ room_id: room.id, guest_id: guestId });
     await fetchAll();
   };
 
@@ -228,6 +243,25 @@ export default function AccommodationPage() {
   }, 0);
   const roleLabel: Record<string, string> = { primary: '', partner: 'Partner', child: 'Child', other: 'Other' };
 
+  const renderPill = (id: string, name: string, role: string | undefined, opts: { context: 'pool' | 'room'; assignmentId?: string }) => (
+    <div
+      key={id}
+      draggable
+      onDragStart={e => handleDragStart(e, id)}
+      className="group/pill inline-flex items-center gap-1 border border-gray-200 bg-white rounded-full pl-2 pr-1 py-0.5 text-[11px] cursor-grab hover:border-gray-400 whitespace-nowrap"
+    >
+      <span className="text-gray-800">{name}</span>
+      {role && role !== 'primary' && <span className="text-gray-400">({roleLabel[role]})</span>}
+      <button
+        onClick={() => (opts.context === 'room' && opts.assignmentId ? removeAssignment(opts.assignmentId) : setVenueStay(id, false))}
+        title={opts.context === 'room' ? 'Remove from room' : 'Remove from stay list'}
+        className="text-gray-300 hover:text-red-500 opacity-0 group-hover/pill:opacity-100 transition-opacity leading-none px-0.5"
+      >
+        ×
+      </button>
+    </div>
+  );
+
   if (loading) return <div className="p-8"><p className="text-sm text-gray-400">Loading…</p></div>;
 
   return (
@@ -236,7 +270,7 @@ export default function AccommodationPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Accommodation</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {gianCatGuestsCount} guests (gian + cat) · {totalAssigned} of {totalCapacity} beds assigned · {primaryGuests.filter(p => !assignedGuestIdSet.has(p.id)).length} families need rooms
+            {gianCatGuestsCount} guests (gian + cat) · {totalAssigned} of {totalCapacity} beds assigned · {venueGuests.length - assignedGuestIdSet.size} guests still need a room
           </p>
         </div>
       </div>
@@ -284,10 +318,10 @@ export default function AccommodationPage() {
             />
           </div>
 
-          {/* Family cards grid */}
+          {/* Unassigned guests pool */}
           <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">Families</h2>
+              <h2 className="text-sm font-semibold text-gray-900">Guests to place</h2>
               <button
                 onClick={() => { setAddStaySearch(''); setShowAddStayModal(true); }}
                 className="text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded px-3 py-1.5 hover:bg-gray-50 font-medium"
@@ -297,118 +331,44 @@ export default function AccommodationPage() {
             </div>
             {filteredPrimaries.length === 0 ? (
               <p className="text-sm text-gray-400">{search || selectedTag ? 'No families match.' : 'No families yet.'}</p>
-            ) : (
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredPrimaries.map(primary => {
+            ) : (() => {
+              const familyBlocks = filteredPrimaries
+                .map(primary => {
                   const members = guests.filter(g => g.party_leader_id === primary.id && g.venue_stay_invited);
                   const allMembers = [primary, ...members];
-                  const primaryTags = (primary.tags || []);
-                  return (
-                    <div key={primary.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="mb-3">
-                        <h3 className="text-sm font-semibold text-gray-900">{primary.name}</h3>
-                        {primaryTags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {primaryTags.map(tag => (
-                              <span key={tag} className={`inline-block px-2 py-0.5 rounded-full text-xs border font-medium ${getTagColor(tag, allTags)}`}>
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                  const unassignedMembers = allMembers.filter(m => !assignedGuestIdSet.has(m.id));
+                  return { primary, unassignedMembers };
+                })
+                .filter(({ unassignedMembers }) => unassignedMembers.length > 0);
+
+              if (familyBlocks.length === 0) {
+                return <p className="text-sm text-gray-400">Everyone has a room. 🎉</p>;
+              }
+
+              return (
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {familyBlocks.map(({ primary, unassignedMembers }) => (
+                    <div key={primary.id} className="border border-gray-200 rounded-lg p-3 bg-white">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-xs font-semibold text-gray-700 truncate">{primary.name}</p>
+                        {primary.tags?.[0] && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full border flex-shrink-0 font-medium ${getTagColor(primary.tags[0], allTags)}`}>
+                            {primary.tags[0]}
+                          </span>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        {allMembers.map(member => {
-                          const assignment = getGuestAssignment(member.id);
-                          const room = assignment ? rooms.find(r => r.id === assignment.room_id) : null;
-                          return (
-                            <div key={member.id} className="border border-gray-100 rounded p-2 group">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 text-xs text-gray-700 min-w-0">
-                                  {member.party_leader_id && <span className="w-2 h-px bg-gray-300 flex-shrink-0" />}
-                                  <span className="font-medium truncate">{member.name}</span>
-                                  {member.party_role && member.party_role !== 'primary' && (
-                                    <span className="text-gray-400 flex-shrink-0">({roleLabel[member.party_role]})</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedRoom(null);
-                                      setAssigningFamily({
-                                        guestId: member.id,
-                                        familyName: member.name,
-                                        familySize: 1,
-                                        isChanging: !!assignment,
-                                      });
-                                    }}
-                                    className={`text-xs font-medium px-2 py-1 rounded whitespace-nowrap ${
-                                      assignment
-                                        ? 'text-gray-500 border border-gray-200 hover:bg-gray-50'
-                                        : 'bg-gray-900 text-white hover:bg-gray-700'
-                                    }`}
-                                  >
-                                    {assignment ? 'Change' : '+ Room'}
-                                  </button>
-                                  {member.party_leader_id && (
-                                    <button
-                                      onClick={() => setVenueStay(member.id, false)}
-                                      title="Remove this person from the stay list"
-                                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      ✕
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                              {room && assignment && (
-                                <div className={`mt-2 p-2 rounded border text-xs ${getSectionColor(room.section)}`}>
-                                  <div className="flex items-center justify-between gap-2">
-                                    {ROOM_URLS[room.name] ? (
-                                      <a
-                                        href={ROOM_URLS[room.name]}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="font-medium underline decoration-dotted hover:opacity-80"
-                                      >
-                                        {room.name}
-                                      </a>
-                                    ) : (
-                                      <span className="font-medium">{room.name}</span>
-                                    )}
-                                    <span className="text-[10px] uppercase tracking-wide opacity-70 whitespace-nowrap">{room.section}</span>
-                                  </div>
-                                  <button
-                                    onClick={() => removeAssignment(assignment.id)}
-                                    className="text-red-500 hover:text-red-700 mt-1"
-                                  >
-                                    Remove room
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                      <div className="flex flex-wrap gap-1">
+                        {unassignedMembers.map(m => renderPill(m.id, m.name, m.party_role, { context: 'pool' }))}
                       </div>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Remove ${primary.name}${members.length ? ' and family' : ''} from the venue stay list?`)) {
-                            setVenueStay(primary.id, false);
-                          }
-                        }}
-                        className="text-xs text-red-400 hover:text-red-600 mt-3"
-                      >
-                        Remove from stay list
-                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
-          {/* Rooms section */}
-          <div className="border-t border-gray-200 pt-10">
+          {/* Rooms */}
+          <div className="border-t border-gray-200 pt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gray-900">Rooms</h2>
               <button
@@ -433,104 +393,86 @@ export default function AccommodationPage() {
               </button>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-6">
               {['Second Floor', 'Garden Side', 'Terrace Side'].map(section => {
                 const sectionRooms = rooms.filter(r => r.section === section);
                 if (sectionRooms.length === 0) return null;
                 return (
                   <div key={section}>
                     <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">{section}</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
                       {sectionRooms.map(room => {
                         const roomAssignments = getRoomAssignments(room.id);
-                        const filledBeds = roomAssignments.length;
-                        const capacity = room.capacity + (room.extra_bed_type ? 1 : 0);
+                        const isFull = roomAssignments.length >= room.capacity;
+                        const isReserved = !!room.reserved_for;
+                        const isDragOver = dragOverRoom === room.id;
                         return (
-                          <div key={room.id} className={`bg-white border rounded-lg p-4 ${room.reserved_for ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'}`}>
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  {ROOM_URLS[room.name] ? (
-                                    <a
-                                      href={ROOM_URLS[room.name]}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="font-semibold text-gray-900 underline decoration-dotted hover:text-gray-600"
-                                    >
-                                      {room.name}
-                                    </a>
-                                  ) : (
-                                    <h4 className="font-semibold text-gray-900">{room.name}</h4>
-                                  )}
-                                  {room.reserved_for && <span className="text-xs text-amber-600 font-medium">🔒</span>}
-                                </div>
-                                {room.reserved_for && <p className="text-xs text-amber-600 mb-2">{room.reserved_for}</p>}
-                                <p className="text-xs text-gray-500 mb-2">
-                                  {filledBeds} of {room.capacity} beds {room.extra_bed_type && `(+1 ${room.extra_bed_type})`}
-                                </p>
-                                {room.amenities?.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    {room.amenities.map(a => (
-                                      <span key={a} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-                                        {a}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex gap-2 ml-2 flex-shrink-0">
-                                <button
-                                  onClick={() => {
-                                    setEditingRoom(room);
-                                    setRoomForm({
-                                      name: room.name,
-                                      room_type: room.room_type,
-                                      capacity: room.capacity,
-                                      floor: room.floor || '',
-                                      section: room.section || '',
-                                      amenities: room.amenities || [],
-                                      extra_bed_type: room.extra_bed_type || '',
-                                      notes: room.notes || '',
-                                      reserved_for: room.reserved_for || '',
-                                    });
-                                    setShowRoomModal(true);
-                                  }}
-                                  className="text-xs text-gray-400 hover:text-gray-700"
-                                >
-                                  Edit
-                                </button>
-                                <button onClick={() => deleteRoom(room.id)} className="text-xs text-red-400 hover:text-red-600">
-                                  Delete
-                                </button>
-                              </div>
+                          <div
+                            key={room.id}
+                            onDragOver={e => handleDragOverRoom(e, room)}
+                            onDragLeave={() => handleDragLeaveRoom(room)}
+                            onDrop={e => handleDropOnRoom(e, room)}
+                            className={`group relative rounded-lg border p-2.5 transition-colors ${getSectionColor(room.section)} ${
+                              isDragOver ? (isReserved || isFull ? 'ring-2 ring-red-400' : 'ring-2 ring-gray-900') : ''
+                            }`}
+                          >
+                            <div className="absolute top-1.5 right-1.5 hidden group-hover:flex gap-1.5 bg-white/90 rounded px-1">
+                              <button
+                                onClick={() => {
+                                  setEditingRoom(room);
+                                  setRoomForm({
+                                    name: room.name,
+                                    room_type: room.room_type,
+                                    capacity: room.capacity,
+                                    floor: room.floor || '',
+                                    section: room.section || '',
+                                    amenities: room.amenities || [],
+                                    extra_bed_type: room.extra_bed_type || '',
+                                    notes: room.notes || '',
+                                    reserved_for: room.reserved_for || '',
+                                  });
+                                  setShowRoomModal(true);
+                                }}
+                                className="text-[10px] text-gray-400 hover:text-gray-700"
+                                title="Edit room"
+                              >
+                                ✎
+                              </button>
+                              <button onClick={() => deleteRoom(room.id)} className="text-[10px] text-red-400 hover:text-red-600" title="Delete room">
+                                🗑
+                              </button>
                             </div>
-
-                            {roomAssignments.length > 0 && (
-                              <div className="mb-3 p-3 bg-blue-50 rounded border border-blue-200">
-                                <p className="text-xs font-semibold text-blue-900 mb-2">Booked by:</p>
-                                {roomAssignments.map(a => {
-                                  const familyMembers = guests.filter(g => g.party_leader_id === a.guest_id);
-                                  return (
-                                    <div key={a.id}>
-                                      <div className="text-xs text-gray-700 flex items-center justify-between mb-1">
-                                        <span className="font-medium">{a.guests?.name}</span>
-                                        <button onClick={() => removeAssignment(a.id)} className="text-red-500 hover:text-red-700 text-xs underline">
-                                          remove
-                                        </button>
-                                      </div>
-                                      {familyMembers.length > 0 && (
-                                        <div className="text-xs text-gray-500 ml-2 space-y-0.5 mb-1.5">
-                                          {familyMembers.map(m => (
-                                            <div key={m.id}>· {m.name}</div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                            <div className="flex items-center justify-between gap-1 mb-1.5 pr-8">
+                              {ROOM_URLS[room.name] ? (
+                                <a
+                                  href={ROOM_URLS[room.name]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs font-semibold underline decoration-dotted hover:opacity-80 truncate"
+                                >
+                                  {room.name}
+                                </a>
+                              ) : (
+                                <span className="text-xs font-semibold truncate">{room.name}</span>
+                              )}
+                              <span className="text-[10px] font-medium opacity-70 flex-shrink-0">
+                                {roomAssignments.length}/{room.capacity}
+                              </span>
+                            </div>
+                            {room.reserved_for && (
+                              <p className="text-[10px] opacity-70 mb-1.5 truncate" title={room.reserved_for}>
+                                🔒 {room.reserved_for}
+                              </p>
                             )}
-
+                            <div className="flex flex-wrap gap-1 min-h-[1.5rem]">
+                              {roomAssignments.length === 0 ? (
+                                <span className="text-[10px] opacity-50 italic">Drop guests here</span>
+                              ) : (
+                                roomAssignments.map(a =>
+                                  renderPill(a.guest_id, a.guests?.name || 'Guest', a.guests?.party_role, { context: 'room', assignmentId: a.id })
+                                )
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -695,181 +637,6 @@ export default function AccommodationPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Room assignment side panel */}
-      {assigningFamily && (
-        <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => { setAssigningFamily(null); setSelectedRoom(null); }} />
-
-          {/* Side panel */}
-          <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-xl z-50 flex flex-col">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{selectedRoom ? 'Confirm' : 'Assign room'}</h2>
-                <p className="text-sm text-gray-500 mt-1">{assigningFamily.familyName} ({assigningFamily.familySize} {assigningFamily.familySize === 1 ? 'person' : 'people'})</p>
-              </div>
-              <button
-                onClick={() => {
-                  if (selectedRoom) {
-                    setSelectedRoom(null);
-                  } else {
-                    setAssigningFamily(null);
-                  }
-                }}
-                className="text-gray-400 hover:text-gray-600 text-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {selectedRoom ? (
-              // Confirmation view
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-                  {assigningFamily.isChanging && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Current room</p>
-                      {(() => {
-                        const assignment = getGuestAssignment(assigningFamily.guestId);
-                        const currentRoom = assignment ? rooms.find(r => r.id === assignment.room_id) : null;
-                        return currentRoom ? (
-                          <div className="p-3 rounded-lg border border-amber-200 bg-amber-50">
-                            <h4 className="font-semibold text-gray-900">{currentRoom.name}</h4>
-                            <p className="text-xs text-gray-600 mt-1">{currentRoom.capacity} beds</p>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                      {assigningFamily.isChanging ? 'New room' : 'Assign to'}
-                    </p>
-                    <div className="p-3 rounded-lg border border-green-200 bg-green-50">
-                      <h4 className="font-semibold text-gray-900">{selectedRoom.name}</h4>
-                      <p className="text-xs text-gray-600 mt-1">{selectedRoom.capacity} beds</p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {selectedRoom.amenities?.map(a => (
-                          <span key={a} className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                            {a}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-200 px-6 py-4 flex gap-3">
-                  <button
-                    onClick={() => setSelectedRoom(null)}
-                    className="flex-1 text-sm text-gray-500 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={() => {
-                      assignGuest(assigningFamily.guestId, selectedRoom.id, assigningFamily.isChanging);
-                      setAssigningFamily(null);
-                      setSelectedRoom(null);
-                    }}
-                    className="flex-1 bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700"
-                  >
-                    Confirm
-                  </button>
-                </div>
-              </div>
-            ) : (
-              // Room selection view
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-                {['Second Floor', 'Garden Side', 'Terrace Side'].map(section => {
-                  const sectionRooms = rooms.filter(r => r.section === section).sort((a, b) => a.sort_order - b.sort_order);
-                  return (
-                    <div key={section}>
-                      <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">{section}</h3>
-                      <div className="space-y-2">
-                        {sectionRooms.map(r => {
-                          const assignments = getRoomAssignments(r.id);
-                          const isFull = assignments.length >= r.capacity;
-                          const isReserved = r.reserved_for;
-                          const canAssign = !isFull && !isReserved;
-                          const roomDesc = {
-                            'Suite': '2 beds · For newlyweds',
-                            'La Pequeña': '1 bed (1.35m wide)',
-                            'Arco': 'Double + supletoria option',
-                            'La Grande': 'Double + supletoria option',
-                            'Tejados': 'Triple duplex + supletoria',
-                            'Sabina': 'Triple duplex + supletoria',
-                            'India': 'Double + supletoria option',
-                            'Caballos': 'Double + cuna only',
-                            'Lana': 'Triple + supletoria',
-                            'Vino': 'Double + supletoria',
-                            'Aceite': 'Triple + supletoria',
-                            'Madera': 'Double + supletoria',
-                            'Trigo': 'Triple + supletoria',
-                            'Miel': 'Double + supletoria',
-                            'Oveja': 'Double + cuna',
-                            'Uva': 'Double + cuna',
-                            'Oliva': 'Double + cuna',
-                            'Bosque': 'Double + cuna',
-                            'Semilla': 'Double + cuna',
-                            'Flor': 'Double + cuna (Accessible)',
-                          } as Record<string, string>;
-
-                          return (
-                            <button
-                              key={r.id}
-                              onClick={() => {
-                                if (canAssign) {
-                                  setSelectedRoom(r);
-                                }
-                              }}
-                              disabled={!canAssign}
-                              className={`w-full text-left p-3 rounded-lg border transition-all ${
-                                canAssign
-                                  ? 'border-gray-200 hover:border-gray-400 hover:bg-gray-50 cursor-pointer'
-                                  : 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-900">{r.name}</h4>
-                                  <p className="text-xs text-gray-600 mt-0.5">{roomDesc[r.name] || 'Room'}</p>
-                                </div>
-                                <div className="text-xs ml-2 flex-shrink-0">
-                                  {isReserved ? (
-                                    <span className="text-amber-600 font-medium">Reserved</span>
-                                  ) : isFull ? (
-                                    <span className="text-red-600 font-medium">Full</span>
-                                  ) : (
-                                    <span className="text-green-600 font-medium">Available</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="flex flex-wrap gap-1">
-                                  {r.amenities?.map(a => (
-                                    <span key={a} className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-                                      {a}
-                                    </span>
-                                  ))}
-                                </div>
-                                <span className="text-xs text-gray-500 ml-2">{assignments.length}/{r.capacity}</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </>
       )}
 
       {/* External link modal */}
