@@ -96,6 +96,7 @@ export default function AccommodationPage() {
   const [saving, setSaving] = useState(false);
   const [showAddStayModal, setShowAddStayModal] = useState(false);
   const [addStaySearch, setAddStaySearch] = useState('');
+  const [confirmedGuestIds, setConfirmedGuestIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -112,16 +113,28 @@ export default function AccommodationPage() {
   }, []);
 
   const fetchAll = async () => {
-    const [roomsRes, assignRes, guestsRes, extRes] = await Promise.all([
+    const [roomsRes, assignRes, guestsRes, extRes, eventsRes] = await Promise.all([
       supabase.from('venue_rooms').select('*').order('section').order('sort_order'),
       supabase.from('guest_room_assignments').select('*, guests(name, tags, party_role, party_leader_id)'),
       supabase.from('guests').select('id, name, tags, party_role, party_leader_id, venue_stay_invited').order('name'),
       supabase.from('external_accommodations').select('*').order('sort_order'),
+      supabase.from('events').select('id, name, slug').order('sort_order'),
     ]);
     setRooms(roomsRes.data || []);
     setAssignments(assignRes.data || []);
     setGuests(guestsRes.data || []);
     setExternal(extRes.data || []);
+
+    const events = eventsRes.data || [];
+    const ceremonyEvent = events.find(e => e.slug === 'wedding')
+      || events.find(e => ((e.name as any)?.en || '').toLowerCase().includes('wedding'))
+      || events[0];
+    if (ceremonyEvent) {
+      const rsvpRes = await supabase.from('rsvp_responses').select('guest_id, status').eq('event_id', ceremonyEvent.id);
+      setConfirmedGuestIds(new Set((rsvpRes.data || []).filter(r => r.status === 'attending').map(r => r.guest_id)));
+    } else {
+      setConfirmedGuestIds(new Set());
+    }
     setLoading(false);
   };
 
@@ -695,7 +708,7 @@ export default function AccommodationPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
             <div className="px-6 py-5 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">Add to stay list</h2>
-              <p className="text-sm text-gray-500 mt-1">Guests not currently marked as staying at the venue.</p>
+              <p className="text-sm text-gray-500 mt-1">Confirmed guests not currently marked as staying at the venue.</p>
               <input
                 type="text"
                 autoFocus
@@ -707,7 +720,7 @@ export default function AccommodationPage() {
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
               {guests
-                .filter(g => !g.venue_stay_invited)
+                .filter(g => !g.venue_stay_invited && confirmedGuestIds.has(g.id))
                 .filter(g => g.name.toLowerCase().includes(addStaySearch.toLowerCase()))
                 .map(g => {
                   const leader = g.party_leader_id ? guests.find(p => p.id === g.party_leader_id) : null;
@@ -726,7 +739,7 @@ export default function AccommodationPage() {
                     </div>
                   );
                 })}
-              {guests.filter(g => !g.venue_stay_invited).filter(g => g.name.toLowerCase().includes(addStaySearch.toLowerCase())).length === 0 && (
+              {guests.filter(g => !g.venue_stay_invited && confirmedGuestIds.has(g.id)).filter(g => g.name.toLowerCase().includes(addStaySearch.toLowerCase())).length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-6">No matching guests.</p>
               )}
             </div>
