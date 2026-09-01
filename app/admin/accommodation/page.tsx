@@ -46,6 +46,36 @@ const getTagColor = (tag: string, allTags: string[]) => {
   return colors[index];
 };
 
+const ROOM_URLS: Record<string, string> = {
+  'Suite': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/1/suite.html',
+  'La Pequeña': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/2/la-pequena.html',
+  'Arco': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/3/arco.html',
+  'La Grande': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/4/la-grande.html',
+  'Tejados': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/5/tejados.html',
+  'Sabina': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/6/sabina.html',
+  'India': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/7/india.html',
+  'Caballos': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/8/caballos.html',
+  'Lana': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/9/lana.html',
+  'Vino': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/10/vino.html',
+  'Aceite': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/11/aceite.html',
+  'Madera': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/12/madera.html',
+  'Trigo': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/13/trigo.html',
+  'Miel': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/14/miel.html',
+  'Oveja': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/15/oveja.html',
+  'Uva': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/16/uva.html',
+  'Oliva': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/17/oliva.html',
+  'Bosque': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/18/bosque.html',
+  'Semilla': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/19/semilla.html',
+  'Flor': 'https://www.masialagarriga.com/es/hotel-con-encanto/11/las-20-habitaciones/20/flor.html',
+};
+
+const SECTION_COLORS: Record<string, string> = {
+  'Second Floor': 'border-blue-200 bg-blue-50 text-blue-700',
+  'Garden Side': 'border-green-200 bg-green-50 text-green-700',
+  'Terrace Side': 'border-amber-200 bg-amber-50 text-amber-700',
+};
+const getSectionColor = (section: string | null) => SECTION_COLORS[section || ''] || 'border-gray-200 bg-gray-50 text-gray-700';
+
 export default function AccommodationPage() {
   const [tab, setTab] = useState<'families' | 'external'>('families');
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -273,68 +303,53 @@ export default function AccommodationPage() {
                   const members = guests.filter(g => g.party_leader_id === primary.id && g.venue_stay_invited);
                   const allMembers = [primary, ...members];
                   const primaryTags = (primary.tags || []);
-                  const primaryAssigned = assignedGuestIdSet.has(primary.id);
                   return (
                     <div key={primary.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-gray-900">{primary.name}</h3>
-                          {primaryTags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {primaryTags.map(tag => (
-                                <span key={tag} className={`inline-block px-2 py-0.5 rounded-full text-xs border font-medium ${getTagColor(tag, allTags)}`}>
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => {
-                            const familyMembers = guests.filter(g => g.party_leader_id === primary.id);
-                            setSelectedRoom(null);
-                            setAssigningFamily({
-                              guestId: primary.id,
-                              familyName: primary.name,
-                              familySize: 1 + familyMembers.length,
-                              isChanging: primaryAssigned,
-                            });
-                          }}
-                          className={`text-xs font-medium px-3 py-1.5 rounded flex-shrink-0 whitespace-nowrap ${
-                            primaryAssigned
-                              ? 'text-gray-500 border border-gray-200 hover:bg-gray-50'
-                              : 'bg-gray-900 text-white hover:bg-gray-700'
-                          }`}
-                        >
-                          {primaryAssigned ? 'Change room' : '+ Add room'}
-                        </button>
+                      <div className="mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900">{primary.name}</h3>
+                        {primaryTags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {primaryTags.map(tag => (
+                              <span key={tag} className={`inline-block px-2 py-0.5 rounded-full text-xs border font-medium ${getTagColor(tag, allTags)}`}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {(() => {
-                        const assignment = getGuestAssignment(primary.id);
-                        const room = assignment ? rooms.find(r => r.id === assignment.room_id) : null;
-                        return (
-                          <>
-                            {room && assignment && (
-                              <div className="py-2 mb-2 p-2 bg-green-50 rounded border border-green-200">
-                                <p className="text-xs text-green-700 font-medium">{room.name}</p>
-                                <button
-                                  onClick={() => removeAssignment(assignment.id)}
-                                  className="text-xs text-red-500 hover:text-red-700 mt-1"
-                                >
-                                  Remove room
-                                </button>
-                              </div>
-                            )}
-                            <div className="space-y-1 text-xs text-gray-600">
-                              {allMembers.map(member => (
-                                <div key={member.id} className="flex items-center justify-between gap-2 group">
-                                  <div className="flex items-center gap-2">
-                                    {member.party_leader_id && <span className="w-2 h-px bg-gray-300 flex-shrink-0" />}
-                                    <span>{member.name}</span>
-                                    {member.party_role && member.party_role !== 'primary' && (
-                                      <span className="text-gray-400">({roleLabel[member.party_role]})</span>
-                                    )}
-                                  </div>
+                      <div className="space-y-2">
+                        {allMembers.map(member => {
+                          const assignment = getGuestAssignment(member.id);
+                          const room = assignment ? rooms.find(r => r.id === assignment.room_id) : null;
+                          return (
+                            <div key={member.id} className="border border-gray-100 rounded p-2 group">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 text-xs text-gray-700 min-w-0">
+                                  {member.party_leader_id && <span className="w-2 h-px bg-gray-300 flex-shrink-0" />}
+                                  <span className="font-medium truncate">{member.name}</span>
+                                  {member.party_role && member.party_role !== 'primary' && (
+                                    <span className="text-gray-400 flex-shrink-0">({roleLabel[member.party_role]})</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedRoom(null);
+                                      setAssigningFamily({
+                                        guestId: member.id,
+                                        familyName: member.name,
+                                        familySize: 1,
+                                        isChanging: !!assignment,
+                                      });
+                                    }}
+                                    className={`text-xs font-medium px-2 py-1 rounded whitespace-nowrap ${
+                                      assignment
+                                        ? 'text-gray-500 border border-gray-200 hover:bg-gray-50'
+                                        : 'bg-gray-900 text-white hover:bg-gray-700'
+                                    }`}
+                                  >
+                                    {assignment ? 'Change' : '+ Room'}
+                                  </button>
                                   {member.party_leader_id && (
                                     <button
                                       onClick={() => setVenueStay(member.id, false)}
@@ -345,21 +360,46 @@ export default function AccommodationPage() {
                                     </button>
                                   )}
                                 </div>
-                              ))}
+                              </div>
+                              {room && assignment && (
+                                <div className={`mt-2 p-2 rounded border text-xs ${getSectionColor(room.section)}`}>
+                                  <div className="flex items-center justify-between gap-2">
+                                    {ROOM_URLS[room.name] ? (
+                                      <a
+                                        href={ROOM_URLS[room.name]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-medium underline decoration-dotted hover:opacity-80"
+                                      >
+                                        {room.name}
+                                      </a>
+                                    ) : (
+                                      <span className="font-medium">{room.name}</span>
+                                    )}
+                                    <span className="text-[10px] uppercase tracking-wide opacity-70 whitespace-nowrap">{room.section}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => removeAssignment(assignment.id)}
+                                    className="text-red-500 hover:text-red-700 mt-1"
+                                  >
+                                    Remove room
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Remove ${primary.name}${members.length ? ' and family' : ''} from the venue stay list?`)) {
-                                  setVenueStay(primary.id, false);
-                                }
-                              }}
-                              className="text-xs text-red-400 hover:text-red-600 mt-3"
-                            >
-                              Remove from stay list
-                            </button>
-                          </>
-                        );
-                      })()}
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove ${primary.name}${members.length ? ' and family' : ''} from the venue stay list?`)) {
+                            setVenueStay(primary.id, false);
+                          }
+                        }}
+                        className="text-xs text-red-400 hover:text-red-600 mt-3"
+                      >
+                        Remove from stay list
+                      </button>
                     </div>
                   );
                 })}
@@ -410,7 +450,18 @@ export default function AccommodationPage() {
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900">{room.name}</h4>
+                                  {ROOM_URLS[room.name] ? (
+                                    <a
+                                      href={ROOM_URLS[room.name]}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="font-semibold text-gray-900 underline decoration-dotted hover:text-gray-600"
+                                    >
+                                      {room.name}
+                                    </a>
+                                  ) : (
+                                    <h4 className="font-semibold text-gray-900">{room.name}</h4>
+                                  )}
                                   {room.reserved_for && <span className="text-xs text-amber-600 font-medium">🔒</span>}
                                 </div>
                                 {room.reserved_for && <p className="text-xs text-amber-600 mb-2">{room.reserved_for}</p>}
@@ -762,7 +813,7 @@ export default function AccommodationPage() {
                             'Miel': 'Double + supletoria',
                             'Oveja': 'Double + cuna',
                             'Uva': 'Double + cuna',
-                            'Aceituna': 'Double + cuna',
+                            'Oliva': 'Double + cuna',
                             'Bosque': 'Double + cuna',
                             'Semilla': 'Double + cuna',
                             'Flor': 'Double + cuna (Accessible)',

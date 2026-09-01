@@ -24,7 +24,7 @@ INSERT INTO venue_rooms (name, room_type, capacity, section, amenities, extra_be
 INSERT INTO venue_rooms (name, room_type, capacity, section, amenities, extra_bed_type, sort_order, reserved_for, floor) VALUES
 ('Oveja', 'private', 2, 'Terrace Side', ARRAY['Terrace', 'Shower'], 'cuna', 14, NULL, '1st'),
 ('Uva', 'private', 2, 'Terrace Side', ARRAY['Terrace', 'Shower'], 'cuna', 15, NULL, '1st'),
-('Aceituna', 'private', 2, 'Terrace Side', ARRAY['Terrace', 'Shower'], 'cuna', 16, NULL, '1st'),
+('Oliva', 'private', 2, 'Terrace Side', ARRAY['Terrace', 'Shower'], 'cuna', 16, NULL, '1st'),
 ('Bosque', 'private', 2, 'Terrace Side', ARRAY['Terrace', 'Shower'], 'cuna', 17, NULL, '1st'),
 ('Semilla', 'private', 2, 'Terrace Side', ARRAY['Terrace', 'Shower'], 'cuna', 18, NULL, '1st'),
 ('Flor', 'private', 2, 'Terrace Side', ARRAY['Terrace', 'Shower', 'Accessible'], 'cuna', 19, NULL, '1st');
