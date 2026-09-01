@@ -65,6 +65,8 @@ export default function AccommodationPage() {
   const [extForm, setExtForm] = useState({ name: '', description: { en: '', pt: '', es: '' }, url: '', directions_url: '', distance_from_venue: '', image_url: '' });
   const [extTab, setExtTab] = useState<'en' | 'pt' | 'es'>('en');
   const [saving, setSaving] = useState(false);
+  const [showAddStayModal, setShowAddStayModal] = useState(false);
+  const [addStaySearch, setAddStaySearch] = useState('');
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -75,6 +77,7 @@ export default function AccommodationPage() {
         setAssigningFamily(null);
         setSelectedRoom(null);
         setShowExtModal(false);
+        setShowAddStayModal(false);
       }
     };
     window.addEventListener('keydown', handleEscape);
@@ -133,6 +136,14 @@ export default function AccommodationPage() {
 
   const removeAssignment = async (id: string) => {
     await supabase.from('guest_room_assignments').delete().eq('id', id);
+    await fetchAll();
+  };
+
+  const setVenueStay = async (guestId: string, invited: boolean) => {
+    if (!invited) {
+      await supabase.from('guest_room_assignments').delete().eq('guest_id', guestId);
+    }
+    await supabase.from('guests').update({ venue_stay_invited: invited }).eq('id', guestId);
     await fetchAll();
   };
 
@@ -245,13 +256,21 @@ export default function AccommodationPage() {
 
           {/* Family cards grid */}
           <div className="mb-10">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">Families</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-gray-900">Families</h2>
+              <button
+                onClick={() => { setAddStaySearch(''); setShowAddStayModal(true); }}
+                className="text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded px-3 py-1.5 hover:bg-gray-50 font-medium"
+              >
+                + Add to stay list
+              </button>
+            </div>
             {filteredPrimaries.length === 0 ? (
               <p className="text-sm text-gray-400">{search || selectedTag ? 'No families match.' : 'No families yet.'}</p>
             ) : (
               <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {filteredPrimaries.map(primary => {
-                  const members = guests.filter(g => g.party_leader_id === primary.id);
+                  const members = guests.filter(g => g.party_leader_id === primary.id && g.venue_stay_invited);
                   const allMembers = [primary, ...members];
                   const primaryTags = (primary.tags || []);
                   const primaryAssigned = assignedGuestIdSet.has(primary.id);
@@ -308,15 +327,36 @@ export default function AccommodationPage() {
                             )}
                             <div className="space-y-1 text-xs text-gray-600">
                               {allMembers.map(member => (
-                                <div key={member.id} className="flex items-center gap-2">
-                                  {member.party_leader_id && <span className="w-2 h-px bg-gray-300 flex-shrink-0" />}
-                                  <span>{member.name}</span>
-                                  {member.party_role && member.party_role !== 'primary' && (
-                                    <span className="text-gray-400">({roleLabel[member.party_role]})</span>
+                                <div key={member.id} className="flex items-center justify-between gap-2 group">
+                                  <div className="flex items-center gap-2">
+                                    {member.party_leader_id && <span className="w-2 h-px bg-gray-300 flex-shrink-0" />}
+                                    <span>{member.name}</span>
+                                    {member.party_role && member.party_role !== 'primary' && (
+                                      <span className="text-gray-400">({roleLabel[member.party_role]})</span>
+                                    )}
+                                  </div>
+                                  {member.party_leader_id && (
+                                    <button
+                                      onClick={() => setVenueStay(member.id, false)}
+                                      title="Remove this person from the stay list"
+                                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      ✕
+                                    </button>
                                   )}
                                 </div>
                               ))}
                             </div>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Remove ${primary.name}${members.length ? ' and family' : ''} from the venue stay list?`)) {
+                                  setVenueStay(primary.id, false);
+                                }
+                              }}
+                              className="text-xs text-red-400 hover:text-red-600 mt-3"
+                            >
+                              Remove from stay list
+                            </button>
                           </>
                         );
                       })()}
@@ -827,6 +867,56 @@ export default function AccommodationPage() {
               </button>
               <button onClick={saveExt} disabled={saving || !extForm.name} className="bg-gray-900 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">
                 {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add to stay list modal */}
+      {showAddStayModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+            <div className="px-6 py-5 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Add to stay list</h2>
+              <p className="text-sm text-gray-500 mt-1">Guests not currently marked as staying at the venue.</p>
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search guests…"
+                value={addStaySearch}
+                onChange={e => setAddStaySearch(e.target.value)}
+                className="input mt-3"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+              {guests
+                .filter(g => !g.venue_stay_invited)
+                .filter(g => g.name.toLowerCase().includes(addStaySearch.toLowerCase()))
+                .map(g => {
+                  const leader = g.party_leader_id ? guests.find(p => p.id === g.party_leader_id) : null;
+                  return (
+                    <div key={g.id} className="flex items-center justify-between border border-gray-100 rounded p-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{g.name}</p>
+                        {leader && <p className="text-xs text-gray-400">with {leader.name}</p>}
+                      </div>
+                      <button
+                        onClick={() => setVenueStay(g.id, true)}
+                        className="text-xs text-white bg-gray-900 px-3 py-1.5 rounded hover:bg-gray-700 font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  );
+                })}
+              {guests.filter(g => !g.venue_stay_invited).filter(g => g.name.toLowerCase().includes(addStaySearch.toLowerCase())).length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-6">No matching guests.</p>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button onClick={() => setShowAddStayModal(false)} className="text-sm text-gray-500 px-4 py-2">
+                Done
               </button>
             </div>
           </div>
