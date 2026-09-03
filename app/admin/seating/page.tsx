@@ -50,6 +50,24 @@ export default function SeatingPage() {
     if (typeof window === 'undefined') return new Set();
     try { return new Set(JSON.parse(localStorage.getItem('seating-locks') || '[]')); } catch { return new Set(); }
   });
+  const [headTables, setHeadTables] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem('seating-head-tables') || '[]')); } catch { return new Set(); }
+  });
+
+  const toggleHeadTable = (tableId: string) => {
+    setHeadTables(prev => {
+      const next = new Set(prev);
+      if (next.has(tableId)) {
+        next.delete(tableId);
+        supabase.from('seating_assignments').delete().eq('table_id', tableId).eq('side', 'H').then(() => fetchAll());
+      } else {
+        next.add(tableId);
+      }
+      localStorage.setItem('seating-head-tables', JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   const toggleLock = (guestId: string) => {
     setLockedGuestIds(prev => {
@@ -262,7 +280,8 @@ export default function SeatingPage() {
       const emptySeats = tables.flatMap(t => {
         const seats: { table_id: string; side: string; position: number }[] = [];
         for (const side of ['A', 'B', 'H'] as const) {
-          const limit = side === 'H' ? 1 : t.seats_per_side;
+          if (side === 'H' && !headTables.has(t.id)) continue;
+          const limit = side === 'H' ? 2 : t.seats_per_side;
           for (let pos = 1; pos <= limit; pos++) {
             if (!getSeat(t.id, side, pos)) seats.push({ table_id: t.id, side, position: pos });
           }
@@ -326,7 +345,7 @@ export default function SeatingPage() {
           )}
           {tables.map(table => {
             const seatCount = assignments.filter(a => a.table_id === table.id).length;
-            const totalSeats = table.seats_per_side * 2;
+            const totalSeats = table.seats_per_side * 2 + (headTables.has(table.id) ? 2 : 0);
             return (
               <div key={table.id} className="border border-gray-200 rounded-xl p-5 bg-white">
                 <div className="flex items-center justify-between mb-4">
@@ -335,6 +354,7 @@ export default function SeatingPage() {
                     <p className="text-xs text-gray-500 mt-0.5">{seatCount}/{totalSeats} seats filled</p>
                   </div>
                   <div className="flex gap-2">
+                    <button onClick={() => toggleHeadTable(table.id)} className={`text-xs px-2 py-1 border rounded ${headTables.has(table.id) ? 'border-purple-200 text-purple-600 bg-purple-50 hover:bg-purple-100' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{headTables.has(table.id) ? 'Head seats on' : 'Add head seats'}</button>
                     <button onClick={() => openEditTable(table)} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 border border-gray-200 rounded hover:bg-gray-50">Edit</button>
                     <button onClick={() => setDeleteConfirm(table)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 border border-red-100 rounded hover:bg-red-50">Delete</button>
                   </div>
@@ -342,6 +362,36 @@ export default function SeatingPage() {
 
                 <div className="overflow-x-auto pb-1">
                   <div className="inline-flex items-center gap-3">
+                    {/* Left head seat */}
+                    {headTables.has(table.id) && (() => {
+                      const seat = getSeat(table.id, 'H', 1);
+                      const seatKey = `${table.id}-H-1`;
+                      const isDragOver = dragOverSeat === seatKey;
+                      const guest = seat ? guestById.get(seat.guest_id) : undefined;
+                      const meta = guest ? guestMeta(guest) : '';
+                      const isLocked = seat ? lockedGuestIds.has(seat.guest_id) : false;
+                      return (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[9px] text-gray-400 uppercase tracking-wide">Head</span>
+                          <div
+                            onDragOver={e => handleDragOver(e, seatKey)}
+                            onDragLeave={() => setDragOverSeat(prev => prev === seatKey ? null : prev)}
+                            onDrop={e => handleDrop(e, table.id, 'H', 1)}
+                            draggable={!!seat && !isLocked}
+                            onDragStart={seat && !isLocked ? e => handleDragStart(e, seat.guest_id) : undefined}
+                            className={`relative w-14 h-14 flex-shrink-0 rounded-full border text-[9px] flex flex-col items-center justify-center px-0.5 text-center transition-colors ${seat ? isLocked ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-purple-50 border-purple-200 text-purple-800 cursor-grab' : 'bg-gray-50 border-gray-200 text-gray-400 border-dashed'} ${isDragOver ? 'ring-2 ring-gray-900' : ''}`}
+                          >
+                            {seat ? (<>
+                              <span className="font-medium leading-tight truncate max-w-full px-1 mt-1">{guest?.name || seat.guests?.name || 'Guest'}</span>
+                              {meta && <span className={`text-[7px] truncate max-w-full ${isLocked ? 'text-blue-600' : 'text-purple-600'}`}>{meta}</span>}
+                              <button onClick={() => toggleLock(seat.guest_id)} className="absolute top-0.5 right-4 text-[9px]" title={isLocked ? 'Unlock' : 'Lock'}>{isLocked ? '🔒' : '🔓'}</button>
+                              <button onClick={() => unassignGuest(seat.id)} className="absolute top-0.5 right-0.5 text-gray-400 hover:text-red-600 leading-none" title="Remove">×</button>
+                            </>) : <span className="text-[8px]">Empty</span>}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Main seats: sides A and B */}
                     <div className="inline-flex flex-col gap-1">
                       {(['A', 'B'] as const).map(side => (
@@ -386,10 +436,10 @@ export default function SeatingPage() {
                       ))}
                     </div>
 
-                    {/* Head of table seat */}
-                    {(() => {
-                      const seat = getSeat(table.id, 'H', 1);
-                      const seatKey = `${table.id}-H-1`;
+                    {/* Right head seat */}
+                    {headTables.has(table.id) && (() => {
+                      const seat = getSeat(table.id, 'H', 2);
+                      const seatKey = `${table.id}-H-2`;
                       const isDragOver = dragOverSeat === seatKey;
                       const guest = seat ? guestById.get(seat.guest_id) : undefined;
                       const meta = guest ? guestMeta(guest) : '';
@@ -400,25 +450,17 @@ export default function SeatingPage() {
                           <div
                             onDragOver={e => handleDragOver(e, seatKey)}
                             onDragLeave={() => setDragOverSeat(prev => prev === seatKey ? null : prev)}
-                            onDrop={e => handleDrop(e, table.id, 'H', 1)}
+                            onDrop={e => handleDrop(e, table.id, 'H', 2)}
                             draggable={!!seat && !isLocked}
                             onDragStart={seat && !isLocked ? e => handleDragStart(e, seat.guest_id) : undefined}
-                            className={`relative w-14 h-14 flex-shrink-0 rounded-full border text-[9px] flex flex-col items-center justify-center px-0.5 text-center transition-colors ${
-                              seat
-                                ? isLocked ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-purple-50 border-purple-200 text-purple-800 cursor-grab'
-                                : 'bg-gray-50 border-gray-200 text-gray-400 border-dashed'
-                            } ${isDragOver ? 'ring-2 ring-gray-900' : ''}`}
-                            title={seat ? `Head · ${guest?.name || seat.guests?.name || 'Guest'}` : 'Head of table'}
+                            className={`relative w-14 h-14 flex-shrink-0 rounded-full border text-[9px] flex flex-col items-center justify-center px-0.5 text-center transition-colors ${seat ? isLocked ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-purple-50 border-purple-200 text-purple-800 cursor-grab' : 'bg-gray-50 border-gray-200 text-gray-400 border-dashed'} ${isDragOver ? 'ring-2 ring-gray-900' : ''}`}
                           >
-                            {seat ? (
-                              <>
-                                <span className="font-medium leading-tight truncate max-w-full px-1">{guest?.name || seat.guests?.name || 'Guest'}</span>
-                                <button onClick={() => toggleLock(seat.guest_id)} className="absolute top-0.5 right-4 text-[9px] leading-none" title={isLocked ? 'Unlock' : 'Lock'}>{isLocked ? '🔒' : '🔓'}</button>
-                                <button onClick={() => unassignGuest(seat.id)} className="absolute top-0.5 right-0.5 text-gray-400 hover:text-red-600 leading-none" title="Remove from seat">×</button>
-                              </>
-                            ) : (
-                              <span className="text-[8px]">Empty</span>
-                            )}
+                            {seat ? (<>
+                              <span className="font-medium leading-tight truncate max-w-full px-1 mt-1">{guest?.name || seat.guests?.name || 'Guest'}</span>
+                              {meta && <span className={`text-[7px] truncate max-w-full ${isLocked ? 'text-blue-600' : 'text-purple-600'}`}>{meta}</span>}
+                              <button onClick={() => toggleLock(seat.guest_id)} className="absolute top-0.5 right-4 text-[9px]" title={isLocked ? 'Unlock' : 'Lock'}>{isLocked ? '🔒' : '🔓'}</button>
+                              <button onClick={() => unassignGuest(seat.id)} className="absolute top-0.5 right-0.5 text-gray-400 hover:text-red-600 leading-none" title="Remove">×</button>
+                            </>) : <span className="text-[8px]">Empty</span>}
                           </div>
                         </div>
                       );
