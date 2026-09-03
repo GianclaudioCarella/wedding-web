@@ -13,7 +13,7 @@ interface SeatingTable {
 interface SeatingAssignment {
   id: string;
   table_id: string;
-  side: 'A' | 'B';
+  side: 'A' | 'B' | 'H';
   position: number;
   guest_id: string;
   guests?: { name: string; tags: string[]; party_role: string; party_leader_id: string | null; language: string } | null;
@@ -114,7 +114,7 @@ export default function SeatingPage() {
     }
   };
 
-  const getSeat = (tableId: string, side: 'A' | 'B', position: number) =>
+  const getSeat = (tableId: string, side: 'A' | 'B' | 'H', position: number) =>
     assignments.find(a => a.table_id === tableId && a.side === side && a.position === position);
 
   const seatedGuestIds = new Set(assignments.map(a => a.guest_id));
@@ -223,7 +223,7 @@ export default function SeatingPage() {
     if (dragOverSeat !== seatKey) setDragOverSeat(seatKey);
   };
 
-  const handleDrop = async (e: React.DragEvent, tableId: string, side: 'A' | 'B', position: number) => {
+  const handleDrop = async (e: React.DragEvent, tableId: string, side: 'A' | 'B' | 'H', position: number) => {
     e.preventDefault();
     setDragOverSeat(null);
     const guestId = e.dataTransfer.getData('text/plain');
