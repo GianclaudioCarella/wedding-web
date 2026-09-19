@@ -1,0 +1,2 @@
+ALTER TABLE public.checklist_items
+  ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT '';

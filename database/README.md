@@ -60,6 +60,9 @@ SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 
 ## Applying new migrations
 
+Run `33_add_checklist_item_notes.sql` to enable notes in checklist items.
+Existing item titles are preserved, with empty notes by default.
+
 The Checklist page requires `32_create_checklist_items.sql`. It creates the shared
 checklist lists and items tables, authenticated access policies, and the atomic reorder function.
 Apply this migration before using `/admin/checklist`.
