@@ -31,6 +31,13 @@ export default function ChecklistPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showNote, setShowNote] = useState(false);
+  const [note, setNote] = useState('');
+  const [noteListId, setNoteListId] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const noteDialog = useRef<HTMLDialogElement>(null);
+  const addingNote = useRef(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [listFilter, setListFilter] = useState('');
@@ -68,6 +75,40 @@ export default function ChecklistPage() {
   };
 
   useEffect(() => { void loadLists(); }, []);
+  useEffect(() => {
+    if (showNote) noteDialog.current?.showModal();
+    else noteDialog.current?.close();
+  }, [showNote]);
+
+  const addNote = async () => {
+    const list = lists.find(current => current.id === noteListId);
+    if (!note.trim() || !list || addingNote.current) return;
+    addingNote.current = true;
+    setSavingNote(true);
+    setNoteError(null);
+    try {
+      const result = await supabase.from('checklist_items').insert({
+        checklist_id: list.id,
+        title: note.trim(),
+        position: Math.max(-1, ...list.checklist_items.map(item => item.position)) + 1,
+      }).select('id, title, completed, position, created_at').single();
+      if (result.error) throw result.error;
+      setLists(previous => previous.map(current => current.id === list.id
+        ? { ...current, checklist_items: [...current.checklist_items, result.data] } : current));
+      setShowNote(false);
+      setNote('');
+      setSearch('');
+      if (filter === 'completed') setFilter('pending');
+      if (listFilter && listFilter !== list.id) setListFilter(list.id);
+      setCollapsed(previous => { const next = new Set(previous); next.delete(list.id); return next; });
+      requestAnimationFrame(() => document.getElementById(`checklist-${list.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    } catch {
+      setNoteError('Could not add the note. Please try again.');
+    } finally {
+      addingNote.current = false;
+      setSavingNote(false);
+    }
+  };
 
   const clearFilters = () => { setSearch(''); setFilter('all'); setListFilter(''); };
   const updateItems = (listId: string, items: ChecklistItem[]) => {
@@ -121,7 +162,14 @@ export default function ChecklistPage() {
           <h1 className="text-2xl font-semibold text-gray-900 mb-1">Checklist</h1>
           <p className="text-sm text-gray-500">{loading ? 'Loading...' : `${lists.length} checklists`}</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add checklist</button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button onClick={() => setShowAdd(true)} className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-100">+ Add checklist</button>
+          <button onClick={() => {
+            setNote(''); setNoteError(null); setNoteListId(listFilter || lists[0]?.id || ''); setShowNote(true);
+          }} disabled={loading || lists.length === 0 || deletingListId !== null}
+            title={lists.length === 0 ? 'Create a checklist first' : 'Add a note to a checklist'}
+            className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">+ Add note</button>
+        </div>
       </div>
 
       {!loading && <div className="flex flex-wrap gap-6 mb-6 text-sm" aria-live="polite">
@@ -207,13 +255,38 @@ export default function ChecklistPage() {
               </div>
               <div id={`checklist-content-${list.id}`} hidden={!expanded}>
                 <ChecklistItems listId={list.id} items={list.checklist_items} filter={filter} search={itemQuery}
-                  disabled={deletingListId === list.id} onItemsChange={items => updateItems(list.id, items)}
-                  onAdded={() => { setSearch(''); if (filter === 'completed') setFilter('pending'); }} />
+                  disabled={deletingListId === list.id} onItemsChange={items => updateItems(list.id, items)} />
               </div>
             </section>
           );
         })}
       </div>
+      <dialog ref={noteDialog} aria-labelledby="add-note-title"
+        onCancel={event => { if (addingNote.current) event.preventDefault(); else setShowNote(false); }}
+        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-xl bg-white p-0 shadow-xl backdrop:bg-black/30">
+        <form onSubmit={event => { event.preventDefault(); void addNote(); }} className="p-6 space-y-4">
+          <h2 id="add-note-title" className="text-lg font-semibold text-gray-900">Add note</h2>
+          <div>
+            <label htmlFor="note-text" className="block text-sm font-medium text-gray-700 mb-2">Note</label>
+            <textarea id="note-text" autoFocus value={note} onChange={event => setNote(event.target.value)}
+              rows={4} maxLength={500} required disabled={savingNote} placeholder="What needs to be done?"
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-gray-400" />
+          </div>
+          <div>
+            <label htmlFor="note-list" className="block text-sm font-medium text-gray-700 mb-2">Checklist</label>
+            <select id="note-list" value={noteListId} onChange={event => setNoteListId(event.target.value)} required disabled={savingNote}
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900">
+              {lists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
+            </select>
+          </div>
+          {noteError && <p role="alert" className="text-sm text-red-600">{noteError}</p>}
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setShowNote(false)} disabled={savingNote} className="text-sm text-gray-500 px-4 py-2">Cancel</button>
+            <button type="submit" disabled={savingNote || !note.trim() || !noteListId}
+              className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">{savingNote ? 'Saving...' : 'Add note'}</button>
+          </div>
+        </form>
+      </dialog>
     </div>
   );
 }
@@ -224,22 +297,19 @@ function TrashIcon() {
   </svg>;
 }
 
-function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange, onAdded }: {
+function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange }: {
   listId: string;
   items: ChecklistItem[];
   filter: Filter;
   search: string;
   disabled: boolean;
   onItemsChange: (items: ChecklistItem[]) => void;
-  onAdded: () => void;
 }) {
-  const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [targetId, setTargetId] = useState<string | null>(null);
   const busy = useRef(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const visibleItems = items.filter(item => matchesItem(item, filter, search));
 
@@ -256,23 +326,6 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
       busy.current = false;
       setSaving(false);
     }
-  };
-
-  const addItem = async () => {
-    const trimmed = title.trim();
-    if (!trimmed) return;
-    await saveChange(async () => {
-      const result = await supabase.from('checklist_items').insert({
-        checklist_id: listId,
-        title: trimmed,
-        position: Math.max(-1, ...items.map(item => item.position)) + 1,
-      }).select('id, title, completed, position, created_at').single();
-      if (result.error) throw result.error;
-      onItemsChange([...items, result.data]);
-      setTitle('');
-      onAdded();
-    });
-    inputRef.current?.focus();
   };
 
   const toggleItem = (item: ChecklistItem) => saveChange(async () => {
@@ -317,22 +370,7 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
 
   return (
     <div className="px-4 pb-4 sm:px-5">
-      <form onSubmit={event => { event.preventDefault(); void addItem(); }} className="flex gap-3 mb-3">
-        <input
-          ref={inputRef}
-          aria-label="New checklist item"
-          placeholder="Add a checklist item..."
-          value={title}
-          onChange={event => setTitle(event.target.value)}
-          maxLength={500}
-          disabled={disabled || saving}
-          className="min-w-0 flex-1 bg-white border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-gray-400 disabled:opacity-50"
-        />
-        <button type="submit" disabled={!title.trim() || disabled || saving}
-          className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50">+ Add</button>
-      </form>
-
-      <p className="text-xs text-gray-400 mb-3" role="status">{saving ? 'Saving...' : 'Drag the handle to reorder'}</p>
+      {saving && <p className="text-xs text-gray-400 mb-3" role="status">Saving...</p>}
 
       {error && <div role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         {error}
@@ -340,7 +378,7 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
 
       <ul className="divide-y divide-gray-100">
           {visibleItems.length === 0 && <li className="px-6 py-10 text-center text-sm text-gray-400">
-            {items.length === 0 ? 'Add your first checklist item above.' : 'No items match the current filters.'}
+            {items.length === 0 ? 'Use Add note to add an item to this checklist.' : 'No items match the current filters.'}
           </li>}
           {visibleItems.map((item, index) => (
             <li key={item.id} data-checklist-id={item.id} data-list-id={listId}
@@ -383,7 +421,7 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
               <label className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
                 <input type="checkbox" checked={item.completed} disabled={saving || disabled} onChange={() => void toggleItem(item)}
                   className="h-4 w-4 shrink-0 accent-gray-900" />
-                <span className={`text-sm break-words min-w-0 ${item.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>{item.title}</span>
+                <span className={`text-sm whitespace-pre-wrap break-words min-w-0 ${item.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>{item.title}</span>
               </label>
               <button
                 type="button"
