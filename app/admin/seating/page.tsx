@@ -13,7 +13,7 @@ interface SeatingTable {
 interface SeatingAssignment {
   id: string;
   table_id: string;
-  side: 'A' | 'B';
+  side: 'A' | 'B' | 'H';
   position: number;
   guest_id: string;
   guests?: { name: string; tags: string[]; party_role: string; party_leader_id: string | null; language: string } | null;
@@ -45,6 +45,38 @@ export default function SeatingPage() {
   const [saving, setSaving]                 = useState(false);
   const [deleteConfirm, setDeleteConfirm]   = useState<SeatingTable | null>(null);
   const [dragOverSeat, setDragOverSeat]     = useState<string | null>(null);
+  const [shuffling, setShuffling]           = useState(false);
+  const [lockedGuestIds, setLockedGuestIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem('seating-locks') || '[]')); } catch { return new Set(); }
+  });
+  const [headTables, setHeadTables] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem('seating-head-tables') || '[]')); } catch { return new Set(); }
+  });
+
+  const toggleHeadTable = (tableId: string) => {
+    setHeadTables(prev => {
+      const next = new Set(prev);
+      if (next.has(tableId)) {
+        next.delete(tableId);
+        supabase.from('seating_assignments').delete().eq('table_id', tableId).eq('side', 'H').then(() => fetchAll());
+      } else {
+        next.add(tableId);
+      }
+      localStorage.setItem('seating-head-tables', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const toggleLock = (guestId: string) => {
+    setLockedGuestIds(prev => {
+      const next = new Set(prev);
+      next.has(guestId) ? next.delete(guestId) : next.add(guestId);
+      localStorage.setItem('seating-locks', JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -100,7 +132,7 @@ export default function SeatingPage() {
     }
   };
 
-  const getSeat = (tableId: string, side: 'A' | 'B', position: number) =>
+  const getSeat = (tableId: string, side: 'A' | 'B' | 'H', position: number) =>
     assignments.find(a => a.table_id === tableId && a.side === side && a.position === position);
 
   const seatedGuestIds = new Set(assignments.map(a => a.guest_id));
@@ -209,7 +241,7 @@ export default function SeatingPage() {
     if (dragOverSeat !== seatKey) setDragOverSeat(seatKey);
   };
 
-  const handleDrop = async (e: React.DragEvent, tableId: string, side: 'A' | 'B', position: number) => {
+  const handleDrop = async (e: React.DragEvent, tableId: string, side: 'A' | 'B' | 'H', position: number) => {
     e.preventDefault();
     setDragOverSeat(null);
     const guestId = e.dataTransfer.getData('text/plain');
@@ -242,6 +274,40 @@ export default function SeatingPage() {
     await fetchAll();
   };
 
+  const handleFill = async () => {
+    setShuffling(true);
+    try {
+      const emptySeats = tables.flatMap(t => {
+        const seats: { table_id: string; side: string; position: number }[] = [];
+        for (const side of ['A', 'B', 'H'] as const) {
+          if (side === 'H' && !headTables.has(t.id)) continue;
+          const limit = side === 'H' ? 2 : t.seats_per_side;
+          for (let pos = 1; pos <= limit; pos++) {
+            if (!getSeat(t.id, side, pos)) seats.push({ table_id: t.id, side, position: pos });
+          }
+        }
+        return seats;
+      });
+      const shuffled = [...unseatedGuests].sort(() => Math.random() - 0.5);
+      const inserts = shuffled.slice(0, emptySeats.length).map((g, i) => ({ ...emptySeats[i], guest_id: g.id }));
+      if (inserts.length > 0) await supabase.from('seating_assignments').insert(inserts);
+      await fetchAll();
+    } finally { setShuffling(false); }
+  };
+
+  const handleShuffle = async () => {
+    setShuffling(true);
+    try {
+      const unlocked = assignments.filter(a => !lockedGuestIds.has(a.guest_id));
+      if (unlocked.length < 2) return;
+      const seats = unlocked.map(a => ({ table_id: a.table_id, side: a.side, position: a.position }));
+      const guestIds = [...unlocked.map(a => a.guest_id)].sort(() => Math.random() - 0.5);
+      await supabase.from('seating_assignments').delete().in('id', unlocked.map(a => a.id));
+      await supabase.from('seating_assignments').insert(seats.map((s, i) => ({ ...s, guest_id: guestIds[i] })));
+      await fetchAll();
+    } finally { setShuffling(false); }
+  };
+
   if (loading) {
     return <div className="p-8 max-w-[1400px] mx-auto text-sm text-gray-500">Loading…</div>;
   }
@@ -256,10 +322,18 @@ export default function SeatingPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={handleFill} disabled={shuffling || unseatedGuests.length === 0 || tables.length === 0} className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-40">{shuffling ? '…' : 'Fill seats'}</button>
+          <button onClick={handleShuffle} disabled={shuffling || assignments.length < 2} className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-40">{shuffling ? '…' : 'Shuffle'}</button>
           <button onClick={exportCSV} disabled={tables.length === 0} className="border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-50 disabled:opacity-40">Export CSV</button>
           <button onClick={openNewTable} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add table</button>
         </div>
       </div>
+
+      {lockedGuestIds.size > 0 && (
+        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-4">
+          🔒 {lockedGuestIds.size} seat{lockedGuestIds.size !== 1 ? 's' : ''} locked — locks are saved in this browser only. Seats are always saved.
+        </p>
+      )}
 
       <div className="space-y-6">
         {/* Tables */}
@@ -271,7 +345,7 @@ export default function SeatingPage() {
           )}
           {tables.map(table => {
             const seatCount = assignments.filter(a => a.table_id === table.id).length;
-            const totalSeats = table.seats_per_side * 2;
+            const totalSeats = table.seats_per_side * 2 + (headTables.has(table.id) ? 2 : 0);
             return (
               <div key={table.id} className="border border-gray-200 rounded-xl p-5 bg-white">
                 <div className="flex items-center justify-between mb-4">
@@ -280,55 +354,117 @@ export default function SeatingPage() {
                     <p className="text-xs text-gray-500 mt-0.5">{seatCount}/{totalSeats} seats filled</p>
                   </div>
                   <div className="flex gap-2">
+                    <button onClick={() => toggleHeadTable(table.id)} className={`text-xs px-2 py-1 border rounded ${headTables.has(table.id) ? 'border-purple-200 text-purple-600 bg-purple-50 hover:bg-purple-100' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{headTables.has(table.id) ? 'Head seats on' : 'Add head seats'}</button>
                     <button onClick={() => openEditTable(table)} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 border border-gray-200 rounded hover:bg-gray-50">Edit</button>
                     <button onClick={() => setDeleteConfirm(table)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 border border-red-100 rounded hover:bg-red-50">Delete</button>
                   </div>
                 </div>
 
                 <div className="overflow-x-auto pb-1">
-                  <div className="inline-flex flex-col gap-1">
-                    {(['A', 'B'] as const).map(side => (
-                      <div key={side} className="flex gap-1">
-                        {Array.from({ length: table.seats_per_side }, (_, i) => i + 1).map(position => {
-                          const seat = getSeat(table.id, side, position);
-                          const seatKey = `${table.id}-${side}-${position}`;
-                          const isDragOver = dragOverSeat === seatKey;
-                          const guest = seat ? guestById.get(seat.guest_id) : undefined;
-                          const meta = guest ? guestMeta(guest) : '';
-                          return (
-                            <div
-                              key={seatKey}
-                              onDragOver={e => handleDragOver(e, seatKey)}
-                              onDragLeave={() => setDragOverSeat(prev => prev === seatKey ? null : prev)}
-                              onDrop={e => handleDrop(e, table.id, side, position)}
-                              draggable={!!seat}
-                              onDragStart={seat ? e => handleDragStart(e, seat.guest_id) : undefined}
-                              className={`relative w-14 h-14 flex-shrink-0 rounded border text-[9px] flex flex-col items-center justify-center px-0.5 text-center transition-colors ${
-                                seat
-                                  ? 'bg-green-50 border-green-200 text-green-800 cursor-grab'
-                                  : 'bg-gray-50 border-gray-200 text-gray-400 border-dashed'
-                              } ${isDragOver ? 'ring-2 ring-gray-900' : ''}`}
-                              title={seat ? `${side}${position} · ${guest?.name || seat.guests?.name || 'Guest'}${meta ? ' · ' + meta : ''}` : `${side}${position}`}
-                            >
-                              <span className="absolute top-0.5 left-1 text-[8px] text-gray-400">{side}{position}</span>
-                              {seat ? (
-                                <>
-                                  <span className="font-medium leading-tight truncate max-w-full mt-1">{guest?.name || seat.guests?.name || 'Guest'}</span>
-                                  {meta && <span className="text-[7px] text-green-700 truncate max-w-full leading-tight">{meta}</span>}
-                                  <button
-                                    onClick={() => unassignGuest(seat.id)}
-                                    className="absolute top-0.5 right-0.5 text-gray-400 hover:text-red-600 leading-none"
-                                    title="Remove from seat"
-                                  >×</button>
-                                </>
-                              ) : (
-                                <span className="text-[8px]">Empty</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
+                  <div className="inline-flex items-center gap-3">
+                    {/* Left head seat */}
+                    {headTables.has(table.id) && (() => {
+                      const seat = getSeat(table.id, 'H', 1);
+                      const seatKey = `${table.id}-H-1`;
+                      const isDragOver = dragOverSeat === seatKey;
+                      const guest = seat ? guestById.get(seat.guest_id) : undefined;
+                      const meta = guest ? guestMeta(guest) : '';
+                      const isLocked = seat ? lockedGuestIds.has(seat.guest_id) : false;
+                      return (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[9px] text-gray-400 uppercase tracking-wide">Head</span>
+                          <div
+                            onDragOver={e => handleDragOver(e, seatKey)}
+                            onDragLeave={() => setDragOverSeat(prev => prev === seatKey ? null : prev)}
+                            onDrop={e => handleDrop(e, table.id, 'H', 1)}
+                            draggable={!!seat && !isLocked}
+                            onDragStart={seat && !isLocked ? e => handleDragStart(e, seat.guest_id) : undefined}
+                            className={`relative w-14 h-14 flex-shrink-0 rounded-full border text-[9px] flex flex-col items-center justify-center px-0.5 text-center transition-colors ${seat ? isLocked ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-purple-50 border-purple-200 text-purple-800 cursor-grab' : 'bg-gray-50 border-gray-200 text-gray-400 border-dashed'} ${isDragOver ? 'ring-2 ring-gray-900' : ''}`}
+                          >
+                            {seat ? (<>
+                              <span className="font-medium leading-tight truncate max-w-full px-1 mt-1">{guest?.name || seat.guests?.name || 'Guest'}</span>
+                              {meta && <span className={`text-[7px] truncate max-w-full ${isLocked ? 'text-blue-600' : 'text-purple-600'}`}>{meta}</span>}
+                              <button onClick={() => toggleLock(seat.guest_id)} className="absolute top-0.5 right-4 text-[9px]" title={isLocked ? 'Unlock' : 'Lock'}>{isLocked ? '🔒' : '🔓'}</button>
+                              <button onClick={() => unassignGuest(seat.id)} className="absolute top-0.5 right-0.5 text-gray-400 hover:text-red-600 leading-none" title="Remove">×</button>
+                            </>) : <span className="text-[8px]">Empty</span>}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Main seats: sides A and B */}
+                    <div className="inline-flex flex-col gap-1">
+                      {(['A', 'B'] as const).map(side => (
+                        <div key={side} className="flex gap-1">
+                          {Array.from({ length: table.seats_per_side }, (_, i) => i + 1).map(position => {
+                            const seat = getSeat(table.id, side, position);
+                            const seatKey = `${table.id}-${side}-${position}`;
+                            const isDragOver = dragOverSeat === seatKey;
+                            const guest = seat ? guestById.get(seat.guest_id) : undefined;
+                            const meta = guest ? guestMeta(guest) : '';
+                            const isLocked = seat ? lockedGuestIds.has(seat.guest_id) : false;
+                            return (
+                              <div
+                                key={seatKey}
+                                onDragOver={e => handleDragOver(e, seatKey)}
+                                onDragLeave={() => setDragOverSeat(prev => prev === seatKey ? null : prev)}
+                                onDrop={e => handleDrop(e, table.id, side, position)}
+                                draggable={!!seat && !isLocked}
+                                onDragStart={seat && !isLocked ? e => handleDragStart(e, seat.guest_id) : undefined}
+                                className={`relative w-14 h-14 flex-shrink-0 rounded border text-[9px] flex flex-col items-center justify-center px-0.5 text-center transition-colors ${
+                                  seat
+                                    ? isLocked ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-green-50 border-green-200 text-green-800 cursor-grab'
+                                    : 'bg-gray-50 border-gray-200 text-gray-400 border-dashed'
+                                } ${isDragOver ? 'ring-2 ring-gray-900' : ''}`}
+                                title={seat ? `${side}${position} · ${guest?.name || seat.guests?.name || 'Guest'}${meta ? ' · ' + meta : ''}` : `${side}${position}`}
+                              >
+                                <span className="absolute top-0.5 left-1 text-[8px] text-gray-400">{side}{position}</span>
+                                {seat ? (
+                                  <>
+                                    <span className="font-medium leading-tight truncate max-w-full mt-1">{guest?.name || seat.guests?.name || 'Guest'}</span>
+                                    {meta && <span className={`text-[7px] truncate max-w-full leading-tight ${isLocked ? 'text-blue-600' : 'text-green-700'}`}>{meta}</span>}
+                                    <button onClick={() => toggleLock(seat.guest_id)} className="absolute top-0.5 right-4 text-[9px] leading-none" title={isLocked ? 'Unlock' : 'Lock'}>{isLocked ? '🔒' : '🔓'}</button>
+                                    <button onClick={() => unassignGuest(seat.id)} className="absolute top-0.5 right-0.5 text-gray-400 hover:text-red-600 leading-none" title="Remove from seat">×</button>
+                                  </>
+                                ) : (
+                                  <span className="text-[8px]">Empty</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right head seat */}
+                    {headTables.has(table.id) && (() => {
+                      const seat = getSeat(table.id, 'H', 2);
+                      const seatKey = `${table.id}-H-2`;
+                      const isDragOver = dragOverSeat === seatKey;
+                      const guest = seat ? guestById.get(seat.guest_id) : undefined;
+                      const meta = guest ? guestMeta(guest) : '';
+                      const isLocked = seat ? lockedGuestIds.has(seat.guest_id) : false;
+                      return (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-[9px] text-gray-400 uppercase tracking-wide">Head</span>
+                          <div
+                            onDragOver={e => handleDragOver(e, seatKey)}
+                            onDragLeave={() => setDragOverSeat(prev => prev === seatKey ? null : prev)}
+                            onDrop={e => handleDrop(e, table.id, 'H', 2)}
+                            draggable={!!seat && !isLocked}
+                            onDragStart={seat && !isLocked ? e => handleDragStart(e, seat.guest_id) : undefined}
+                            className={`relative w-14 h-14 flex-shrink-0 rounded-full border text-[9px] flex flex-col items-center justify-center px-0.5 text-center transition-colors ${seat ? isLocked ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-purple-50 border-purple-200 text-purple-800 cursor-grab' : 'bg-gray-50 border-gray-200 text-gray-400 border-dashed'} ${isDragOver ? 'ring-2 ring-gray-900' : ''}`}
+                          >
+                            {seat ? (<>
+                              <span className="font-medium leading-tight truncate max-w-full px-1 mt-1">{guest?.name || seat.guests?.name || 'Guest'}</span>
+                              {meta && <span className={`text-[7px] truncate max-w-full ${isLocked ? 'text-blue-600' : 'text-purple-600'}`}>{meta}</span>}
+                              <button onClick={() => toggleLock(seat.guest_id)} className="absolute top-0.5 right-4 text-[9px]" title={isLocked ? 'Unlock' : 'Lock'}>{isLocked ? '🔒' : '🔓'}</button>
+                              <button onClick={() => unassignGuest(seat.id)} className="absolute top-0.5 right-0.5 text-gray-400 hover:text-red-600 leading-none" title="Remove">×</button>
+                            </>) : <span className="text-[8px]">Empty</span>}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
