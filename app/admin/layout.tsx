@@ -16,7 +16,7 @@ const nav = [
   { href: '/admin/registry',     label: 'Registry',      icon: IconGift },
   { href: '/admin/content',      label: 'Content',       icon: IconDoc },
   { href: '/admin/planning',     label: 'Planning',      icon: IconClipboard },
-  { href: '/admin/checklist',    label: 'Checklist',     icon: IconClipboard },
+  { href: '/admin/checklist',    label: 'Checklist',     icon: IconChecklist },
   { href: '/admin/audit',        label: 'Activity',      icon: IconAudit },
   { href: '/admin/inspiration',  label: 'Inspiration',   icon: IconInspiration },
   { href: '/admin/chat',         label: 'Chat',          icon: IconChat },
@@ -259,6 +259,15 @@ function IconClipboard() {
       <rect x="3" y="2" width="10" height="13" rx="1" />
       <path d="M6 2V1h4v1" />
       <path d="M5 7h6M5 10h4" />
+    </svg>
+  );
+}
+
+function IconChecklist() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6.5" />
+      <path d="M5 8l2 2 4-4" />
     </svg>
   );
 }
