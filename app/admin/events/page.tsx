@@ -26,13 +26,16 @@ interface GuestRow {
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
-  const [rsvps, setRsvps] = useState<{ event_id: string; status: string }[]>([]);
-  const [guestCounts, setGuestCounts] = useState<Record<string, number>>({});
   const [guestsByEvent, setGuestsByEvent] = useState<Record<string, GuestRow[]>>({});
+  const [guestNames, setGuestNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [guestPopupEventId, setGuestPopupEventId] = useState<string | null>(null);
+  const [tagFilter, setTagFilter] = useState('');
+  const [confirmingGuestId, setConfirmingGuestId] = useState<string | null>(null);
+  const [rsvpError, setRsvpError] = useState<string | null>(null);
+  const [collapsedParties, setCollapsedParties] = useState<Set<string>>(new Set());
   const [form, setForm] = useState<Partial<Event>>({});
   const [eventTab, setEventTab] = useState<'en' | 'pt' | 'es'>('en');
   const [saving, setSaving] = useState(false);
@@ -49,15 +52,11 @@ export default function EventsPage() {
       supabase.from('guests').select('id, name, email, tags, party_leader_id, party_role'),
     ]);
     setEvents(eventsRes.data || []);
-    setRsvps(rsvpRes.data || []);
-
-    const counts: Record<string, number> = {};
-    for (const ge of (geRes.data || [])) counts[ge.event_id] = (counts[ge.event_id] || 0) + 1;
-    setGuestCounts(counts);
 
     // Build guest list per event with RSVP status and tags
     const guestsMap: Record<string, { id: string; name: string; email: string | null; tags: string[]; party_leader_id: string | null; party_role: string | null }> = {};
     for (const g of (guestsRes.data || [])) guestsMap[g.id] = { ...g, tags: g.tags || [] };
+    setGuestNames(Object.fromEntries((guestsRes.data || []).map(g => [g.id, g.name])));
     const rsvpMap: Record<string, Record<string, string>> = {};
     for (const r of (rsvpRes.data || [])) {
       if (!rsvpMap[r.event_id]) rsvpMap[r.event_id] = {};
@@ -67,13 +66,37 @@ export default function EventsPage() {
     for (const ge of (geRes.data || [])) {
       if (!byEvent[ge.event_id]) byEvent[ge.event_id] = [];
       const g = guestsMap[ge.guest_id];
-      if (g) byEvent[ge.event_id].push({ ...g, status: rsvpMap[ge.event_id]?.[ge.guest_id] || null });
+      const status = rsvpMap[ge.event_id]?.[ge.guest_id];
+      if (g && (!status || status === 'pending' || status === 'attending')) {
+        byEvent[ge.event_id].push({ ...g, status: status || 'pending' });
+      }
     }
     // Sort each event's guests alphabetically
     for (const id in byEvent) byEvent[id].sort((a, b) => a.name.localeCompare(b.name));
     setGuestsByEvent(byEvent);
 
     setLoading(false);
+  };
+
+  const handleConfirmAttendance = async (eventId: string, guestId: string) => {
+    setConfirmingGuestId(guestId);
+    setRsvpError(null);
+    try {
+      const response = await fetch('/api/admin/update-rsvp-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guest_id: guestId, statuses: { [eventId]: 'attending' } }),
+      });
+      if (!response.ok) throw new Error('Failed to confirm attendance. Please try again.');
+      setGuestsByEvent(previous => ({
+        ...previous,
+        [eventId]: (previous[eventId] || []).map(guest => guest.id === guestId ? { ...guest, status: 'attending' } : guest),
+      }));
+    } catch {
+      setRsvpError('Failed to confirm attendance. Please try again.');
+    } finally {
+      setConfirmingGuestId(null);
+    }
   };
 
   const handleSave = async () => {
@@ -129,15 +152,6 @@ export default function EventsPage() {
     await fetchAll();
   };
 
-  const count = (eventId: string, status: string) =>
-    rsvps.filter(r => r.event_id === eventId && r.status === status).length;
-
-  const STATUS_STYLE: Record<string, React.CSSProperties> = {
-    attending: { background: '#dcfce7', color: '#16a34a' },
-    declined:  { background: '#fee2e2', color: '#dc2626' },
-    pending:   { background: '#f3f4f6', color: '#4b5563' },
-  };
-
   const getTagColor = (tag: string): string => {
     const gianTags = ['gian', 'gianfamily', 'gianfriends'];
     const catTags = ['cat', 'catfamily', 'catfriends'];
@@ -162,17 +176,19 @@ export default function EventsPage() {
 
   const popupEvent = events.find(e => e.id === guestPopupEventId);
   const popupGuests = guestPopupEventId ? (guestsByEvent[guestPopupEventId] || []) : [];
+  const availableTags = [...new Set(popupGuests.flatMap(g => g.tags))].sort((a, b) => a.localeCompare(b));
+  const filteredGuests = popupGuests.filter(g => !tagFilter || g.tags.includes(tagFilter));
 
   // Group guests by family (party_leader_id)
   const groupedGuests = (() => {
     // Build a map of all guests by id for quick lookup
     const allGuestsMap = new Map<string, GuestRow>();
-    for (const guest of popupGuests) {
+    for (const guest of filteredGuests) {
       allGuestsMap.set(guest.id, guest);
     }
 
     // Get primary guests (no party_leader_id) and sort by their primary tag
-    const primaryGuests = popupGuests.filter(g => !g.party_leader_id);
+    const primaryGuests = filteredGuests.filter(g => !g.party_leader_id || !allGuestsMap.has(g.party_leader_id));
     primaryGuests.sort((a, b) => {
       const aTag = a.tags[0] || '';
       const bTag = b.tags[0] || '';
@@ -182,12 +198,43 @@ export default function EventsPage() {
     // Build groups: each primary with their party members
     const result: Array<{ primary: GuestRow; members: GuestRow[] }> = [];
     for (const primary of primaryGuests) {
-      const members = popupGuests.filter(g => g.party_leader_id === primary.id);
+      const members = filteredGuests.filter(g => g.party_leader_id === primary.id);
       result.push({ primary, members });
     }
 
     return result;
   })();
+  const collapsibleParties = groupedGuests.filter(group => group.members.length > 0);
+  const allPartiesCollapsed = collapsibleParties.length > 0 && collapsibleParties.every(group => collapsedParties.has(group.primary.id));
+
+  const exportEventCSV = () => {
+    if (!popupEvent) return;
+    const escapeCell = (value: string) => {
+      // Keep spreadsheet applications from interpreting guest data as formulas.
+      const safeValue = /^[\s]*[=+@-]/.test(value) ? `'${value}` : value;
+      return `"${safeValue.replace(/"/g, '""')}"`;
+    };
+    const rows = groupedGuests.flatMap(({ primary, members }) => [primary, ...members]).map(guest => [
+      popupEvent.name.en,
+      guest.name,
+      guest.email || '',
+      guest.status || 'pending',
+      guest.tags.join(', '),
+      guest.party_role || (guest.party_leader_id ? 'other' : 'primary'),
+      guest.party_leader_id ? guestNames[guest.party_leader_id] || guest.party_leader_id : '',
+    ]);
+    const csv = [['Event', 'Name', 'Email', 'Status', 'Tags', 'Party role', 'Party leader'], ...rows]
+      .map(row => row.map(escapeCell).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    const eventName = (popupEvent.slug || popupEvent.name.en || 'event').replace(/[^a-z0-9_-]+/gi, '-');
+    link.href = url;
+    link.download = `${eventName}-guests-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -231,9 +278,7 @@ export default function EventsPage() {
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex gap-6">
                   {[
-                    { label: 'Attending', value: count(event.id, 'attending'), color: 'text-green-600' },
-                    { label: 'Declined',  value: count(event.id, 'declined'),  color: 'text-red-500' },
-                    { label: 'No response', value: (guestCounts[event.id] || 0) - rsvps.filter(r => r.event_id === event.id).length, color: '' },
+                    { label: 'Attending', value: (guestsByEvent[event.id] || []).filter(g => g.status === 'attending').length, color: 'text-green-600' },
                   ].map(s => (
                     <div key={s.label} className="text-center">
                       <p className={`text-xl font-semibold ${s.color || 'text-gray-900'}`}>{s.value}</p>
@@ -242,10 +287,10 @@ export default function EventsPage() {
                   ))}
                 </div>
                 <button
-                  onClick={() => setGuestPopupEventId(event.id)}
+                  onClick={() => { setGuestPopupEventId(event.id); setTagFilter(''); setCollapsedParties(new Set()); setRsvpError(null); }}
                   className="text-sm text-gray-500 hover:text-gray-900 border border-gray-200 rounded-md px-3 py-1.5 hover:border-gray-400 transition-colors"
                 >
-                  {guestCounts[event.id] || 0} guests →
+                  {(guestsByEvent[event.id] || []).length} guests →
                 </button>
               </div>
             </div>
@@ -260,64 +305,117 @@ export default function EventsPage() {
             <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">{(popupEvent?.name as any)?.en}</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{popupGuests.length} invited</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {filteredGuests.filter(g => g.status === 'attending').length} attending · {filteredGuests.filter(g => g.status === 'pending').length} pending
+                  {tagFilter && ` (${filteredGuests.length} of ${popupGuests.length} guests)`}
+                </p>
               </div>
               <button onClick={() => setGuestPopupEventId(null)} className="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
             </div>
-            <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
-              {popupGuests.length === 0 && (
-                <p className="px-6 py-8 text-sm text-gray-400 text-center">No guests invited yet.</p>
+            <div className="px-6 py-3 border-b border-gray-200 flex items-center justify-between gap-3 flex-wrap">
+              <select
+                aria-label="Filter guests by tag"
+                value={tagFilter}
+                onChange={e => { setTagFilter(e.target.value); setCollapsedParties(new Set()); }}
+                className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-gray-400"
+              >
+                <option value="">All tags</option>
+                {availableTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+              </select>
+              <button
+                onClick={exportEventCSV}
+                disabled={filteredGuests.length === 0}
+                title="Export attending and pending guests matching the tag filter, including collapsed party members"
+                className="text-sm text-gray-700 border border-gray-200 rounded-md px-3 py-2 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Export CSV
+              </button>
+              {collapsibleParties.length > 0 && (
+                <button
+                  onClick={() => setCollapsedParties(allPartiesCollapsed ? new Set() : new Set(collapsibleParties.map(group => group.primary.id)))}
+                  className="text-sm text-gray-500 hover:text-gray-900"
+                >
+                  {allPartiesCollapsed ? 'Expand all parties' : 'Collapse all parties'}
+                </button>
               )}
-              {groupedGuests.map(({ primary, members }) => {
-                // Group party members by role
-                const byRole: Record<string, string[]> = { partner: [], child: [], other: [] };
-                for (const m of members) {
-                  const role = m.party_role || 'other';
-                  byRole[role].push(m.name);
-                }
-
-                // Build party members display string
-                const partyParts: string[] = [];
-                if (byRole.partner.length > 0) partyParts.push(`Partner: ${byRole.partner.join(', ')}`);
-                if (byRole.child.length > 0) partyParts.push(`Children: ${byRole.child.join(', ')}`);
-                if (byRole.other.length > 0) partyParts.push(`Other: ${byRole.other.join(', ')}`);
-                const partyDisplay = partyParts.join(' • ');
-
-                return (
-                  <div key={primary.id} className="px-6 py-3 hover:bg-gray-50">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        {/* Name with tags inline */}
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <p className="text-sm font-medium text-gray-900">{primary.name}</p>
-                          {primary.tags.length > 0 && primary.tags.map(tag => (
-                            <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
-                              {tag}
-                            </span>
-                          ))}
+            </div>
+            {rsvpError && <p role="alert" className="px-6 py-3 text-sm text-red-600">{rsvpError}</p>}
+            <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
+              {filteredGuests.length === 0 && (
+                <p className="px-6 py-8 text-sm text-gray-400 text-center">
+                  {tagFilter ? 'No guests match this tag.' : 'No attending or pending guests.'}
+                </p>
+              )}
+              {groupedGuests.map(({ primary, members }) => (
+                <div key={primary.id} className="divide-y divide-gray-100">
+                  {[primary, ...(collapsedParties.has(primary.id) ? [] : members)].map(guest => {
+                    const isPartyMember = Boolean(guest.party_leader_id);
+                    const leader = popupGuests.find(g => g.id === guest.party_leader_id);
+                    const role = guest.party_role === 'partner' ? 'Partner' : guest.party_role === 'child' ? 'Child' : 'Other';
+                    return (
+                      <div
+                        key={guest.id}
+                        className={`flex items-center justify-between gap-4 px-6 py-3 hover:bg-gray-100 ${isPartyMember ? 'bg-gray-50/50' : ''}`}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {isPartyMember && <span className="w-3 h-px bg-gray-300 inline-block flex-shrink-0 ml-2" />}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm font-medium text-gray-900">{guest.name}</span>
+                              {guest.status === 'pending' && <span className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5">Pending</span>}
+                              {isPartyMember && (
+                                <span className="text-xs text-gray-400 border border-gray-200 rounded px-1.5 py-0.5">{role}</span>
+                              )}
+                              {guest.tags.map(tag => (
+                                <span key={tag} className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${getTagColor(tag)}`}>
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                            {leader && <p className="text-xs text-gray-400 mt-0.5">with {leader.name}</p>}
+                            {!leader && guest.email && <p className="text-xs text-gray-400 mt-0.5">{guest.email}</p>}
+                            {guest.id === primary.id && members.length > 0 && (
+                              <button
+                                aria-expanded={!collapsedParties.has(primary.id)}
+                                aria-label={`${collapsedParties.has(primary.id) ? 'Expand' : 'Collapse'} party of ${primary.name}`}
+                                onClick={() => setCollapsedParties(previous => {
+                                  const next = new Set(previous);
+                                  if (next.has(primary.id)) next.delete(primary.id);
+                                  else next.add(primary.id);
+                                  return next;
+                                })}
+                                className="text-xs text-gray-500 hover:text-gray-900 mt-1 flex items-center gap-1"
+                              >
+                                <span aria-hidden="true">{collapsedParties.has(primary.id) ? '\u25b8' : '\u25be'}</span>
+                                {members.length} party {members.length === 1 ? 'member' : 'members'}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {/* Party members */}
-                        {partyDisplay && (
-                          <p className="text-xs text-gray-500">{partyDisplay}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-6 flex-shrink-0">
-                        {primary.status ? (
-                          <span style={{ ...STATUS_STYLE[primary.status], fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap">{primary.status}</span>
-                        ) : (
-                          <span style={{ ...STATUS_STYLE.pending, fontSize: 11, padding: '2px 8px', borderRadius: 4 }} className="whitespace-nowrap font-medium">Pending</span>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                        {guest.status === 'pending' && (
+                          <button
+                            onClick={() => handleConfirmAttendance(guestPopupEventId, guest.id)}
+                            disabled={confirmingGuestId !== null}
+                            aria-label={`Mark ${guest.name} as attending`}
+                            className="text-sm text-green-700 border border-green-200 rounded-md px-2 py-1 hover:bg-green-50 disabled:opacity-50"
+                          >
+                            {confirmingGuestId === guest.id ? 'Saving…' : 'Mark attending'}
+                          </button>
                         )}
                         <button
-                          onClick={() => setDeleteEventConfirm({ eventId: guestPopupEventId!, guestId: primary.id })}
-                          className="text-sm text-red-400 hover:text-red-600"
+                          onClick={() => setDeleteEventConfirm({ eventId: guestPopupEventId, guestId: guest.id })}
+                          disabled={confirmingGuestId !== null}
+                          className="text-sm text-red-400 hover:text-red-600 flex-shrink-0"
                         >
-                          Delete
+                          Remove
                         </button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         </div>

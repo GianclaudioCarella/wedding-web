@@ -16,6 +16,7 @@ const nav = [
   { href: '/admin/registry',     label: 'Registry',      icon: IconGift },
   { href: '/admin/content',      label: 'Content',       icon: IconDoc },
   { href: '/admin/planning',     label: 'Planning',      icon: IconClipboard },
+  { href: '/admin/checklist',    label: 'Checklist',     icon: IconClipboard },
   { href: '/admin/audit',        label: 'Activity',      icon: IconAudit },
   { href: '/admin/inspiration',  label: 'Inspiration',   icon: IconInspiration },
   { href: '/admin/chat',         label: 'Chat',          icon: IconChat },
@@ -93,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '8px 0' }}>
+        <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto', minHeight: 0 }}>
           {nav.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             return (

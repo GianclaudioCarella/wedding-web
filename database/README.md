@@ -60,6 +60,10 @@ SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
 
 ## Applying new migrations
 
+The Checklist page requires `32_create_checklist_items.sql`. It creates the shared
+checklist lists and items tables, authenticated access policies, and the atomic reorder function.
+Apply this migration before using `/admin/checklist`.
+
 When a new migration file is added, just run it in the Supabase SQL Editor. No special tooling needed — the numbered prefix keeps the order clear.
 
 ## Notes
