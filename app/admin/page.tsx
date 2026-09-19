@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { calculateDashboardAttendance, calculateRoomOccupancy } from '@/lib/admin/dashboard-stats';
 
 interface EventStat {
   id: string; name: string; event_date: string | null; event_time: string | null; sort_order: number;
@@ -12,7 +13,6 @@ interface EventStat {
 interface Summary {
   totalGuests: number;
   invitedCount: number;
-  responding: number;
   attending: number;
   declined: number;
   pending: number;
@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [eventStats, setEventStats] = useState<EventStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hideDeclined, setHideDeclined] = useState(true);
 
   useEffect(() => {
@@ -40,72 +41,56 @@ export default function AdminDashboard() {
   useEffect(() => { fetchDashboard(); }, []);
 
   const fetchDashboard = async () => {
+    setLoading(true);
+    setError(null);
     try {
     const [guestsRes, rsvpRes, geRes, eventsRes, roomsRes, assignRes] = await Promise.all([
       supabase.from('guests').select('id, invited_at, email, attending'),
       supabase.from('rsvp_responses').select('guest_id, event_id, status'),
       supabase.from('guest_events').select('guest_id, event_id'),
       supabase.from('events').select('id, name, event_date, event_time, sort_order').order('sort_order'),
-      supabase.from('venue_rooms').select('capacity'),
-      supabase.from('guest_room_assignments').select('id', { count: 'exact', head: true }),
+      supabase.from('venue_rooms').select('id'),
+      supabase.from('guest_room_assignments').select('room_id'),
     ]);
+
+    for (const result of [guestsRes, rsvpRes, geRes, eventsRes, roomsRes, assignRes]) {
+      if (result.error) throw result.error;
+    }
 
     const guests   = guestsRes.data || [];
     const rsvps    = rsvpRes.data || [];
     const ge       = geRes.data || [];
     const events   = eventsRes.data || [];
 
-    const respondedGuestIds  = new Set(rsvps.map(r => r.guest_id));
-    const attendingGuestIds  = new Set(rsvps.filter(r => r.status === 'attending').map(r => r.guest_id));
-
-    const guestRsvpStatuses: Record<string, string[]> = {};
-    for (const r of rsvps) {
-      if (!guestRsvpStatuses[r.guest_id]) guestRsvpStatuses[r.guest_id] = [];
-      guestRsvpStatuses[r.guest_id].push(r.status);
-    }
-    const declinedGuestIds = new Set(guests.filter(g => {
-      const statuses = guestRsvpStatuses[g.id] || [];
-      const allRsvpDeclined = statuses.length > 0 && statuses.every(s => !s || s === 'declined') && statuses.some(s => s === 'declined');
-      const saveTheDateDeclined = g.attending === 'no' && statuses.length === 0;
-      return allRsvpDeclined || saveTheDateDeclined;
-    }).map(g => g.id));
+    const attendance = calculateDashboardAttendance(guests, ge, rsvps);
+    const occupancy = calculateRoomOccupancy(roomsRes.data || [], assignRes.data || []);
 
     const summary: Summary = {
       totalGuests:    guests.length,
       invitedCount:   guests.filter(g => g.invited_at).length,
-      responding:     respondedGuestIds.size,
-      attending:      attendingGuestIds.size,
-      declined:       declinedGuestIds.size,
-      pending:        guests.filter(g => !respondedGuestIds.has(g.id) && !declinedGuestIds.has(g.id)).length,
-      roomsFilled:    assignRes.count || 0,
-      roomsTotal:     (roomsRes.data || []).reduce((s, r) => s + (r.capacity || 0), 0),
+      ...attendance.summary,
+      roomsFilled:    occupancy.occupied,
+      roomsTotal:     occupancy.total,
       unsentWithEmail: guests.filter(g => g.email && !g.invited_at).length,
     };
 
     // Per-event stats
-    const stats: EventStat[] = events.map(event => {
-      const invitedIds = new Set(ge.filter(g => g.event_id === event.id).map(g => g.guest_id));
-      const eventRsvps = rsvps.filter(r => r.event_id === event.id);
-      const attending  = eventRsvps.filter(r => r.status === 'attending').length;
-      const declined   = eventRsvps.filter(r => r.status === 'declined').length;
-      return {
-        ...event,
-        invited:  invitedIds.size,
-        attending,
-        declined,
-        pending:  invitedIds.size - eventRsvps.length,
-      };
-    });
+    const stats: EventStat[] = events.map(event => ({
+      ...event,
+      ...(attendance.events[event.id] || { invited: 0, attending: 0, declined: 0, pending: 0 }),
+    }));
 
     setSummary(summary);
     setEventStats(stats);
+    } catch {
+      setError('Could not load dashboard numbers. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const displayTotal = summary ? summary.totalGuests - (hideDeclined ? summary.declined : 0) : 0;
-  const responseNumerator = summary ? (hideDeclined ? summary.attending : summary.responding) : 0;
+  const responseNumerator = summary ? (summary.attending + (hideDeclined ? 0 : summary.declined)) : 0;
   const responseRate = displayTotal > 0
     ? Math.round((responseNumerator / displayTotal) * 100)
     : 0;
@@ -130,7 +115,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {loading ? <p className="text-sm text-gray-400">Loading…</p> : summary && (
+      {error && <div role="alert" className="mb-6 border border-red-200 bg-red-50 rounded-lg p-4 text-sm text-red-700">
+        {error} <button onClick={() => void fetchDashboard()} className="ml-2 underline">Retry</button>
+      </div>}
+      {loading ? <p className="text-sm text-gray-400">Loading…</p> : !error && summary && (
         <>
           {/* Top stats */}
           <div className="grid grid-cols-3 gap-4 mb-6">
@@ -144,7 +132,7 @@ export default function AdminDashboard() {
               {!hideDeclined && <p className="text-xs text-gray-400 mt-1">{summary.declined} declined</p>}
             </div>
             <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
-              <p className="text-xs text-gray-500 mb-1">No response</p>
+              <p className="text-xs text-gray-500 mb-1">Pending</p>
               <p className="text-3xl font-semibold text-amber-500">{summary.pending}</p>
               <p className="text-xs text-gray-400 mt-1">of {displayTotal} guests</p>
             </div>
@@ -153,7 +141,7 @@ export default function AdminDashboard() {
           {/* Response rate bar */}
           <div className="bg-white border border-gray-200 rounded-lg px-5 py-4 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">Response rate</p>
+              <p className="text-sm font-medium text-gray-700">Attendance resolved</p>
               <p className="text-sm font-semibold text-gray-900">{responseRate}%</p>
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -210,7 +198,7 @@ export default function AdminDashboard() {
               <div className="bg-white border border-gray-200 rounded-lg px-5 py-4 mb-6 flex items-center justify-between">
                 <div>
                   <p className="font-medium text-gray-900">Venue rooms</p>
-                  <p className="text-sm text-gray-500">{summary.roomsFilled} of {summary.roomsTotal} beds assigned</p>
+                  <p className="text-sm text-gray-500">{summary.roomsFilled} rooms assigned · {summary.roomsTotal - summary.roomsFilled} empty</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">

@@ -202,6 +202,13 @@ function ChecklistItems({ listId, onChanged }: { listId: string; onChanged: () =
     setItems(previous => previous.map(current => current.id === item.id ? { ...current, completed: !item.completed } : current));
   });
 
+  const deleteItem = (item: ChecklistItem) => saveChange(async () => {
+    const result = await supabase.from('checklist_items').delete()
+      .eq('id', item.id).eq('checklist_id', listId).select('id').single();
+    if (result.error) throw result.error;
+    setItems(previous => previous.filter(current => current.id !== item.id));
+  });
+
   const moveItem = async (sourceId: string, destinationId: string) => {
     if (sourceId === destinationId) return;
     const from = visibleItems.findIndex(item => item.id === sourceId);
@@ -316,6 +323,18 @@ function ChecklistItems({ listId, onChanged }: { listId: string; onChanged: () =
                   className="h-4 w-4 shrink-0 accent-gray-900" />
                 <span className={`text-sm break-words min-w-0 ${item.completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>{item.title}</span>
               </label>
+              <button
+                type="button"
+                onClick={() => void deleteItem(item)}
+                disabled={saving}
+                aria-label={`Delete ${item.title}`}
+                title="Delete item"
+                className="shrink-0 rounded-md p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 disabled:opacity-50"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2 4h12M6 4V2h4v2M3.5 4l.75 10h7.5l.75-10M6.5 7v4M9.5 7v4" />
+                </svg>
+              </button>
             </li>
           ))}
         </ul>
