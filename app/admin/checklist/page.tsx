@@ -27,6 +27,13 @@ export default function ChecklistPage() {
   const [saving, setSaving] = useState(false);
   const [activeList, setActiveList] = useState<Checklist | null>(null);
   const creating = useRef(false);
+  const totals = lists.reduce((counts, list) => {
+    const completed = list.checklist_items.filter(item => item.completed).length;
+    return {
+      pending: counts.pending + list.checklist_items.length - completed,
+      completed: counts.completed + completed,
+    };
+  }, { pending: 0, completed: 0 });
 
   const loadLists = async () => {
     setError(null);
@@ -73,6 +80,19 @@ export default function ChecklistPage() {
         </div>
         <button onClick={() => setShowAdd(true)} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-gray-700">+ Add checklist</button>
       </div>
+
+      {!loading && !error && (
+        <div className="grid grid-cols-2 gap-4 mb-6" aria-live="polite">
+          <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
+            <p className="text-xs text-gray-500 mb-1">Total pending</p>
+            <p className="text-3xl font-semibold text-amber-600">{totals.pending}</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
+            <p className="text-xs text-gray-500 mb-1">Total completed</p>
+            <p className="text-3xl font-semibold text-green-600">{totals.completed}</p>
+          </div>
+        </div>
+      )}
 
       {showAdd && <form onSubmit={event => { event.preventDefault(); void addList(); }} className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
         <label htmlFor="checklist-name" className="block text-sm font-medium text-gray-700 mb-2">Checklist name</label>
