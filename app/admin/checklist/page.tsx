@@ -311,7 +311,8 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
   const [targetId, setTargetId] = useState<string | null>(null);
   const busy = useRef(false);
 
-  const visibleItems = items.filter(item => matchesItem(item, filter, search));
+  const visibleItems = items.filter(item => matchesItem(item, filter, search))
+    .sort((a, b) => Number(a.completed) - Number(b.completed));
 
   const saveChange = async (action: () => Promise<void>) => {
     if (busy.current || disabled) return;
@@ -344,14 +345,18 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
 
   const moveItem = async (sourceId: string, destinationId: string) => {
     if (sourceId === destinationId) return;
-    const from = visibleItems.findIndex(item => item.id === sourceId);
-    const to = visibleItems.findIndex(item => item.id === destinationId);
+    const source = visibleItems.find(item => item.id === sourceId);
+    const destination = visibleItems.find(item => item.id === destinationId);
+    if (!source || !destination || source.completed !== destination.completed) return;
+    const movableItems = visibleItems.filter(item => item.completed === source.completed);
+    const from = movableItems.findIndex(item => item.id === sourceId);
+    const to = movableItems.findIndex(item => item.id === destinationId);
     if (from < 0 || to < 0) return;
-    const reordered = [...visibleItems];
+    const reordered = [...movableItems];
     reordered.splice(to, 0, reordered.splice(from, 1)[0]);
-    const visibleIds = new Set(visibleItems.map(item => item.id));
+    const visibleIds = new Set(movableItems.map(item => item.id));
     let index = 0;
-    // Reorder only visible slots so a filter never disrupts hidden items.
+    // Preserve hidden items and the other completion group's manual order.
     const next = items.map(item => visibleIds.has(item.id) ? reordered[index++] : item)
       .map((item, position) => ({ ...item, position }));
     await saveChange(async () => {
