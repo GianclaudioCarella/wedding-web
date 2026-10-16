@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request)
+  if (!auth.ok) return auth.response
+  // guests and rsvp_responses are readable by authenticated users via RLS,
+  // so the user-scoped client is sufficient here (no service role).
+  const supabase = auth.supabase
   const filter = request.nextUrl.searchParams.get('filter') || 'all'
 
-  const { data: guests, error } = await supabaseAdmin
+  const { data: guests, error } = await supabase
     .from('guests')
     .select('id, name, email, invite_token, language')
     .is('party_leader_id', null)
@@ -17,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get party member counts
-  const { data: members } = await supabaseAdmin
+  const { data: members } = await supabase
     .from('guests')
     .select('party_leader_id')
     .not('party_leader_id', 'is', null)
@@ -30,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   // Derive RSVP status from rsvp_responses (same logic as admin/guests page)
   const guestIds = guests.map(g => g.id)
-  const { data: rsvpRows } = await supabaseAdmin
+  const { data: rsvpRows } = await supabase
     .from('rsvp_responses')
     .select('guest_id, status')
     .in('guest_id', guestIds)

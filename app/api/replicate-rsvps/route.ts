@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request)
+  if (!auth.ok) return auth.response
   const { new_guest_id, primary_guest_id } = await request.json()
 
   if (!new_guest_id || !primary_guest_id) {

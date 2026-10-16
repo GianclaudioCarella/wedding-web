@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendEmail } from '@/lib/email/mailer'
+import { isValidInviteToken } from '@/lib/auth/inviteToken'
 
 function generateConfirmationEmail(
   guestName: string,
@@ -123,7 +124,7 @@ function generateConfirmationEmail(
 
 export async function POST(request: NextRequest) {
   const { token, attending } = await request.json()
-  if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+  if (!isValidInviteToken(token)) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
   const { data: guest } = await supabaseAdmin
     .from('guests')

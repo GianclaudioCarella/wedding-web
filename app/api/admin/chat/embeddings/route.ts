@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { decrypt } from '@/lib/encryption';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
-
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const token = authHeader.slice(7);
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
+  // user_settings has per-user RLS policies, so the user-scoped client is enough.
+  const { user, supabase } = auth;
 
-  const { data: settings } = await supabaseAdmin
+  const { data: settings } = await supabase
     .from('user_settings')
     .select('github_token')
     .eq('user_id', user.id)

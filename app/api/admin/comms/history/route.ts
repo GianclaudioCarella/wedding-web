@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request)
+  if (!auth.ok) return auth.response
   const { data, error } = await supabaseAdmin
     .from('email_campaigns')
     .select('*')

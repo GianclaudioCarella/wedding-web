@@ -1,27 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { encrypt, decrypt } from '@/lib/encryption';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
 
 const SENSITIVE_FIELDS = ['github_token', 'tavily_api_key', 'anthropic_api_key'] as const;
 
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  return user ?? null;
-}
-
 export async function GET(request: NextRequest) {
-  const user = await getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
+  // user_settings has per-user RLS policies, so the user-scoped client is enough.
+  const { user, supabase } = auth;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabase
     .from('user_settings')
     .select('github_token, tavily_api_key, anthropic_api_key')
     .eq('user_id', user.id)
@@ -40,12 +29,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
+  // user_settings has per-user RLS policies, so the user-scoped client is enough.
+  const { user, supabase } = auth;
 
   const body = await request.json();
 
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await supabase
     .from('user_settings')
     .select('id')
     .eq('user_id', user.id)
@@ -58,7 +49,7 @@ export async function POST(request: NextRequest) {
         update[field] = body[field] ? encrypt(body[field]) : '';
       }
     }
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('user_settings')
       .update(update)
       .eq('user_id', user.id);
@@ -68,7 +59,7 @@ export async function POST(request: NextRequest) {
     for (const field of SENSITIVE_FIELDS) {
       insert[field] = body[field] ? encrypt(body[field]) : '';
     }
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('user_settings')
       .insert(insert);
     if (error) return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
