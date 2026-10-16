@@ -691,6 +691,7 @@ export type Database = {
           save_the_date_notes: string | null;
           save_the_date_sent: boolean | null;
           tags: string[] | null;
+          total_guests: number;
           transport_from: string | null;
           transport_needed: boolean | null;
           transport_return: boolean | null;
@@ -718,6 +719,7 @@ export type Database = {
           save_the_date_notes?: string | null;
           save_the_date_sent?: boolean | null;
           tags?: string[] | null;
+          total_guests?: number;
           transport_from?: string | null;
           transport_needed?: boolean | null;
           transport_return?: boolean | null;
@@ -744,6 +746,7 @@ export type Database = {
           save_the_date_notes?: string | null;
           save_the_date_sent?: boolean | null;
           tags?: string[] | null;
+          total_guests?: number;
           transport_from?: string | null;
           transport_needed?: boolean | null;
           transport_return?: boolean | null;

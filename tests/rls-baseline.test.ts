@@ -25,8 +25,8 @@ describe('baseline RLS posture (characterisation)', () => {
     expect(tables).toHaveLength(30)
   })
 
-  test('GAP: every table has RLS enabled except events', () => {
-    expect(tables.filter((t) => !rlsEnabled.includes(t))).toEqual(['events'])
+  test('GAP: every table has RLS enabled except api_logs and tokens_usage (matches production)', () => {
+    expect(tables.filter((t) => !rlsEnabled.includes(t))).toEqual(['api_logs', 'tokens_usage'])
   })
 
   test('GAP: no table uses FORCE ROW LEVEL SECURITY', () => {
