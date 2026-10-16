@@ -8,6 +8,7 @@ Supabase CLI. The old hand-applied files are frozen in `database/legacy/`.
 | `migrations/20261016000000_baseline.sql` | Full `public` schema as of Phase 0                                        |
 | `seed.sql`                               | Generic, non-wedding-specific seed applied by `supabase db reset`         |
 | `fixtures/tenant1/`                      | Tenant #1 (current wedding) data: hotels, FAQs, rooms. Never auto-applied |
+| `../tests/db/`                           | Cross-tenant RLS tests (`npm run test:db`) and a Supabase stand-in for plain Postgres |
 | `config.toml`                            | Local Supabase stack configuration                                        |
 
 ## Local workflow
@@ -51,7 +52,18 @@ Notes:
 To re-verify later: `npx supabase db dump --schema public` against production
 and the local stack after `npx supabase db reset`, then `diff`.
 
-Remaining step for the project owner:
+## Phase 1 (tenancy)
+
+Migrations `20261016120000`–`20261016120400` add weddings/members, `wedding_id`
+on every tenant table (existing data becomes tenant #1), and membership-scoped
+RLS. Runbook, staging setup, backups and rollback:
+[`docs/multi-wedding/PHASE1-ROLLOUT.md`](../docs/multi-wedding/PHASE1-ROLLOUT.md).
+
+Without Docker, `scripts/test-db-local.sh` builds a throwaway database on a
+local PostgreSQL 17 + pgvector and runs the RLS tests;
+`scripts/gen-types-local.sh` regenerates the types from it.
+
+Remaining step for the project owner (part of the runbook, do not run before it):
 
 Mark the baseline as already applied in production so the CLI does not try
 to run it there:
