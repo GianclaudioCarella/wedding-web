@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { isValidInviteToken } from '@/lib/auth/inviteToken'
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')
-  if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+  if (!isValidInviteToken(token)) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
   const { data: guest, error: guestError } = await supabaseAdmin
     .from('guests')

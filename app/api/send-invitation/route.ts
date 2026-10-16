@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { sendEmail } from '@/lib/email/mailer'
 
 function formatPartyNames(guestName: string, partyMembers: { name: string }[]): string {
@@ -124,6 +125,8 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request)
+  if (!auth.ok) return auth.response
   const { guest_ids } = await request.json()
   if (!guest_ids?.length) {
     return NextResponse.json({ error: 'No guest IDs provided' }, { status: 400 })

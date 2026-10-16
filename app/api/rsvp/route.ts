@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { isValidInviteToken } from '@/lib/auth/inviteToken'
+
+const ALLOWED_STATUSES = new Set(['attending', 'declined', 'pending'])
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')
-  if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+  if (!isValidInviteToken(token)) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
   const { data: guest, error: guestError } = await supabaseAdmin
     .from('guests')
@@ -12,8 +15,8 @@ export async function GET(request: NextRequest) {
     .single()
 
   if (guestError || !guest) {
-    console.error('Guest fetch error:', guestError?.message, '| token:', token)
-    return NextResponse.json({ error: guestError?.message || 'Guest not found' }, { status: 404 })
+    console.error('Guest fetch error:', guestError?.message)
+    return NextResponse.json({ error: 'Guest not found' }, { status: 404 })
   }
 
   const { data: guestEvents } = await supabaseAdmin
@@ -77,7 +80,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const { token, responses, dietary_requirements, dietary_notes, stay_request, notes, plus_one_name, plus_one_email, party_dietary, party_dietary_notes, party_rsvps, transport_needed, transport_from, transport_return } = body
 
-  if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+  if (!isValidInviteToken(token)) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+  if (!Array.isArray(responses)) return NextResponse.json({ error: 'Invalid responses' }, { status: 400 })
 
   const { data: guest } = await supabaseAdmin
     .from('guests')
@@ -86,6 +90,25 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (!guest) return NextResponse.json({ error: 'Guest not found' }, { status: 404 })
+
+  // Only allow writes for events this guest is invited to, and party members that
+  // actually belong to this guest's party (prevents tampering with other guests).
+  const { data: invitedEvents } = await supabaseAdmin
+    .from('guest_events')
+    .select('event_id')
+    .eq('guest_id', guest.id)
+  const invitedEventIds = new Set((invitedEvents || []).map((e: any) => String(e.event_id)))
+  for (const r of responses) {
+    if (!r || !invitedEventIds.has(String(r.event_id)) || !ALLOWED_STATUSES.has(r.status)) {
+      return NextResponse.json({ error: 'Invalid RSVP response' }, { status: 400 })
+    }
+  }
+
+  const { data: ownPartyMembers } = await supabaseAdmin
+    .from('guests')
+    .select('id')
+    .eq('party_leader_id', guest.id)
+  const ownPartyIds = new Set((ownPartyMembers || []).map((m: any) => String(m.id)))
 
   // Create a map of event_id -> status from primary guest responses
   const eventStatusMap = new Map(responses.map((r: any) => [r.event_id, r.status]))
@@ -118,6 +141,9 @@ export async function POST(request: NextRequest) {
   }
 
   for (const memberId of partyMemberIds) {
+    if (!ownPartyIds.has(String(memberId))) {
+      return NextResponse.json({ error: 'Invalid party member' }, { status: 400 })
+    }
     const { data: memberEvents } = await supabaseAdmin
       .from('guest_events')
       .select('event_id')
@@ -126,7 +152,8 @@ export async function POST(request: NextRequest) {
     for (const me of memberEvents || []) {
       // Use individual party member response if provided, otherwise use primary guest's status
       const memberRsvpsForMember = (party_rsvps as Record<string, Record<string, string>>)?.[memberId] || {}
-      const memberStatus = memberRsvpsForMember[me.event_id] || eventStatusMap.get(me.event_id) || 'pending'
+      const requestedStatus = memberRsvpsForMember[me.event_id]
+      const memberStatus = (requestedStatus && ALLOWED_STATUSES.has(requestedStatus) ? requestedStatus : null) || eventStatusMap.get(me.event_id) || 'pending'
       const memberDietary = (party_dietary as Record<string, string[]>)?.[memberId] || []
 
       await supabaseAdmin.from('rsvp_responses').upsert({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 async function markGuestAsNotAttending(guestId: string) {
   // Get all events the guest is invited to
@@ -48,6 +49,8 @@ async function markGuestAsNotAttending(guestId: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request)
+  if (!auth.ok) return auth.response
   const { guest_id } = await request.json()
 
   if (!guest_id) {

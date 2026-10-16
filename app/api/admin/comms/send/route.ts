@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { sendEmail } from '@/lib/email/mailer'
 import { generateBroadcastHtml, generateBroadcastText } from '@/lib/email/broadcast'
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request)
+  if (!auth.ok) return auth.response
   const { subject, body, filter, recipient_ids } = await request.json()
 
   if (!subject?.trim() || !body?.trim() || !recipient_ids?.length) {
