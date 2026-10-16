@@ -53,6 +53,11 @@ jobs:
         run: npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,storage-api,mailpit
       - name: Reset database from zero
         run: npx supabase db reset
+      - name: Cross-tenant RLS tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          REQUIRE_DB_TESTS: '1'
+        run: npm run test:db
       - name: Check generated types are up to date
         run: |
           npm run db:types
