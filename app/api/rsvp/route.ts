@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isValidInviteToken } from '@/lib/auth/inviteToken'
+import type { TablesUpdate } from '@/lib/database.types'
 
 const ALLOWED_STATUSES = new Set(['attending', 'declined', 'pending'])
 
@@ -200,7 +201,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Update guest notes + plus one fields
-  const guestUpdate: Record<string, unknown> = {}
+  const guestUpdate: TablesUpdate<'guests'> = {}
   if (notes !== undefined) guestUpdate.notes = notes
   if (plus_one_name !== undefined) guestUpdate.plus_one_name = plus_one_name || null
   if (plus_one_email !== undefined) guestUpdate.plus_one_email = plus_one_email || null
