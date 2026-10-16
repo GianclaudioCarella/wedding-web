@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       recipient_count:   sent,
       failed_count:      failed,
       recipient_names:   sentNames.join(', '),
-      sent_by:           process.env.GMAIL_USER,
+      sent_by:           process.env.RESEND_FROM_EMAIL,
     })
   } catch { /* table not yet created */ }
 

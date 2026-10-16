@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       recipient_count:  successCount,
       failed_count:     failCount,
       recipient_names:  sentNames,
-      sent_by:          process.env.GMAIL_USER,
+      sent_by:          process.env.RESEND_FROM_EMAIL,
     })
   } catch { /* table may not exist yet */ }
 
