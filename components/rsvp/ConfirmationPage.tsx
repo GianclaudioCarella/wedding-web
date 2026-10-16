@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { getTranslation } from '@/lib/translations';
 
 const TEXT  = 'var(--color-text)'
@@ -28,25 +27,12 @@ export default function ConfirmationPage({ locale }: ConfirmationPageProps) {
   useEffect(() => {
     if (!guestId) return;
     (async () => {
-      // Look up guest by invite_token to get their id
-      const { data: guestData } = await supabase
-        .from('guests')
-        .select('id')
-        .eq('invite_token', guestId)
-        .single();
-
-      if (!guestData) return;
-
-      // Check rsvp_responses for this guest
-      const { data: rsvps } = await supabase
-        .from('rsvp_responses')
-        .select('status')
-        .eq('guest_id', guestData.id);
-
-      if (!rsvps || rsvps.length === 0) return;
-
-      const hasAttending = rsvps.some(r => r.status === 'attending');
-      setAttending(hasAttending);
+      // RSVP state comes from the token-validated server route (guestId is
+      // the guest's invite token).
+      const res = await fetch(`/api/guest?token=${encodeURIComponent(guestId)}`);
+      if (!res.ok) return;
+      const { attending } = await res.json();
+      if (attending !== null) setAttending(attending);
     })();
   }, [guestId]);
 

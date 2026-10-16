@@ -4,7 +4,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
 export default function HomeContent() {
   const searchParams = useSearchParams();
@@ -24,16 +23,12 @@ export default function HomeContent() {
 
   const fetchGuestName = async (id: string) => {
     try {
-      const { data, error } = await supabase
-        .from('guests')
-        .select('name')
-        .eq('id', id)
-        .single();
-
-      if (error || !data) {
+      // Guest data is only available through the token-validated server route.
+      const res = await fetch(`/api/guest?token=${encodeURIComponent(id)}`);
+      if (!res.ok) {
         setGuestNotFound(true);
       } else {
-        setGuestName(data.name);
+        setGuestName((await res.json()).name);
       }
     } catch (error) {
       console.error('Error fetching guest:', error);

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { getTranslation } from '@/lib/i18n/translations';
 
@@ -29,17 +28,19 @@ export default function InviteContent({ guestId, locale }: InviteContentProps) {
 
   const fetchGuest = async () => {
     try {
-      const { data, error } = await supabase
-        .from('guests')
-        .select('id, name, attending, email')
-        .eq('id', guestId)
-        .single();
-
-      if (error || !data) {
-        console.error('Supabase error:', error);
+      // Guest data is only available through the token-validated server route;
+      // `guestId` is the guest's invite token.
+      const res = await fetch(`/api/guest?token=${encodeURIComponent(guestId)}`);
+      if (!res.ok) {
         setNotFound(true);
       } else {
-        setGuest(data);
+        const data: { name: string; attending: boolean | null } = await res.json();
+        setGuest({
+          id: guestId,
+          name: data.name,
+          attending: data.attending === null ? null : data.attending ? 'yes' : 'no',
+          email: null,
+        });
       }
     } catch (error) {
       console.error('Error fetching guest:', error);
