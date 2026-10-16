@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { sendEmail } from '@/lib/email/mailer'
+import { sendEmail } from '@/lib/email/send'
 import { isValidInviteToken } from '@/lib/auth/inviteToken'
 
 function generateConfirmationEmail(

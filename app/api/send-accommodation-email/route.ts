@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccommodationTranslations, generateAccommodationEmailHtml, generateAccommodationPlainText } from '@/lib/email/accommodation-generator';
-import { sendEmail } from '@/lib/email/mailer';
+import { sendEmail } from '@/lib/email/send';
 import { requireAdmin } from '@/lib/auth/requireAdmin';
 
 export async function POST(request: NextRequest) {

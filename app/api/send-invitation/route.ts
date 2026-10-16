@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
-import { sendEmail } from '@/lib/email/mailer'
+import { sendEmail } from '@/lib/email/send'
 
 function formatPartyNames(guestName: string, partyMembers: { name: string }[]): string {
   const names: string[] = []
