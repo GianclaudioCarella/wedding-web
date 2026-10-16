@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export default function RegistryPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -15,7 +18,7 @@ export default function RegistryPage() {
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
-    const { data } = await supabase.from('registry_items').select('*').order('sort_order');
+    const { data } = await supabase.from('registry_items').select('*').eq('wedding_id', WEDDING_ID).order('sort_order');
     setItems(data || []);
     setLoading(false);
   };
@@ -45,9 +48,9 @@ export default function RegistryPage() {
       sort_order: parseInt(form.sort_order) || 0,
     };
     if (editing) {
-      await supabase.from('registry_items').update(payload).eq('id', editing.id);
+      await supabase.from('registry_items').update(payload).eq('wedding_id', WEDDING_ID).eq('id', editing.id);
     } else {
-      await supabase.from('registry_items').insert(payload);
+      await supabase.from('registry_items').insert(withWedding(payload, WEDDING_ID));
     }
     setShowModal(false);
     setSaving(false);
@@ -55,17 +58,17 @@ export default function RegistryPage() {
   };
 
   const toggleClaimed = async (id: string, current: boolean) => {
-    await supabase.from('registry_items').update({ is_claimed: !current, claimed_at: !current ? new Date().toISOString() : null }).eq('id', id);
+    await supabase.from('registry_items').update({ is_claimed: !current}).eq('wedding_id', WEDDING_ID).eq('id', id);
     await fetchAll();
   };
 
   const toggleActive = async (id: string, current: boolean) => {
-    await supabase.from('registry_items').update({ is_active: !current }).eq('id', id);
+    await supabase.from('registry_items').update({ is_active: !current }).eq('wedding_id', WEDDING_ID).eq('id', id);
     await fetchAll();
   };
 
   const deleteItem = async (id: string) => {
-    await supabase.from('registry_items').delete().eq('id', id);
+    await supabase.from('registry_items').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     setDeleteConfirm(null);
     await fetchAll();
   };

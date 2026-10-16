@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface Event { id: string; name: string; sort_order: number; slug: string | null }
 interface RsvpDetail {
@@ -117,11 +120,11 @@ export default function GuestsPage() {
     setLoading(true);
     try {
       const [guestsRes, eventsRes, geRes, rsvpRes, stayRes] = await Promise.all([
-        supabase.from('guests').select('*').order('name'),
-        supabase.from('events').select('id, name, sort_order, slug').order('sort_order'),
-        supabase.from('guest_events').select('guest_id, event_id'),
-        supabase.from('rsvp_responses').select('guest_id, event_id, status, dietary_requirements, dietary_notes, notes'),
-        supabase.from('guest_stay_requests').select('guest_id, sunday_night, friday_night, saturday_night'),
+        supabase.from('guests').select('*').eq('wedding_id', WEDDING_ID).order('name'),
+        supabase.from('events').select('id, name, sort_order, slug').eq('wedding_id', WEDDING_ID).order('sort_order'),
+        supabase.from('guest_events').select('guest_id, event_id').eq('wedding_id', WEDDING_ID),
+        supabase.from('rsvp_responses').select('guest_id, event_id, status, dietary_requirements, dietary_notes, notes').eq('wedding_id', WEDDING_ID),
+        supabase.from('guest_stay_requests').select('guest_id, sunday_night, friday_night, saturday_night').eq('wedding_id', WEDDING_ID),
       ]);
 
       const guestEvents: Record<string, string[]> = {};
@@ -135,15 +138,15 @@ export default function GuestsPage() {
         guestRsvps[r.guest_id][r.event_id] = r;
       }
       const guestStay: Record<string, StayRequest> = {};
-      for (const s of stayRes.data || []) guestStay[s.guest_id] = s;
+      for (const s of stayRes.data || []) guestStay[s.guest_id] = s as StayRequest;
 
       setGuests((guestsRes.data || []).map(g => ({
         ...g,
         events: guestEvents[g.id] || [],
         rsvps: guestRsvps[g.id] || {},
         stayRequest: guestStay[g.id] || null,
-      })));
-      setEvents(eventsRes.data || []);
+      })) as unknown as Guest[]);
+      setEvents((eventsRes.data || []) as unknown as Event[]);
     } finally {
       setLoading(false);
     }
@@ -188,12 +191,12 @@ export default function GuestsPage() {
       };
       if (editingId) {
         // Update primary guest
-        await supabase.from('guests').update(payload).eq('id', editingId);
+        await supabase.from('guests').update(payload).eq('wedding_id', WEDDING_ID).eq('id', editingId);
 
         // Update primary guest's events
-        await supabase.from('guest_events').delete().eq('guest_id', editingId);
+        await supabase.from('guest_events').delete().eq('wedding_id', WEDDING_ID).eq('guest_id', editingId);
         if (form.event_ids.length > 0)
-          await supabase.from('guest_events').insert(form.event_ids.map(eid => ({ guest_id: editingId, event_id: eid })));
+          await supabase.from('guest_events').insert(withWedding(form.event_ids.map(eid => ({ guest_id: editingId, event_id: eid })), WEDDING_ID));
 
         // Update RSVP statuses for invited events (requires service role, so goes through the API)
         if (form.event_ids.length > 0) {
@@ -211,23 +214,23 @@ export default function GuestsPage() {
 
         // Sync party members' events if this is a primary guest
         if (form.party_role === 'primary') {
-          const { data: partyMembers } = await supabase.from('guests').select('id').eq('party_leader_id', editingId);
+          const { data: partyMembers } = await supabase.from('guests').select('id').eq('wedding_id', WEDDING_ID).eq('party_leader_id', editingId);
           if (partyMembers && partyMembers.length > 0) {
             for (const member of partyMembers) {
               // Delete party member's old events
-              await supabase.from('guest_events').delete().eq('guest_id', member.id);
+              await supabase.from('guest_events').delete().eq('wedding_id', WEDDING_ID).eq('guest_id', member.id);
               // Assign party member to same new events
               if (form.event_ids.length > 0)
-                await supabase.from('guest_events').insert(form.event_ids.map(eid => ({ guest_id: member.id, event_id: eid })));
+                await supabase.from('guest_events').insert(withWedding(form.event_ids.map(eid => ({ guest_id: member.id, event_id: eid })), WEDDING_ID));
             }
           }
         }
       } else {
         const newToken = crypto.randomUUID();
-        const { data: newGuest } = await supabase.from('guests').insert({ ...payload, invite_token: newToken }).select('id').single();
+        const { data: newGuest } = await supabase.from('guests').insert(withWedding({ ...payload, invite_token: newToken }, WEDDING_ID)).select('id').single();
         const finalIds = ceremonyEvent ? [...new Set([ceremonyEvent.id, ...form.event_ids])] : form.event_ids;
         if (newGuest && finalIds.length > 0)
-          await supabase.from('guest_events').insert(finalIds.map(eid => ({ guest_id: newGuest.id, event_id: eid })));
+          await supabase.from('guest_events').insert(withWedding(finalIds.map(eid => ({ guest_id: newGuest.id, event_id: eid })), WEDDING_ID));
 
         // If this is a new party member, replicate primary guest's RSVPs and stay request
         if (newGuest && form.party_role !== 'primary' && form.party_leader_id) {
@@ -246,16 +249,16 @@ export default function GuestsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('guests').delete().eq('id', id);
+    await supabase.from('guests').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     setDeleteConfirm(null); await fetchAll();
   };
 
   const savePartyMemberEvents = async (guestId: string, eventIds: string[]) => {
     setSavingPartyEvents(guestId);
     try {
-      await supabase.from('guest_events').delete().eq('guest_id', guestId);
+      await supabase.from('guest_events').delete().eq('wedding_id', WEDDING_ID).eq('guest_id', guestId);
       if (eventIds.length > 0)
-        await supabase.from('guest_events').insert(eventIds.map(eid => ({ guest_id: guestId, event_id: eid })));
+        await supabase.from('guest_events').insert(withWedding(eventIds.map(eid => ({ guest_id: guestId, event_id: eid })), WEDDING_ID));
       setEditingPartyMemberEvents(prev => {
         const next = { ...prev };
         delete next[guestId];

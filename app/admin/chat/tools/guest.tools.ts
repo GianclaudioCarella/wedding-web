@@ -1,6 +1,9 @@
 // Guest management tools
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export class GuestTools {
   constructor(private supabase: SupabaseClient) {}
@@ -10,8 +13,8 @@ export class GuestTools {
    */
   async getGuestStatistics() {
     const [{ data: guests, error }, { data: rsvps }] = await Promise.all([
-      this.supabase.from('guests').select('id, attending, invited_at'),
-      this.supabase.from('rsvp_responses').select('guest_id, status'),
+      this.supabase.from('guests').select('id, attending, invited_at').eq('wedding_id', WEDDING_ID),
+      this.supabase.from('rsvp_responses').select('guest_id, status').eq('wedding_id', WEDDING_ID),
     ]);
 
     if (error) throw error;
@@ -38,7 +41,7 @@ export class GuestTools {
   async listGuests(filter?: string) {
     const { data: guests, error } = await this.supabase
       .from('guests')
-      .select('id, name, email, phone, language, attending, invited_at')
+      .select('id, name, email, phone, language, attending, invited_at').eq('wedding_id', WEDDING_ID)
       .order('name');
 
     if (error) throw error;

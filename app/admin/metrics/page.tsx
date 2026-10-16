@@ -7,6 +7,9 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface MetricsSummary {
   totalApiCalls: number;
@@ -53,8 +56,8 @@ export default function MetricsPage() {
         ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
         : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      const { data: apiLogs } = await supabase.from('api_logs').select('*').gte('timestamp', startDate);
-      const { data: tokens }  = await supabase.from('tokens_usage').select('*').gte('timestamp', startDate);
+      const { data: apiLogs } = await supabase.from('api_logs').select('*').eq('wedding_id', WEDDING_ID).gte('timestamp', startDate);
+      const { data: tokens }  = await supabase.from('tokens_usage').select('*').eq('wedding_id', WEDDING_ID).gte('timestamp', startDate);
 
       setSummary({
         totalApiCalls:    apiLogs?.length || 0,
@@ -75,8 +78,8 @@ export default function MetricsPage() {
         if (!timeMap.has(k)) timeMap.set(k, { hour: k, tavily: 0, llm: 0, tokens: 0 });
         return timeMap.get(k)!;
       };
-      apiLogs?.forEach(l => { if (l.api_name === 'tavily') ensure(timeKey(l.timestamp)).tavily++; });
-      tokens?.forEach(t => { const d = ensure(timeKey(t.timestamp)); d.llm++; d.tokens += t.total_tokens || 0; });
+      apiLogs?.forEach(l => { if (l.api_name === 'tavily') ensure(timeKey(l.timestamp ?? '')).tavily++; });
+      tokens?.forEach(t => { const d = ensure(timeKey(t.timestamp ?? '')); d.llm++; d.tokens += t.total_tokens || 0; });
       setHourlyData(Array.from(timeMap.values()).sort((a, b) => a.hour.localeCompare(b.hour)));
 
       const bkdn = new Map<string, number>();
@@ -84,9 +87,9 @@ export default function MetricsPage() {
       setApiBreakdown(Array.from(bkdn.entries()).map(([name, value]) => ({ name, value })));
 
       const { data: recent } = await supabase
-        .from('api_logs').select('timestamp, api_name, response_time_ms, success')
+        .from('api_logs').select('timestamp, api_name, response_time_ms, success').eq('wedding_id', WEDDING_ID)
         .order('timestamp', { ascending: false }).limit(10);
-      setRecentCalls(recent || []);
+      setRecentCalls((recent || []) as unknown as RecentCall[]);
     } catch (error) {
       console.error('Error loading metrics:', error);
     } finally {

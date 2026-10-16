@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface SeatingTable {
   id: string;
@@ -60,7 +63,7 @@ export default function SeatingPage() {
       const next = new Set(prev);
       if (next.has(tableId)) {
         next.delete(tableId);
-        supabase.from('seating_assignments').delete().eq('table_id', tableId).eq('side', 'H').then(() => fetchAll());
+        supabase.from('seating_assignments').delete().eq('wedding_id', WEDDING_ID).eq('table_id', tableId).eq('side', 'H').then(() => fetchAll());
       } else {
         next.add(tableId);
       }
@@ -95,12 +98,12 @@ export default function SeatingPage() {
     setLoading(true);
     try {
       const [tablesRes, assignRes, eventsRes] = await Promise.all([
-        supabase.from('seating_tables').select('*').order('sort_order'),
-        supabase.from('seating_assignments').select('*, guests(name, tags, party_role, party_leader_id, language)'),
-        supabase.from('events').select('id, name, slug').order('sort_order'),
+        supabase.from('seating_tables').select('*').eq('wedding_id', WEDDING_ID).order('sort_order'),
+        supabase.from('seating_assignments').select('*, guests(name, tags, party_role, party_leader_id, language)').eq('wedding_id', WEDDING_ID),
+        supabase.from('events').select('id, name, slug').eq('wedding_id', WEDDING_ID).order('sort_order'),
       ]);
       setTables(tablesRes.data || []);
-      setAssignments(assignRes.data || []);
+      setAssignments((assignRes.data || []) as unknown as SeatingAssignment[]);
 
       const events = eventsRes.data || [];
       const ceremonyEvent = events.find(e => e.slug === 'wedding')
@@ -109,8 +112,8 @@ export default function SeatingPage() {
 
       if (ceremonyEvent) {
         const [guestsRes, rsvpRes] = await Promise.all([
-          supabase.from('guests').select('id, name, tags, party_role, party_leader_id, language'),
-          supabase.from('rsvp_responses').select('guest_id, status, dietary_requirements, dietary_notes').eq('event_id', ceremonyEvent.id),
+          supabase.from('guests').select('id, name, tags, party_role, party_leader_id, language').eq('wedding_id', WEDDING_ID),
+          supabase.from('rsvp_responses').select('guest_id, status, dietary_requirements, dietary_notes').eq('wedding_id', WEDDING_ID).eq('event_id', ceremonyEvent.id),
         ]);
         const dietaryByGuestId = new Map<string, string | null>();
         const attendingIds = new Set<string>();
@@ -123,7 +126,7 @@ export default function SeatingPage() {
         }
         setGuests((guestsRes.data || [])
           .filter(g => attendingIds.has(g.id))
-          .map(g => ({ ...g, dietary: dietaryByGuestId.get(g.id) || null })));
+          .map(g => ({ ...g, dietary: dietaryByGuestId.get(g.id) || null })) as unknown as Guest[]);
       } else {
         setGuests([]);
       }
@@ -204,17 +207,17 @@ export default function SeatingPage() {
         await supabase.from('seating_tables').update({
           name: tableForm.name,
           seats_per_side: tableForm.seats_per_side,
-        }).eq('id', editingTable.id);
+        }).eq('wedding_id', WEDDING_ID).eq('id', editingTable.id);
         // Drop any seats that no longer exist on this table (both sides share the position range)
-        await supabase.from('seating_assignments').delete()
+        await supabase.from('seating_assignments').delete().eq('wedding_id', WEDDING_ID)
           .eq('table_id', editingTable.id)
           .gt('position', tableForm.seats_per_side);
       } else {
-        await supabase.from('seating_tables').insert({
+        await supabase.from('seating_tables').insert(withWedding({
           name: tableForm.name,
           seats_per_side: tableForm.seats_per_side,
           sort_order: tables.length,
-        });
+        }, WEDDING_ID));
       }
       setShowTableModal(false);
       setEditingTable(null);
@@ -224,7 +227,7 @@ export default function SeatingPage() {
     }
   };
   const deleteTable = async (id: string) => {
-    await supabase.from('seating_tables').delete().eq('id', id);
+    await supabase.from('seating_tables').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     setDeleteConfirm(null);
     await fetchAll();
   };
@@ -254,23 +257,23 @@ export default function SeatingPage() {
 
     if (targetSeat) {
       const idsToDelete = [targetSeat.id, ...(sourceSeat ? [sourceSeat.id] : [])];
-      await supabase.from('seating_assignments').delete().in('id', idsToDelete);
+      await supabase.from('seating_assignments').delete().eq('wedding_id', WEDDING_ID).in('id', idsToDelete);
       const inserts = [{ table_id: tableId, side, position, guest_id: guestId }];
       if (sourceSeat) {
         inserts.push({ table_id: sourceSeat.table_id, side: sourceSeat.side, position: sourceSeat.position, guest_id: targetSeat.guest_id });
       }
-      await supabase.from('seating_assignments').insert(inserts);
+      await supabase.from('seating_assignments').insert(withWedding(inserts, WEDDING_ID));
     } else {
       if (sourceSeat) {
-        await supabase.from('seating_assignments').delete().eq('id', sourceSeat.id);
+        await supabase.from('seating_assignments').delete().eq('wedding_id', WEDDING_ID).eq('id', sourceSeat.id);
       }
-      await supabase.from('seating_assignments').insert({ table_id: tableId, side, position, guest_id: guestId });
+      await supabase.from('seating_assignments').insert(withWedding({ table_id: tableId, side, position, guest_id: guestId }, WEDDING_ID));
     }
     await fetchAll();
   };
 
   const unassignGuest = async (assignmentId: string) => {
-    await supabase.from('seating_assignments').delete().eq('id', assignmentId);
+    await supabase.from('seating_assignments').delete().eq('wedding_id', WEDDING_ID).eq('id', assignmentId);
     await fetchAll();
   };
 
@@ -290,7 +293,7 @@ export default function SeatingPage() {
       });
       const shuffled = [...unseatedGuests].sort(() => Math.random() - 0.5);
       const inserts = shuffled.slice(0, emptySeats.length).map((g, i) => ({ ...emptySeats[i], guest_id: g.id }));
-      if (inserts.length > 0) await supabase.from('seating_assignments').insert(inserts);
+      if (inserts.length > 0) await supabase.from('seating_assignments').insert(withWedding(inserts, WEDDING_ID));
       await fetchAll();
     } finally { setShuffling(false); }
   };
@@ -302,8 +305,8 @@ export default function SeatingPage() {
       if (unlocked.length < 2) return;
       const seats = unlocked.map(a => ({ table_id: a.table_id, side: a.side, position: a.position }));
       const guestIds = [...unlocked.map(a => a.guest_id)].sort(() => Math.random() - 0.5);
-      await supabase.from('seating_assignments').delete().in('id', unlocked.map(a => a.id));
-      await supabase.from('seating_assignments').insert(seats.map((s, i) => ({ ...s, guest_id: guestIds[i] })));
+      await supabase.from('seating_assignments').delete().eq('wedding_id', WEDDING_ID).in('id', unlocked.map(a => a.id));
+      await supabase.from('seating_assignments').insert(withWedding(seats.map((s, i) => ({ ...s, guest_id: guestIds[i] })), WEDDING_ID));
       await fetchAll();
     } finally { setShuffling(false); }
   };

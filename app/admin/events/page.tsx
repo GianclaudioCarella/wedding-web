@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { TablesInsert, TablesUpdate } from '@/lib/database.types';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface Event {
   id: string;
@@ -46,12 +50,12 @@ export default function EventsPage() {
 
   const fetchAll = async () => {
     const [eventsRes, rsvpRes, geRes, guestsRes] = await Promise.all([
-      supabase.from('events').select('*').order('sort_order'),
-      supabase.from('rsvp_responses').select('event_id, status, guest_id'),
-      supabase.from('guest_events').select('event_id, guest_id'),
-      supabase.from('guests').select('id, name, email, tags, party_leader_id, party_role'),
+      supabase.from('events').select('*').eq('wedding_id', WEDDING_ID).order('sort_order'),
+      supabase.from('rsvp_responses').select('event_id, status, guest_id').eq('wedding_id', WEDDING_ID),
+      supabase.from('guest_events').select('event_id, guest_id').eq('wedding_id', WEDDING_ID),
+      supabase.from('guests').select('id, name, email, tags, party_leader_id, party_role').eq('wedding_id', WEDDING_ID),
     ]);
-    setEvents(eventsRes.data || []);
+    setEvents((eventsRes.data || []) as unknown as Event[]);
 
     // Build guest list per event with RSVP status and tags
     const guestsMap: Record<string, { id: string; name: string; email: string | null; tags: string[]; party_leader_id: string | null; party_role: string | null }> = {};
@@ -102,7 +106,7 @@ export default function EventsPage() {
   const handleSave = async () => {
     setSaving(true);
     if (isAdding) {
-      await supabase.from('events').insert({
+      await supabase.from('events').insert(withWedding({
         name: form.name,
         slug: form.slug || null,
         event_date: form.event_date || null,
@@ -110,7 +114,7 @@ export default function EventsPage() {
         location: form.location || null,
         description: form.description || null,
         sort_order: events.length,
-      });
+      } as unknown as Omit<TablesInsert<'events'>, 'wedding_id'>, WEDDING_ID));
       setIsAdding(false);
     } else {
       if (!editingId) { setSaving(false); return; }
@@ -121,7 +125,7 @@ export default function EventsPage() {
         event_time: form.event_time || null,
         location: form.location || null,
         description: form.description || null,
-      }).eq('id', editingId);
+      } as unknown as TablesUpdate<'events'>).eq('wedding_id', WEDDING_ID).eq('id', editingId);
       setEditingId(null);
     }
     setSaving(false);
@@ -129,13 +133,13 @@ export default function EventsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('events').delete().eq('id', id);
+    await supabase.from('events').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     setDeleteConfirm(null);
     await fetchAll();
   };
 
   const handleRemoveGuestFromEvent = async (eventId: string, guestId: string) => {
-    await supabase.from('guest_events').delete().eq('event_id', eventId).eq('guest_id', guestId);
+    await supabase.from('guest_events').delete().eq('wedding_id', WEDDING_ID).eq('event_id', eventId).eq('guest_id', guestId);
     setDeleteEventConfirm(null);
     await fetchAll();
   };
@@ -147,7 +151,7 @@ export default function EventsPage() {
     [updated[index], updated[swapIndex]] = [updated[swapIndex], updated[index]];
     // Persist new sort_order values
     await Promise.all(updated.map((e, i) =>
-      supabase.from('events').update({ sort_order: i }).eq('id', e.id)
+      supabase.from('events').update({ sort_order: i }).eq('wedding_id', WEDDING_ID).eq('id', e.id)
     ));
     await fetchAll();
   };

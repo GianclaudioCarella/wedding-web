@@ -1,4 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export class WeddingTools {
   constructor(private supabase: SupabaseClient) {}
@@ -7,7 +10,7 @@ export class WeddingTools {
     try {
       const { data: options } = await this.supabase
         .from('transport_options')
-        .select('id, name, direction, departure_location, departure_time, return_time, capacity, notes')
+        .select('id, name, direction, departure_location, departure_time, return_time, capacity, notes').eq('wedding_id', WEDDING_ID)
         .eq('is_active', true)
         .order('sort_order');
 
@@ -15,7 +18,7 @@ export class WeddingTools {
 
       const { data: assignments } = await this.supabase
         .from('guest_transport')
-        .select('transport_option_id, guest:guests(name)');
+        .select('transport_option_id, guest:guests(name)').eq('wedding_id', WEDDING_ID);
 
       const countByOption: Record<string, string[]> = {};
       for (const a of assignments || []) {
@@ -46,11 +49,11 @@ export class WeddingTools {
       // Venue rooms
       const { data: rooms } = await this.supabase
         .from('venue_rooms')
-        .select('id, name, room_type, capacity, floor, notes');
+        .select('id, name, room_type, capacity, floor, notes').eq('wedding_id', WEDDING_ID);
 
       const { data: assignments } = await this.supabase
         .from('guest_room_assignments')
-        .select('room_id, bed_label, guest:guests(name)');
+        .select('room_id, bed_label, guest:guests(name)').eq('wedding_id', WEDDING_ID);
 
       if (rooms?.length) {
         const byRoom: Record<string, { bed?: string; name: string }[]> = {};
@@ -73,7 +76,7 @@ export class WeddingTools {
       // Stay requests
       const { data: stays } = await this.supabase
         .from('guest_stay_requests')
-        .select('thursday_night, friday_night, saturday_night, guest:guests(name)');
+        .select('thursday_night, friday_night, saturday_night, guest:guests(name)').eq('wedding_id', WEDDING_ID);
 
       if (stays?.length) {
         const thu = stays.filter(s => s.thursday_night).map(s => (s.guest as any)?.name).filter(Boolean);
@@ -87,7 +90,7 @@ export class WeddingTools {
       // External accommodations
       const { data: external } = await this.supabase
         .from('external_accommodations')
-        .select('name, description, price_range, distance_from_venue')
+        .select('name, description, price_range, distance_from_venue').eq('wedding_id', WEDDING_ID)
         .eq('is_active', true)
         .order('sort_order');
 
@@ -106,7 +109,7 @@ export class WeddingTools {
     try {
       let query = this.supabase
         .from('planning_tasks')
-        .select('name, description, start_month, end_month, year, status')
+        .select('name, description, start_month, end_month, year, status').eq('wedding_id', WEDDING_ID)
         .order('year')
         .order('start_month');
 
@@ -136,7 +139,7 @@ export class WeddingTools {
     try {
       const { data } = await this.supabase
         .from('email_campaigns')
-        .select('subject, recipient_filter, recipient_count, failed_count, sent_at')
+        .select('subject, recipient_filter, recipient_count, failed_count, sent_at').eq('wedding_id', WEDDING_ID)
         .order('sent_at', { ascending: false })
         .limit(limit);
 
@@ -158,7 +161,7 @@ export class WeddingTools {
     try {
       const { data: guests, error } = await this.supabase
         .from('guests')
-        .select('name, email, attending, invited_at')
+        .select('name, email, attending, invited_at').eq('wedding_id', WEDDING_ID)
         .order('name');
 
       if (error) throw error;
@@ -194,13 +197,13 @@ export class WeddingTools {
     try {
       const { data: events } = await this.supabase
         .from('events')
-        .select('id, name');
+        .select('id, name').eq('wedding_id', WEDDING_ID);
 
       if (!events?.length) return 'No events found.';
 
       const { data: responses } = await this.supabase
         .from('rsvp_responses')
-        .select('event_id, status, dietary_requirements, dietary_notes, guest:guests(name)');
+        .select('event_id, status, dietary_requirements, dietary_notes, guest:guests(name)').eq('wedding_id', WEDDING_ID);
 
       const parts = events.map(ev => {
         const evResponses = (responses || []).filter(r => r.event_id === ev.id);

@@ -1,6 +1,9 @@
 // Supabase service for chat operations (conversations, messages, settings)
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export class ChatSupabaseService {
   constructor(private supabase: SupabaseClient) {}
@@ -11,7 +14,7 @@ export class ChatSupabaseService {
   async loadSystemMessage() {
     const { data, error } = await this.supabase
       .from('chat_settings')
-      .select('setting_value')
+      .select('setting_value').eq('wedding_id', WEDDING_ID)
       .eq('setting_key', 'system_message')
       .maybeSingle();
 
@@ -32,7 +35,7 @@ export class ChatSupabaseService {
       .update({
         setting_value: systemMessage,
         updated_at: new Date().toISOString(),
-      })
+      }).eq('wedding_id', WEDDING_ID)
       .eq('setting_key', 'system_message');
 
     if (error) {
@@ -49,7 +52,7 @@ export class ChatSupabaseService {
   async loadConversations(userId: string) {
     const { data, error } = await this.supabase
       .from('chat_conversations')
-      .select('*')
+      .select('*').eq('wedding_id', WEDDING_ID)
       .eq('user_id', userId)
       .order('updated_at', { ascending: false });
 
@@ -67,7 +70,7 @@ export class ChatSupabaseService {
   async loadMessages(conversationId: string) {
     const { data, error } = await this.supabase
       .from('chat_messages')
-      .select('*')
+      .select('*').eq('wedding_id', WEDDING_ID)
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -85,10 +88,10 @@ export class ChatSupabaseService {
   async createConversation(userId: string, title: string) {
     const { data, error } = await this.supabase
       .from('chat_conversations')
-      .insert({
+      .insert(withWedding({
         user_id: userId,
         title: title,
-      })
+      }, WEDDING_ID))
       .select()
       .single();
 
@@ -106,11 +109,11 @@ export class ChatSupabaseService {
   async saveMessage(conversationId: string, role: string, content: string) {
     const { error } = await this.supabase
       .from('chat_messages')
-      .insert({
+      .insert(withWedding({
         conversation_id: conversationId,
         role: role,
         content: content,
-      });
+      }, WEDDING_ID));
 
     if (error) {
       console.error('Error saving message:', error);
@@ -120,7 +123,7 @@ export class ChatSupabaseService {
     // Update conversation timestamp
     await this.supabase
       .from('chat_conversations')
-      .update({ updated_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() }).eq('wedding_id', WEDDING_ID)
       .eq('id', conversationId);
     
     return { success: true };
@@ -132,7 +135,7 @@ export class ChatSupabaseService {
   async deleteConversation(conversationId: string) {
     const { error } = await this.supabase
       .from('chat_conversations')
-      .delete()
+      .delete().eq('wedding_id', WEDDING_ID)
       .eq('id', conversationId);
 
     if (error) {

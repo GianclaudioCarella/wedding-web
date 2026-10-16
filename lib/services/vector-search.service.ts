@@ -8,6 +8,9 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { EmbeddingService } from './embedding.service';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export interface SearchResult {
   chunkId: string;
@@ -60,6 +63,7 @@ export class VectorSearchService {
       // The <=> operator calculates cosine distance (1 - cosine similarity)
       // We'll convert it back to similarity for clarity
       const { data, error } = await this.supabase.rpc('search_document_chunks', {
+        p_wedding_id: WEDDING_ID,
         query_embedding: embedding,
         match_threshold: 1 - similarityThreshold, // Convert similarity to distance
         match_count: limit,
@@ -126,7 +130,7 @@ Please use the above context to answer the user's question. If the context doesn
   async hasDocuments(): Promise<boolean> {
     const { data, error } = await this.supabase
       .from('documents')
-      .select('id')
+      .select('id').eq('wedding_id', WEDDING_ID)
       .eq('status', 'completed')
       .limit(1);
 
@@ -149,7 +153,7 @@ Please use the above context to answer the user's question. If the context doesn
     // Get document count and total size
     const { data: docData, error: docError } = await this.supabase
       .from('documents')
-      .select('file_size')
+      .select('file_size').eq('wedding_id', WEDDING_ID)
       .eq('status', 'completed');
 
     if (docError) {
@@ -162,7 +166,7 @@ Please use the above context to answer the user's question. If the context doesn
     // Get chunk count
     const { count: chunkCount, error: chunkError } = await this.supabase
       .from('document_chunks')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true }).eq('wedding_id', WEDDING_ID);
 
     if (chunkError) {
       throw new Error(`Failed to get chunk count: ${chunkError.message}`);

@@ -13,6 +13,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface Document {
   id: string;
@@ -53,11 +56,11 @@ export default function DocumentUpload({ userId, isDarkMode, onDocumentsChange }
     try {
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select('*').eq('wedding_id', WEDDING_ID)
         .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments(data || []);
+      setDocuments((data || []) as unknown as Document[]);
     } catch (error) {
       console.error('Error loading documents:', error);
     }

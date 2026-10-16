@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export default function TransportPage() {
   const [options, setOptions] = useState<any[]>([]);
@@ -25,10 +28,10 @@ export default function TransportPage() {
 
   const fetchAll = async () => {
     const [optRes, signRes, gRes, rsvpRes] = await Promise.all([
-      supabase.from('transport_options').select('*').order('name'),
-      supabase.from('guest_transport').select('*, guests(name)'),
-      supabase.from('guests').select('id, name, party_role, party_leader_id, transport_needed, transport_from, transport_return').order('name'),
-      supabase.from('rsvp_responses').select('guest_id, status'),
+      supabase.from('transport_options').select('*').eq('wedding_id', WEDDING_ID).order('name'),
+      supabase.from('guest_transport').select('*, guests(name)').eq('wedding_id', WEDDING_ID),
+      supabase.from('guests').select('id, name, party_role, party_leader_id, transport_needed, transport_from, transport_return').eq('wedding_id', WEDDING_ID).order('name'),
+      supabase.from('rsvp_responses').select('guest_id, status').eq('wedding_id', WEDDING_ID),
     ]);
     setOptions(optRes.data || []);
     setSignups(signRes.data || []);
@@ -39,14 +42,14 @@ export default function TransportPage() {
 
   const addGuest = async (optionId: string, guestId: string) => {
     setAddingGuestId(guestId);
-    await supabase.from('guest_transport').insert({ transport_option_id: optionId, guest_id: guestId });
+    await supabase.from('guest_transport').insert(withWedding({ transport_option_id: optionId, guest_id: guestId }, WEDDING_ID));
     await fetchAll();
     setAddingGuestId(null);
     setGuestSearch('');
   };
 
   const removeGuest = async (signupId: string) => {
-    await supabase.from('guest_transport').delete().eq('id', signupId);
+    await supabase.from('guest_transport').delete().eq('wedding_id', WEDDING_ID).eq('id', signupId);
     await fetchAll();
   };
 
@@ -56,13 +59,13 @@ export default function TransportPage() {
       transport_needed: true,
       transport_from: primary.transport_from,
       transport_return: primary.transport_return,
-    }).eq('id', companionId);
+    }).eq('wedding_id', WEDDING_ID).eq('id', companionId);
     await fetchAll();
     setReviewBusyId(null);
   };
   const markCompanionNoTransport = async (companionId: string) => {
     setReviewBusyId(companionId);
-    await supabase.from('guests').update({ transport_needed: false, transport_from: null, transport_return: null }).eq('id', companionId);
+    await supabase.from('guests').update({ transport_needed: false, transport_from: null, transport_return: null }).eq('wedding_id', WEDDING_ID).eq('id', companionId);
     await fetchAll();
     setReviewBusyId(null);
   };
@@ -79,9 +82,9 @@ export default function TransportPage() {
       notes: form.notes || null,
     };
     if (editing) {
-      await supabase.from('transport_options').update(payload).eq('id', editing.id);
+      await supabase.from('transport_options').update(payload).eq('wedding_id', WEDDING_ID).eq('id', editing.id);
     } else {
-      await supabase.from('transport_options').insert(payload);
+      await supabase.from('transport_options').insert(withWedding(payload, WEDDING_ID));
     }
     setShowModal(false);
     setEditing(null);
@@ -90,12 +93,12 @@ export default function TransportPage() {
   };
 
   const toggleActive = async (id: string, current: boolean) => {
-    await supabase.from('transport_options').update({ is_active: !current }).eq('id', id);
+    await supabase.from('transport_options').update({ is_active: !current }).eq('wedding_id', WEDDING_ID).eq('id', id);
     await fetchAll();
   };
 
   const deleteOption = async (id: string) => {
-    await supabase.from('transport_options').delete().eq('id', id);
+    await supabase.from('transport_options').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     await fetchAll();
   };
 

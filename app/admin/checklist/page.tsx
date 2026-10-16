@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface ChecklistItem {
   id: string;
@@ -68,7 +71,7 @@ export default function ChecklistPage() {
     setError(null);
     try {
       const result = await supabase.from('checklists')
-        .select('id, name, checklist_items(id, title, notes, completed, position, created_at)').order('created_at').order('id');
+        .select('id, name, checklist_items(id, title, notes, completed, position, created_at)').eq('wedding_id', WEDDING_ID).order('created_at').order('id');
       if (result.error) throw result.error;
       setLists((result.data || []).map(list => ({ ...list, checklist_items: [...list.checklist_items].sort((a, b) =>
         a.position - b.position || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)
@@ -93,12 +96,12 @@ export default function ChecklistPage() {
     setSavingNote(true);
     setNoteError(null);
     try {
-      const result = await supabase.from('checklist_items').insert({
+      const result = await supabase.from('checklist_items').insert(withWedding({
         checklist_id: list.id,
         title: note.trim(),
         notes: noteDetails.trim(),
         position: Math.max(-1, ...list.checklist_items.map(item => item.position)) + 1,
-      }).select('id, title, notes, completed, position, created_at').single();
+      }, WEDDING_ID)).select('id, title, notes, completed, position, created_at').single();
       if (result.error) throw result.error;
       setLists(previous => previous.map(current => current.id === list.id
         ? { ...current, checklist_items: [...current.checklist_items, result.data] } : current));
@@ -130,7 +133,7 @@ export default function ChecklistPage() {
     setSaving(true);
     setError(null);
     try {
-      const result = await supabase.from('checklists').insert({ name: name.trim() }).select('id, name').single();
+      const result = await supabase.from('checklists').insert(withWedding({ name: name.trim() }, WEDDING_ID)).select('id, name').single();
       if (result.error) throw result.error;
       setLists(previous => [...previous, { ...result.data, checklist_items: [] }]);
       setName('');
@@ -152,7 +155,7 @@ export default function ChecklistPage() {
     setDeletingListId(list.id);
     setError(null);
     try {
-      const result = await supabase.from('checklists').delete().eq('id', list.id).select('id').single();
+      const result = await supabase.from('checklists').delete().eq('wedding_id', WEDDING_ID).eq('id', list.id).select('id').single();
       if (result.error) throw result.error;
       setLists(previous => previous.filter(current => current.id !== list.id));
       if (listFilter === list.id) setListFilter('');
@@ -341,7 +344,7 @@ function ItemDetails({ item, list, draft, onDraftChange, onClose, onSaved }: {
     setSaved(false);
     try {
       const changes = { title: title.trim(), notes };
-      const result = await supabase.from('checklist_items').update(changes)
+      const result = await supabase.from('checklist_items').update(changes).eq('wedding_id', WEDDING_ID)
         .eq('id', item.id).eq('checklist_id', list.id).select('id').single();
       if (result.error) throw result.error;
       onSaved(changes);
@@ -427,14 +430,14 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
   };
 
   const toggleItem = (item: ChecklistItem) => saveChange(async () => {
-    const result = await supabase.from('checklist_items').update({ completed: !item.completed })
+    const result = await supabase.from('checklist_items').update({ completed: !item.completed }).eq('wedding_id', WEDDING_ID)
       .eq('id', item.id).eq('checklist_id', listId).select('id').single();
     if (result.error) throw result.error;
     onItemsChange(previous => previous.map(current => current.id === item.id ? { ...current, completed: !item.completed } : current));
   });
 
   const deleteItem = (item: ChecklistItem) => saveChange(async () => {
-    const result = await supabase.from('checklist_items').delete()
+    const result = await supabase.from('checklist_items').delete().eq('wedding_id', WEDDING_ID)
       .eq('id', item.id).eq('checklist_id', listId).select('id').single();
     if (result.error) throw result.error;
     onItemsChange(previous => previous.filter(current => current.id !== item.id));
@@ -460,7 +463,7 @@ function ChecklistItems({ listId, items, filter, search, disabled, onItemsChange
       onItemsChange(previous => previous.map(item => ({ ...item, position: next.find(ordered => ordered.id === item.id)?.position ?? item.position }))
         .sort((a, b) => a.position - b.position));
       try {
-        const result = await supabase.rpc('reorder_checklist_items', { list_id: listId, item_ids: next.map(item => item.id) });
+        const result = await supabase.rpc('reorder_checklist_items', { p_wedding_id: WEDDING_ID, list_id: listId, item_ids: next.map(item => item.id) });
         if (result.error) throw result.error;
       } catch (cause) {
         onItemsChange(previous => previous.map(item => ({ ...item, position: items.find(original => original.id === item.id)?.position ?? item.position }))

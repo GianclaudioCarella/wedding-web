@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface ContentRow { id: string; key: string; value: string | null; content_type: string; label: string | null }
 interface FaqItem {
@@ -43,11 +46,11 @@ export default function ContentPage() {
 
   const fetchAll = async () => {
     const [contentRes, faqRes] = await Promise.all([
-      supabase.from('site_content').select('*').order('key'),
-      supabase.from('faq_items').select('*').order('sort_order'),
+      supabase.from('site_content').select('*').eq('wedding_id', WEDDING_ID).order('key'),
+      supabase.from('faq_items').select('*').eq('wedding_id', WEDDING_ID).order('sort_order'),
     ]);
-    setRows(contentRes.data || []);
-    setFaqs(faqRes.data || []);
+    setRows((contentRes.data || []) as unknown as ContentRow[]);
+    setFaqs((faqRes.data || []) as unknown as FaqItem[]);
     setLoading(false);
   };
 
@@ -58,7 +61,7 @@ export default function ContentPage() {
   const saveContent = async () => {
     setSaving(true);
     await Promise.all(Object.entries(edits).map(([id, value]) =>
-      supabase.from('site_content').update({ value }).eq('id', id)
+      supabase.from('site_content').update({ value }).eq('wedding_id', WEDDING_ID).eq('id', id)
     ));
     setEdits({});
     setSaving(false);
@@ -86,9 +89,9 @@ export default function ContentPage() {
     setFaqSaving(true);
     const payload = { question: faqForm.question, answer: faqForm.answer, sort_order: faqForm.sort_order, is_active: faqForm.is_active };
     if (editingFaq) {
-      await supabase.from('faq_items').update(payload).eq('id', editingFaq.id);
+      await supabase.from('faq_items').update(payload).eq('wedding_id', WEDDING_ID).eq('id', editingFaq.id);
     } else {
-      await supabase.from('faq_items').insert(payload);
+      await supabase.from('faq_items').insert(withWedding(payload, WEDDING_ID));
     }
     setShowFaqForm(false);
     setFaqSaving(false);
@@ -96,13 +99,13 @@ export default function ContentPage() {
   };
 
   const deleteFaq = async (id: string) => {
-    await supabase.from('faq_items').delete().eq('id', id);
+    await supabase.from('faq_items').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     setDeleteConfirm(null);
     await fetchAll();
   };
 
   const toggleActive = async (faq: FaqItem) => {
-    await supabase.from('faq_items').update({ is_active: !faq.is_active }).eq('id', faq.id);
+    await supabase.from('faq_items').update({ is_active: !faq.is_active }).eq('wedding_id', WEDDING_ID).eq('id', faq.id);
     await fetchAll();
   };
 

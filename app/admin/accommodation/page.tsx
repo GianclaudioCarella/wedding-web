@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface Room { id: string; name: string; room_type: string; capacity: number; floor: string | null; notes: string | null; section: string | null; amenities: string[]; extra_bed_type: string | null; sort_order: number; reserved_for: string | null; }
 interface Assignment { id: string; room_id: string; guest_id: string; bed_label: string | null; notes: string | null; guests?: { name: string; tags: string[]; party_role: string; party_leader_id: string | null; }; }
@@ -114,23 +117,23 @@ export default function AccommodationPage() {
 
   const fetchAll = async () => {
     const [roomsRes, assignRes, guestsRes, extRes, eventsRes] = await Promise.all([
-      supabase.from('venue_rooms').select('*').order('section').order('sort_order'),
-      supabase.from('guest_room_assignments').select('*, guests(name, tags, party_role, party_leader_id)'),
-      supabase.from('guests').select('id, name, tags, party_role, party_leader_id, venue_stay_invited').order('name'),
-      supabase.from('external_accommodations').select('*').order('sort_order'),
-      supabase.from('events').select('id, name, slug').order('sort_order'),
+      supabase.from('venue_rooms').select('*').eq('wedding_id', WEDDING_ID).order('section').order('sort_order'),
+      supabase.from('guest_room_assignments').select('*, guests(name, tags, party_role, party_leader_id)').eq('wedding_id', WEDDING_ID),
+      supabase.from('guests').select('id, name, tags, party_role, party_leader_id, venue_stay_invited').eq('wedding_id', WEDDING_ID).order('name'),
+      supabase.from('external_accommodations').select('*').eq('wedding_id', WEDDING_ID).order('sort_order'),
+      supabase.from('events').select('id, name, slug').eq('wedding_id', WEDDING_ID).order('sort_order'),
     ]);
-    setRooms(roomsRes.data || []);
-    setAssignments(assignRes.data || []);
-    setGuests(guestsRes.data || []);
-    setExternal(extRes.data || []);
+    setRooms((roomsRes.data || []) as unknown as Room[]);
+    setAssignments((assignRes.data || []) as unknown as Assignment[]);
+    setGuests((guestsRes.data || []) as unknown as Guest[]);
+    setExternal((extRes.data || []) as unknown as ExternalAccommodation[]);
 
     const events = eventsRes.data || [];
     const ceremonyEvent = events.find(e => e.slug === 'wedding')
       || events.find(e => ((e.name as any)?.en || '').toLowerCase().includes('wedding'))
       || events[0];
     if (ceremonyEvent) {
-      const rsvpRes = await supabase.from('rsvp_responses').select('guest_id, status').eq('event_id', ceremonyEvent.id);
+      const rsvpRes = await supabase.from('rsvp_responses').select('guest_id, status').eq('wedding_id', WEDDING_ID).eq('event_id', ceremonyEvent.id);
       setConfirmedGuestIds(new Set((rsvpRes.data || []).filter(r => r.status === 'attending').map(r => r.guest_id)));
     } else {
       setConfirmedGuestIds(new Set());
@@ -141,9 +144,9 @@ export default function AccommodationPage() {
   const saveRoom = async () => {
     setSaving(true);
     if (editingRoom) {
-      await supabase.from('venue_rooms').update(roomForm).eq('id', editingRoom.id);
+      await supabase.from('venue_rooms').update(roomForm).eq('wedding_id', WEDDING_ID).eq('id', editingRoom.id);
     } else {
-      await supabase.from('venue_rooms').insert(roomForm);
+      await supabase.from('venue_rooms').insert(withWedding(roomForm, WEDDING_ID));
     }
     setShowRoomModal(false);
     setEditingRoom(null);
@@ -152,20 +155,20 @@ export default function AccommodationPage() {
   };
 
   const deleteRoom = async (id: string) => {
-    await supabase.from('venue_rooms').delete().eq('id', id);
+    await supabase.from('venue_rooms').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     await fetchAll();
   };
 
   const removeAssignment = async (id: string) => {
-    await supabase.from('guest_room_assignments').delete().eq('id', id);
+    await supabase.from('guest_room_assignments').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     await fetchAll();
   };
 
   const setVenueStay = async (guestId: string, invited: boolean) => {
     if (!invited) {
-      await supabase.from('guest_room_assignments').delete().eq('guest_id', guestId);
+      await supabase.from('guest_room_assignments').delete().eq('wedding_id', WEDDING_ID).eq('guest_id', guestId);
     }
-    await supabase.from('guests').update({ venue_stay_invited: invited }).eq('id', guestId);
+    await supabase.from('guests').update({ venue_stay_invited: invited }).eq('wedding_id', WEDDING_ID).eq('id', guestId);
     await fetchAll();
   };
 
@@ -198,18 +201,18 @@ export default function AccommodationPage() {
     if (!guestId || !canDropOnRoom(room, guestId)) return;
     const existing = getGuestAssignment(guestId);
     if (existing) {
-      await supabase.from('guest_room_assignments').delete().eq('id', existing.id);
+      await supabase.from('guest_room_assignments').delete().eq('wedding_id', WEDDING_ID).eq('id', existing.id);
     }
-    await supabase.from('guest_room_assignments').insert({ room_id: room.id, guest_id: guestId });
+    await supabase.from('guest_room_assignments').insert(withWedding({ room_id: room.id, guest_id: guestId }, WEDDING_ID));
     await fetchAll();
   };
 
   const saveExt = async () => {
     setSaving(true);
     if (editingExt) {
-      await supabase.from('external_accommodations').update(extForm).eq('id', editingExt.id);
+      await supabase.from('external_accommodations').update(extForm).eq('wedding_id', WEDDING_ID).eq('id', editingExt.id);
     } else {
-      await supabase.from('external_accommodations').insert(extForm);
+      await supabase.from('external_accommodations').insert(withWedding(extForm, WEDDING_ID));
     }
     setShowExtModal(false);
     setEditingExt(null);
@@ -218,7 +221,7 @@ export default function AccommodationPage() {
   };
 
   const deleteExt = async (id: string) => {
-    await supabase.from('external_accommodations').delete().eq('id', id);
+    await supabase.from('external_accommodations').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     await fetchAll();
   };
 

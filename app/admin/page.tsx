@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { calculateDashboardAttendance, calculateRoomOccupancy } from '@/lib/admin/dashboard-stats';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface EventStat {
   id: string; name: string; event_date: string | null; event_time: string | null; sort_order: number;
@@ -45,12 +48,12 @@ export default function AdminDashboard() {
     setError(null);
     try {
     const [guestsRes, rsvpRes, geRes, eventsRes, roomsRes, assignRes] = await Promise.all([
-      supabase.from('guests').select('id, invited_at, email, attending'),
-      supabase.from('rsvp_responses').select('guest_id, event_id, status'),
-      supabase.from('guest_events').select('guest_id, event_id'),
-      supabase.from('events').select('id, name, event_date, event_time, sort_order').order('sort_order'),
-      supabase.from('venue_rooms').select('id'),
-      supabase.from('guest_room_assignments').select('room_id'),
+      supabase.from('guests').select('id, invited_at, email, attending').eq('wedding_id', WEDDING_ID),
+      supabase.from('rsvp_responses').select('guest_id, event_id, status').eq('wedding_id', WEDDING_ID),
+      supabase.from('guest_events').select('guest_id, event_id').eq('wedding_id', WEDDING_ID),
+      supabase.from('events').select('id, name, event_date, event_time, sort_order').eq('wedding_id', WEDDING_ID).order('sort_order'),
+      supabase.from('venue_rooms').select('id').eq('wedding_id', WEDDING_ID),
+      supabase.from('guest_room_assignments').select('room_id').eq('wedding_id', WEDDING_ID),
     ]);
 
     for (const result of [guestsRes, rsvpRes, geRes, eventsRes, roomsRes, assignRes]) {
@@ -78,7 +81,7 @@ export default function AdminDashboard() {
     const stats: EventStat[] = events.map(event => ({
       ...event,
       ...(attendance.events[event.id] || { invited: 0, attending: 0, declined: 0, pending: 0 }),
-    }));
+    })) as unknown as EventStat[];
 
     setSummary(summary);
     setEventStats(stats);

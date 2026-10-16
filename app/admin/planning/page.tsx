@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const COLORS = [
@@ -32,8 +35,8 @@ export default function PlanningPage() {
   useEffect(() => { fetchTasks(); }, []);
 
   const fetchTasks = async () => {
-    const { data } = await supabase.from('planning_tasks').select('*').order('position');
-    setTasks(data || []);
+    const { data } = await supabase.from('planning_tasks').select('*').eq('wedding_id', WEDDING_ID).order('position');
+    setTasks((data || []) as unknown as Task[]);
     setLoading(false);
   };
 
@@ -53,20 +56,20 @@ export default function PlanningPage() {
     setSaving(true);
     const payload = { ...form, position: editing?.position ?? tasks.length, status: editing?.status ?? 'pending' };
     if (editing) {
-      await supabase.from('planning_tasks').update(payload).eq('id', editing.id);
+      await supabase.from('planning_tasks').update(payload).eq('wedding_id', WEDDING_ID).eq('id', editing.id);
     } else {
-      await supabase.from('planning_tasks').insert(payload);
+      await supabase.from('planning_tasks').insert(withWedding(payload, WEDDING_ID));
     }
     setShowModal(false); setSaving(false); await fetchTasks();
   };
 
   const toggleDone = async (t: Task) => {
-    await supabase.from('planning_tasks').update({ status: t.status === 'done' ? 'pending' : 'done' }).eq('id', t.id);
+    await supabase.from('planning_tasks').update({ status: t.status === 'done' ? 'pending' : 'done' }).eq('wedding_id', WEDDING_ID).eq('id', t.id);
     await fetchTasks();
   };
 
   const deleteTask = async (id: string) => {
-    await supabase.from('planning_tasks').delete().eq('id', id);
+    await supabase.from('planning_tasks').delete().eq('wedding_id', WEDDING_ID).eq('id', id);
     setDeleteConfirm(null); await fetchTasks();
   };
 

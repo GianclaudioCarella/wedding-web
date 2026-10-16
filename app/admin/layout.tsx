@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId } from '@/lib/tenant';
 
 const nav = [
   { href: '/admin',              label: 'Dashboard',     icon: IconDashboard },
@@ -27,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
+  const [noAccess, setNoAccess] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -42,12 +44,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user && pathname !== '/admin/login') {
         router.push('/admin/login');
-      } else {
-        setChecking(false);
+        return;
       }
+      if (user) {
+        // Data is protected by RLS; this only explains an empty dashboard to
+        // signed-in users who are not members of the current wedding.
+        const { data: role } = await supabase.rpc('wedding_role_of', { w: currentWeddingId() });
+        setNoAccess(!role);
+      }
+      setChecking(false);
     });
   }, [pathname, router]);
 
@@ -62,6 +70,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     await supabase.auth.signOut();
     router.push('/admin/login');
   };
+
+  if (noAccess) return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
+      <p style={{ color: '#4b5563', fontSize: 14 }}>Your account is not a member of this wedding.</p>
+      <button onClick={handleSignOut} style={{ fontSize: 13, padding: '6px 14px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>Sign out</button>
+    </div>
+  );
 
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', background: '#f9fafb' }}>

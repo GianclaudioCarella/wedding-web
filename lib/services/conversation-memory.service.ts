@@ -12,6 +12,9 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export interface ConversationSummary {
   id: string;
@@ -54,7 +57,7 @@ export class ConversationMemoryService {
       // Step 1: Load all messages from the conversation
       const { data: messages, error: messagesError } = await this.supabase
         .from('chat_messages')
-        .select('role, content')
+        .select('role, content').eq('wedding_id', WEDDING_ID)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
@@ -140,14 +143,14 @@ ${conversationText}`;
       // Step 5: Save summary to database
       const { data: savedSummary, error: saveError } = await this.supabase
         .from('conversation_summaries')
-        .insert({
+        .insert(withWedding({
           conversation_id: conversationId,
           user_id: userId,
           summary: summaryData.summary,
           key_topics: summaryData.key_topics || [],
           importance_score: summaryData.importance_score || 5,
           message_count: messages.length,
-        })
+        }, WEDDING_ID))
         .select()
         .single();
 
@@ -179,7 +182,7 @@ ${conversationText}`;
     try {
       const { data, error } = await this.supabase
         .from('conversation_summaries')
-        .select('*')
+        .select('*').eq('wedding_id', WEDDING_ID)
         .eq('user_id', userId)
         .gte('importance_score', minImportance)
         .order('created_at', { ascending: false })
@@ -240,7 +243,7 @@ ${memoryItems.join('\n\n')}
       // Check if summary already exists
       const { data: existingSummary } = await this.supabase
         .from('conversation_summaries')
-        .select('id')
+        .select('id').eq('wedding_id', WEDDING_ID)
         .eq('conversation_id', conversationId)
         .maybeSingle();
 
@@ -251,7 +254,7 @@ ${memoryItems.join('\n\n')}
       // Check message count
       const { count, error } = await this.supabase
         .from('chat_messages')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true }).eq('wedding_id', WEDDING_ID)
         .eq('conversation_id', conversationId);
 
       if (error) {
@@ -275,7 +278,7 @@ ${memoryItems.join('\n\n')}
   async deleteSummary(summaryId: string): Promise<void> {
     const { error } = await this.supabase
       .from('conversation_summaries')
-      .delete()
+      .delete().eq('wedding_id', WEDDING_ID)
       .eq('id', summaryId);
 
     if (error) {
@@ -293,7 +296,7 @@ ${memoryItems.join('\n\n')}
   }> {
     const { data, error } = await this.supabase
       .from('conversation_summaries')
-      .select('importance_score, message_count')
+      .select('importance_score, message_count').eq('wedding_id', WEDDING_ID)
       .eq('user_id', userId);
 
     if (error || !data) {

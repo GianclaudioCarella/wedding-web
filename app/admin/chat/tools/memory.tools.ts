@@ -4,6 +4,9 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export class MemoryTools {
   constructor(private supabase: SupabaseClient) {}
@@ -16,7 +19,7 @@ export class MemoryTools {
       // Search for memories that match the query in summary or key_topics
       const { data: memories, error } = await this.supabase
         .from('conversation_summaries')
-        .select('*')
+        .select('*').eq('wedding_id', WEDDING_ID)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -69,7 +72,7 @@ export class MemoryTools {
     try {
       const { data: memories, error } = await this.supabase
         .from('conversation_summaries')
-        .select('*')
+        .select('*').eq('wedding_id', WEDDING_ID)
         .eq('user_id', userId)
         .order('importance_score', { ascending: false })
         .order('created_at', { ascending: false })

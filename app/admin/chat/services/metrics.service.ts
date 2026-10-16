@@ -1,6 +1,9 @@
 // Metrics service for tracking API calls, tokens usage, and performance
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export interface ApiLogEntry {
   api_name: string;
@@ -39,7 +42,7 @@ export class MetricsService {
     try {
       const { error } = await this.supabase
         .from('api_logs')
-        .insert({
+        .insert(withWedding({
           api_name: entry.api_name,
           endpoint: entry.endpoint,
           method: entry.method || 'POST',
@@ -51,7 +54,7 @@ export class MetricsService {
           error_message: entry.error_message,
           error_type: entry.error_type,
           metadata: entry.metadata || {},
-        });
+        }, WEDDING_ID));
 
       if (error) {
         console.error('Failed to log API call:', error);
@@ -69,7 +72,7 @@ export class MetricsService {
     try {
       const { error } = await this.supabase
         .from('tokens_usage')
-        .insert({
+        .insert(withWedding({
           model: entry.model,
           provider: entry.provider,
           prompt_tokens: entry.prompt_tokens,
@@ -80,7 +83,7 @@ export class MetricsService {
           session_id: entry.session_id,
           conversation_id: entry.conversation_id,
           metadata: entry.metadata || {},
-        });
+        }, WEDDING_ID));
 
       if (error) {
         console.error('Failed to log token usage:', error);
@@ -151,6 +154,8 @@ export class MetricsService {
     cache_hit_rate?: number;
   }> {
     try {
+      // NOTE: get_tavily_stats() does not exist in any environment (see
+      // supabase/README.md); this call always falls back to zeros.
       const { data, error } = await this.supabase
         .rpc('get_tavily_stats', { hours_ago: hours });
 
@@ -204,7 +209,7 @@ export class MetricsService {
 
       const { data, error } = await this.supabase
         .from('tokens_usage')
-        .select('prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd')
+        .select('prompt_tokens, completion_tokens, total_tokens, estimated_cost_usd').eq('wedding_id', WEDDING_ID)
         .gte('timestamp', startDate);
 
       if (error) {

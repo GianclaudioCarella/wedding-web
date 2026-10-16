@@ -4,6 +4,9 @@
 // LLM can relay the outcome (or ask the user to disambiguate) directly.
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 type Resolved<T> = { row: T } | { error: string };
 
@@ -17,7 +20,7 @@ export class ActionTools {
   // ── Resolvers ──────────────────────────────────────────────────────────
 
   private async resolveGuest(name: string): Promise<Resolved<{ id: string; name: string }>> {
-    const { data, error } = await this.supabase.from('guests').select('id, name').ilike('name', `%${name}%`);
+    const { data, error } = await this.supabase.from('guests').select('id, name').eq('wedding_id', WEDDING_ID).ilike('name', `%${name}%`);
     if (error) return { error: error.message };
     if (!data || data.length === 0) return { error: `No guest found matching "${name}".` };
     if (data.length > 1) {
@@ -29,7 +32,7 @@ export class ActionTools {
   }
 
   private async resolveEvent(name: string): Promise<Resolved<{ id: string; name: any; slug: string | null }>> {
-    const { data, error } = await this.supabase.from('events').select('id, name, slug');
+    const { data, error } = await this.supabase.from('events').select('id, name, slug').eq('wedding_id', WEDDING_ID);
     if (error) return { error: error.message };
     const q = name.toLowerCase();
     const matches = (data || []).filter(e => {
@@ -47,7 +50,7 @@ export class ActionTools {
   }
 
   private async resolveTransportOption(name: string): Promise<Resolved<{ id: string; name: string }>> {
-    const { data, error } = await this.supabase.from('transport_options').select('id, name').ilike('name', `%${name}%`);
+    const { data, error } = await this.supabase.from('transport_options').select('id, name').eq('wedding_id', WEDDING_ID).ilike('name', `%${name}%`);
     if (error) return { error: error.message };
     if (!data || data.length === 0) return { error: `No transport option found matching "${name}".` };
     if (data.length > 1) return { error: `Multiple transport options match "${name}": ${data.map(o => o.name).join(', ')}. Ask which one they mean.` };
@@ -55,7 +58,7 @@ export class ActionTools {
   }
 
   private async resolveRoom(name: string): Promise<Resolved<{ id: string; name: string; capacity: number | null }>> {
-    const { data, error } = await this.supabase.from('venue_rooms').select('id, name, capacity').ilike('name', `%${name}%`);
+    const { data, error } = await this.supabase.from('venue_rooms').select('id, name, capacity').eq('wedding_id', WEDDING_ID).ilike('name', `%${name}%`);
     if (error) return { error: error.message };
     if (!data || data.length === 0) return { error: `No room found matching "${name}".` };
     if (data.length > 1) return { error: `Multiple rooms match "${name}": ${data.map(r => r.name).join(', ')}. Ask which one they mean.` };
@@ -63,7 +66,7 @@ export class ActionTools {
   }
 
   private async resolveSeatingTable(name: string): Promise<Resolved<{ id: string; name: string; seats_per_side: number }>> {
-    const { data, error } = await this.supabase.from('seating_tables').select('id, name, seats_per_side').ilike('name', `%${name}%`);
+    const { data, error } = await this.supabase.from('seating_tables').select('id, name, seats_per_side').eq('wedding_id', WEDDING_ID).ilike('name', `%${name}%`);
     if (error) return { error: error.message };
     if (!data || data.length === 0) return { error: `No seating table found matching "${name}".` };
     if (data.length > 1) return { error: `Multiple seating tables match "${name}": ${data.map(t => t.name).join(', ')}. Ask which one they mean.` };
@@ -71,7 +74,7 @@ export class ActionTools {
   }
 
   private async resolvePlanningTask(name: string): Promise<Resolved<{ id: string; name: string }>> {
-    const { data, error } = await this.supabase.from('planning_tasks').select('id, name').ilike('name', `%${name}%`);
+    const { data, error } = await this.supabase.from('planning_tasks').select('id, name').eq('wedding_id', WEDDING_ID).ilike('name', `%${name}%`);
     if (error) return { error: error.message };
     if (!data || data.length === 0) return { error: `No planning task found matching "${name}".` };
     if (data.length > 1) return { error: `Multiple planning tasks match "${name}": ${data.map(t => t.name).join(', ')}. Ask which one they mean.` };
@@ -89,7 +92,7 @@ export class ActionTools {
         party_leader_id = leader.row.id;
       }
 
-      const { data: events } = await this.supabase.from('events').select('id, name, slug').order('sort_order');
+      const { data: events } = await this.supabase.from('events').select('id, name, slug').eq('wedding_id', WEDDING_ID).order('sort_order');
       let eventIds: string[] = [];
       if (args.event_names?.length) {
         for (const en of args.event_names) {
@@ -102,7 +105,7 @@ export class ActionTools {
         if (ceremony) eventIds = [ceremony.id];
       }
 
-      const { data: newGuest, error } = await this.supabase.from('guests').insert({
+      const { data: newGuest, error } = await this.supabase.from('guests').insert(withWedding({
         name: args.name,
         email: args.email || null,
         phone: args.phone || null,
@@ -111,11 +114,11 @@ export class ActionTools {
         party_role: args.party_role || 'primary',
         party_leader_id,
         invite_token: crypto.randomUUID(),
-      }).select('id').single();
+      }, WEDDING_ID)).select('id').single();
 
       if (error) return { error: error.message };
       if (eventIds.length > 0) {
-        await this.supabase.from('guest_events').insert(eventIds.map(eid => ({ guest_id: newGuest.id, event_id: eid })));
+        await this.supabase.from('guest_events').insert(withWedding(eventIds.map(eid => ({ guest_id: newGuest.id, event_id: eid })), WEDDING_ID));
       }
 
       return { success: true, message: `Created guest "${args.name}"${eventIds.length ? ` and invited them to ${eventIds.length} event(s)` : ''}.` };
@@ -142,7 +145,7 @@ export class ActionTools {
 
     if (Object.keys(patch).length === 0) return { error: 'Nothing to update — no fields were provided.' };
 
-    const { error } = await this.supabase.from('guests').update(patch).eq('id', guest.row.id);
+    const { error } = await this.supabase.from('guests').update(patch).eq('wedding_id', WEDDING_ID).eq('id', guest.row.id);
     if (error) return { error: error.message };
     return { success: true, message: `Updated ${guest.row.name}.` };
   }
@@ -178,7 +181,7 @@ export class ActionTools {
   // ── Transport ──────────────────────────────────────────────────────────
 
   async createTransportOption(args: { name: string; direction: 'to_venue' | 'from_venue' | 'both'; departure_location?: string; departure_time?: string; return_time?: string; capacity?: number; notes?: string }) {
-    const { error } = await this.supabase.from('transport_options').insert({
+    const { error } = await this.supabase.from('transport_options').insert(withWedding({
       name: args.name,
       direction: args.direction,
       departure_location: args.departure_location || null,
@@ -186,7 +189,7 @@ export class ActionTools {
       return_time: args.return_time || null,
       capacity: args.capacity ?? null,
       notes: args.notes || null,
-    });
+    }, WEDDING_ID));
     if (error) return { error: error.message };
     return { success: true, message: `Created transport option "${args.name}".` };
   }
@@ -197,10 +200,10 @@ export class ActionTools {
     const option = await this.resolveTransportOption(args.option_name);
     if (isError(option)) return option;
 
-    const { data: existing } = await this.supabase.from('guest_transport').select('id').eq('guest_id', guest.row.id).eq('transport_option_id', option.row.id).maybeSingle();
+    const { data: existing } = await this.supabase.from('guest_transport').select('id').eq('wedding_id', WEDDING_ID).eq('guest_id', guest.row.id).eq('transport_option_id', option.row.id).maybeSingle();
     if (existing) return { success: true, message: `${guest.row.name} is already on "${option.row.name}".` };
 
-    const { error } = await this.supabase.from('guest_transport').insert({ transport_option_id: option.row.id, guest_id: guest.row.id });
+    const { error } = await this.supabase.from('guest_transport').insert(withWedding({ transport_option_id: option.row.id, guest_id: guest.row.id }, WEDDING_ID));
     if (error) return { error: error.message };
     return { success: true, message: `Added ${guest.row.name} to "${option.row.name}".` };
   }
@@ -208,13 +211,13 @@ export class ActionTools {
   // ── Accommodation & seating ────────────────────────────────────────────
 
   async createRoom(args: { name: string; room_type?: string; capacity?: number; floor?: string; notes?: string }) {
-    const { error } = await this.supabase.from('venue_rooms').insert({
+    const { error } = await this.supabase.from('venue_rooms').insert(withWedding({
       name: args.name,
       room_type: args.room_type || 'private',
       capacity: args.capacity ?? 2,
       floor: args.floor || null,
       notes: args.notes || null,
-    });
+    }, WEDDING_ID));
     if (error) return { error: error.message };
     return { success: true, message: `Created room "${args.name}".` };
   }
@@ -225,15 +228,15 @@ export class ActionTools {
     const room = await this.resolveRoom(args.room_name);
     if (isError(room)) return room;
 
-    await this.supabase.from('guest_room_assignments').delete().eq('guest_id', guest.row.id);
-    const { error } = await this.supabase.from('guest_room_assignments').insert({ room_id: room.row.id, guest_id: guest.row.id, bed_label: args.bed_label || null });
+    await this.supabase.from('guest_room_assignments').delete().eq('wedding_id', WEDDING_ID).eq('guest_id', guest.row.id);
+    const { error } = await this.supabase.from('guest_room_assignments').insert(withWedding({ room_id: room.row.id, guest_id: guest.row.id, bed_label: args.bed_label || null }, WEDDING_ID));
     if (error) return { error: error.message };
     return { success: true, message: `Assigned ${guest.row.name} to room "${room.row.name}".` };
   }
 
   async createSeatingTable(args: { name: string; seats_per_side: number }) {
-    const { count } = await this.supabase.from('seating_tables').select('id', { count: 'exact', head: true });
-    const { error } = await this.supabase.from('seating_tables').insert({ name: args.name, seats_per_side: args.seats_per_side, sort_order: count || 0 });
+    const { count } = await this.supabase.from('seating_tables').select('id', { count: 'exact', head: true }).eq('wedding_id', WEDDING_ID);
+    const { error } = await this.supabase.from('seating_tables').insert(withWedding({ name: args.name, seats_per_side: args.seats_per_side, sort_order: count || 0 }, WEDDING_ID));
     if (error) return { error: error.message };
     return { success: true, message: `Created seating table "${args.name}" with ${args.seats_per_side} seats per side.` };
   }
@@ -250,15 +253,15 @@ export class ActionTools {
 
     const { data: occupant } = await this.supabase
       .from('seating_assignments')
-      .select('id, guest:guests(name)')
+      .select('id, guest:guests(name)').eq('wedding_id', WEDDING_ID)
       .eq('table_id', table.row.id).eq('side', args.side).eq('position', args.position)
       .maybeSingle();
     if (occupant) {
       return { error: `Seat ${args.side}${args.position} at "${table.row.name}" is already taken by ${(occupant.guest as any)?.name || 'someone else'}. Free that seat first or pick another one.` };
     }
 
-    await this.supabase.from('seating_assignments').delete().eq('guest_id', guest.row.id);
-    const { error } = await this.supabase.from('seating_assignments').insert({ table_id: table.row.id, side: args.side, position: args.position, guest_id: guest.row.id });
+    await this.supabase.from('seating_assignments').delete().eq('wedding_id', WEDDING_ID).eq('guest_id', guest.row.id);
+    const { error } = await this.supabase.from('seating_assignments').insert(withWedding({ table_id: table.row.id, side: args.side, position: args.position, guest_id: guest.row.id }, WEDDING_ID));
     if (error) return { error: error.message };
     return { success: true, message: `Seated ${guest.row.name} at "${table.row.name}", seat ${args.side}${args.position}.` };
   }
@@ -266,13 +269,13 @@ export class ActionTools {
   // ── Planning ───────────────────────────────────────────────────────────
 
   async createPlanningTask(args: { name: string; start_month: number; end_month: number; year: number; description?: string }) {
-    const { error } = await this.supabase.from('planning_tasks').insert({
+    const { error } = await this.supabase.from('planning_tasks').insert(withWedding({
       name: args.name,
       description: args.description || null,
       start_month: args.start_month,
       end_month: args.end_month,
       year: args.year,
-    });
+    }, WEDDING_ID));
     if (error) return { error: error.message };
     return { success: true, message: `Created planning task "${args.name}".` };
   }
@@ -280,7 +283,7 @@ export class ActionTools {
   async updatePlanningTaskStatus(args: { task_name: string; status: 'pending' | 'done' }) {
     const task = await this.resolvePlanningTask(args.task_name);
     if (isError(task)) return task;
-    const { error } = await this.supabase.from('planning_tasks').update({ status: args.status }).eq('id', task.row.id);
+    const { error } = await this.supabase.from('planning_tasks').update({ status: args.status }).eq('wedding_id', WEDDING_ID).eq('id', task.row.id);
     if (error) return { error: error.message };
     return { success: true, message: `Marked "${task.row.name}" as ${args.status}.` };
   }

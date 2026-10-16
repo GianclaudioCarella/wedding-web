@@ -17,6 +17,9 @@ import { MemoryTools } from './tools/memory.tools';
 import { WeddingTools } from './tools/wedding.tools';
 import { ActionTools } from './tools/action.tools';
 import { LLMService } from './services/llm.service';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 export default function AdminChat() {
   const router = useRouter();
@@ -142,7 +145,7 @@ export default function AdminChat() {
 
     const { data, error } = await supabase
       .from('chat_messages')
-      .select('*')
+      .select('*').eq('wedding_id', WEDDING_ID)
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -151,13 +154,13 @@ export default function AdminChat() {
     setMessages((data || []).map(msg => ({
       role: msg.role as 'user' | 'assistant' | 'system',
       content: msg.content,
-      timestamp: new Date(msg.created_at),
+      timestamp: new Date(msg.created_at ?? Date.now()),
     })));
     setCurrentConversationId(conversationId);
 
     const { data: existingMemory } = await supabase
       .from('conversation_summaries')
-      .select('id')
+      .select('id').eq('wedding_id', WEDDING_ID)
       .eq('conversation_id', conversationId)
       .maybeSingle();
     setCurrentConversationHasMemory(!!existingMemory);
@@ -182,7 +185,7 @@ export default function AdminChat() {
     const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
     const { data, error } = await supabase
       .from('chat_conversations')
-      .insert({ user_id: userId, title })
+      .insert(withWedding({ user_id: userId, title }, WEDDING_ID))
       .select()
       .single();
 
@@ -211,7 +214,7 @@ export default function AdminChat() {
       const memoryService = new ConversationMemoryService(supabase, githubToken);
       const { data: existingSummary } = await supabase
         .from('conversation_summaries')
-        .select('id')
+        .select('id').eq('wedding_id', WEDDING_ID)
         .eq('conversation_id', currentConversationId)
         .maybeSingle();
       if (existingSummary) {
@@ -412,7 +415,7 @@ export default function AdminChat() {
       let relevantContext = '';
       try {
         const { data: docCheck } = await supabase
-          .from('documents').select('id').eq('status', 'completed').limit(1);
+          .from('documents').select('id').eq('wedding_id', WEDDING_ID).eq('status', 'completed').limit(1);
         if (docCheck && docCheck.length > 0) {
           const { EmbeddingService } = await import('@/lib/services/embedding.service');
           const { VectorSearchService } = await import('@/lib/services/vector-search.service');
@@ -497,7 +500,7 @@ export default function AdminChat() {
   const clearChat = () => { setMessages([]); setCurrentConversationId(null); };
 
   const deleteConversation = async (conversationId: string) => {
-    const { error } = await supabase.from('chat_conversations').delete().eq('id', conversationId);
+    const { error } = await supabase.from('chat_conversations').delete().eq('wedding_id', WEDDING_ID).eq('id', conversationId);
     if (error) { console.error('Error deleting conversation:', error); return; }
     if (currentConversationId === conversationId) clearChat();
     if (userId) await loadConversations(userId);

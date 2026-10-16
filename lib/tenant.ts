@@ -43,3 +43,12 @@ export function requestedWeddingId(headers: Headers): string | null {
   if (header === null) return DEFAULT_WEDDING_ID
   return isUuid(header) ? header : null
 }
+
+/** Adds wedding_id to a row (or rows) before an insert/upsert. */
+export function withWedding<T extends object>(rows: T[], weddingId?: string): (T & { wedding_id: string })[]
+export function withWedding<T extends object>(rows: T, weddingId?: string): T & { wedding_id: string }
+export function withWedding<T extends object>(rows: T | T[], weddingId: string = currentWeddingId()) {
+  return Array.isArray(rows)
+    ? rows.map((r) => ({ ...r, wedding_id: weddingId }))
+    : { ...rows, wedding_id: weddingId }
+}

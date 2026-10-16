@@ -13,6 +13,9 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { EmbeddingService } from './embedding.service';
+import { currentWeddingId, withWedding } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 // Configuration for text chunking
 const CHUNK_SIZE = 1000; // Characters per chunk
@@ -223,13 +226,13 @@ export class DocumentService {
   private async createDocumentRecord(file: File, userId: string): Promise<string> {
     const { data, error } = await this.supabase
       .from('documents')
-      .insert({
+      .insert(withWedding({
         filename: file.name,
         file_type: file.type || 'text/plain',
         file_size: file.size,
         uploaded_by: userId,
         status: 'processing',
-      })
+      }, WEDDING_ID))
       .select('id')
       .single();
 
@@ -270,7 +273,7 @@ export class DocumentService {
       // Insert chunks into database
       const { error } = await this.supabase
         .from('document_chunks')
-        .insert(chunkRecords);
+        .insert(withWedding(chunkRecords, WEDDING_ID));
 
       if (error) {
         throw new Error(`Failed to insert chunks: ${error.message}`);
@@ -291,7 +294,7 @@ export class DocumentService {
       .update({
         status,
         error_message: errorMessage || null,
-      })
+      }).eq('wedding_id', WEDDING_ID)
       .eq('id', documentId);
 
     if (error) {
@@ -305,7 +308,7 @@ export class DocumentService {
   async getAllDocuments(): Promise<any[]> {
     const { data, error } = await this.supabase
       .from('documents')
-      .select('*')
+      .select('*').eq('wedding_id', WEDDING_ID)
       .order('uploaded_at', { ascending: false });
 
     if (error) {
@@ -322,7 +325,7 @@ export class DocumentService {
   async deleteDocument(documentId: string): Promise<void> {
     const { error } = await this.supabase
       .from('documents')
-      .delete()
+      .delete().eq('wedding_id', WEDDING_ID)
       .eq('id', documentId);
 
     if (error) {

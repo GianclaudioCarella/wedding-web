@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { currentWeddingId } from '@/lib/tenant';
+
+const WEDDING_ID = currentWeddingId();
 
 interface AuditEvent {
   id: string;
@@ -40,7 +43,7 @@ export default function AuditPage() {
     // Invites sent
     const { data: invited } = await supabase
       .from('guests')
-      .select('id, name, invited_at')
+      .select('id, name, invited_at').eq('wedding_id', WEDDING_ID)
       .not('invited_at', 'is', null)
       .order('invited_at', { ascending: false });
 
@@ -49,7 +52,7 @@ export default function AuditPage() {
     }
 
     // Events lookup
-    const { data: eventsData } = await supabase.from('events').select('id, name');
+    const { data: eventsData } = await supabase.from('events').select('id, name').eq('wedding_id', WEDDING_ID);
     const eventsMap = new Map((eventsData || []).map(e => [
       e.id,
       typeof e.name === 'object' ? (e.name as any)?.en || (e.name as any)?.pt || Object.values(e.name as any)[0] || 'event' : e.name,
@@ -58,7 +61,7 @@ export default function AuditPage() {
     // RSVP responses — grouped by guest + minute
     const { data: rsvps } = await supabase
       .from('rsvp_responses')
-      .select('id, event_id, status, responded_at, updated_at, dietary_notes, guest_id, guest:guests(name)')
+      .select('id, event_id, status, responded_at, updated_at, dietary_notes, guest_id, guest:guests(name)').eq('wedding_id', WEDDING_ID)
       .order('updated_at', { ascending: false });
 
     const grouped = new Map<string, { guest: string; statuses: string[]; ts: string; dietary?: string }>();
@@ -83,24 +86,24 @@ export default function AuditPage() {
     // Transport
     const { data: transport } = await supabase
       .from('guest_transport')
-      .select('id, created_at, guest:guests(name), transport_option:transport_options(name)')
+      .select('id, created_at, guest:guests(name), transport_option:transport_options(name)').eq('wedding_id', WEDDING_ID)
       .order('created_at', { ascending: false });
 
     for (const t of transport || []) {
-      all.push({ id: `transport-${t.id}`, timestamp: t.created_at, type: 'transport_selected', guest_name: (t.guest as any)?.name, detail: `Selected: ${(t.transport_option as any)?.name ?? 'transport'}` });
+      all.push({ id: `transport-${t.id}`, timestamp: t.created_at ?? '', type: 'transport_selected', guest_name: (t.guest as any)?.name, detail: `Selected: ${(t.transport_option as any)?.name ?? 'transport'}` });
     }
 
     // Email campaigns — fetch body and recipient_names too
     const { data: campaigns } = await supabase
       .from('email_campaigns')
-      .select('id, subject, body, recipient_count, failed_count, recipient_filter, recipient_names, sent_at, sent_by')
+      .select('id, subject, body, recipient_count, failed_count, recipient_filter, recipient_names, sent_at, sent_by').eq('wedding_id', WEDDING_ID)
       .order('sent_at', { ascending: false });
 
     for (const c of campaigns || []) {
       const failed = c.failed_count > 0 ? ` · ${c.failed_count} failed` : '';
       all.push({
         id: `campaign-${c.id}`,
-        timestamp: c.sent_at,
+        timestamp: c.sent_at ?? '',
         type: 'email_campaign',
         detail: c.subject,
         meta: `${c.recipient_count} recipients · ${c.recipient_filter}${failed}`,
