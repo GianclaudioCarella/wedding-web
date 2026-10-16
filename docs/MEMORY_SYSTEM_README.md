@@ -43,7 +43,7 @@ created_at       TIMESTAMP
 
 ## Setup
 
-Run `database/create_memory_tables.sql` in Supabase SQL Editor, then verify:
+The tables are part of the baseline migration in `supabase/migrations/` (originally `database/legacy/05_create_memory_tables.sql`), then verify:
 
 ```sql
 SELECT tablename FROM pg_tables 

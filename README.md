@@ -57,9 +57,17 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL="Your Names <hello@your-verified-domain.com>"
 ```
 
-4. Set up the Supabase database — run the scripts in the `database/` folder in your Supabase SQL editor.
+4. Start a local database (requires Docker). Migrations live in `supabase/migrations/`
+   and are applied from zero, followed by the generic `supabase/seed.sql`:
+```bash
+npx supabase start
+npx supabase db reset
+```
+   `supabase start` prints the local URL and anon/service-role keys to put in `.env.local`.
+   See [`supabase/README.md`](supabase/README.md) for details; `database/legacy/` is historical only.
 
 5. Run the development server:
 ```bash
@@ -67,6 +75,20 @@ npm run dev
 ```
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Development scripts
+
+| Script | What it does |
+|---|---|
+| `npm run lint` | ESLint (flat config, `eslint.config.mjs`) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest unit tests (`tests/`) |
+| `npm run check` | lint + typecheck + tests |
+| `npm run db:reset` | Rebuild the local database from migrations |
+| `npm run db:types` | Regenerate `lib/database.types.ts` from the local database |
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests and build, and in a
+separate job applies all migrations from zero and fails if the generated types drift.
 
 ## Building for Production
 
@@ -98,4 +120,4 @@ Add your environment variables in the Vercel project settings.
 
 ## License
 
-ISC
+Private project; all rights reserved.

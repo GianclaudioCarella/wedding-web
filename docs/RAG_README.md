@@ -58,7 +58,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 ### 2. Create Database Tables
 
-Run `database/create_documents_tables.sql` in Supabase SQL Editor.
+The tables are part of the baseline migration in `supabase/migrations/` (originally `database/legacy/04_create_documents_tables.sql`).
 
 This creates:
 - `documents` table for file metadata
