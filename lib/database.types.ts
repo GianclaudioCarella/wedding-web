@@ -24,6 +24,7 @@ export type Database = {
           success: boolean | null;
           timestamp: string | null;
           user_id: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -40,6 +41,7 @@ export type Database = {
           success?: boolean | null;
           timestamp?: string | null;
           user_id?: string | null;
+          wedding_id: string;
         };
         Update: {
           api_name?: string;
@@ -55,8 +57,17 @@ export type Database = {
           success?: boolean | null;
           timestamp?: string | null;
           user_id?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "api_logs_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       chat_conversations: {
         Row: {
@@ -65,6 +76,7 @@ export type Database = {
           title: string;
           updated_at: string | null;
           user_id: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -73,6 +85,7 @@ export type Database = {
           title: string;
           updated_at?: string | null;
           user_id: string;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
@@ -80,8 +93,17 @@ export type Database = {
           title?: string;
           updated_at?: string | null;
           user_id?: string;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       chat_messages: {
         Row: {
@@ -90,6 +112,7 @@ export type Database = {
           created_at: string | null;
           id: string;
           role: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -98,6 +121,7 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           role: string;
+          wedding_id: string;
         };
         Update: {
           content?: string;
@@ -105,13 +129,21 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           role?: string;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "chat_messages_conversation_id_fkey";
-            columns: ["conversation_id"];
+            columns: ["conversation_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "chat_conversations";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "chat_messages_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -123,6 +155,7 @@ export type Database = {
           setting_value: string;
           updated_at: string | null;
           updated_by: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -131,6 +164,7 @@ export type Database = {
           setting_value: string;
           updated_at?: string | null;
           updated_by?: string | null;
+          wedding_id: string;
         };
         Update: {
           id?: string;
@@ -138,8 +172,17 @@ export type Database = {
           setting_value?: string;
           updated_at?: string | null;
           updated_by?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "chat_settings_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       checklist_items: {
         Row: {
@@ -150,6 +193,7 @@ export type Database = {
           notes: string;
           position: number;
           title: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -160,6 +204,7 @@ export type Database = {
           notes?: string;
           position?: number;
           title: string;
+          wedding_id: string;
         };
         Update: {
           checklist_id?: string;
@@ -169,13 +214,21 @@ export type Database = {
           notes?: string;
           position?: number;
           title?: string;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "checklist_items_checklist_id_fkey";
-            columns: ["checklist_id"];
+            columns: ["checklist_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "checklists";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "checklist_items_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -185,19 +238,30 @@ export type Database = {
           created_at: string;
           id: string;
           name: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
           created_at?: string;
           id?: string;
           name: string;
+          wedding_id: string;
         };
         Update: {
           created_at?: string;
           id?: string;
           name?: string;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "checklists_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       conversation_summaries: {
         Row: {
@@ -209,6 +273,7 @@ export type Database = {
           message_count: number;
           summary: string;
           user_id: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -220,6 +285,7 @@ export type Database = {
           message_count: number;
           summary: string;
           user_id: string;
+          wedding_id: string;
         };
         Update: {
           conversation_id?: string;
@@ -230,13 +296,21 @@ export type Database = {
           message_count?: number;
           summary?: string;
           user_id?: string;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "conversation_summaries_conversation_id_fkey";
-            columns: ["conversation_id"];
-            isOneToOne: true;
+            columns: ["conversation_id", "wedding_id"];
+            isOneToOne: false;
             referencedRelation: "chat_conversations";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "conversation_summaries_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -251,6 +325,7 @@ export type Database = {
           id: string;
           metadata: Json | null;
           token_count: number | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -262,6 +337,7 @@ export type Database = {
           id?: string;
           metadata?: Json | null;
           token_count?: number | null;
+          wedding_id: string;
         };
         Update: {
           chunk_index?: number;
@@ -272,13 +348,21 @@ export type Database = {
           id?: string;
           metadata?: Json | null;
           token_count?: number | null;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "document_chunks_document_id_fkey";
-            columns: ["document_id"];
+            columns: ["document_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "documents";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "document_chunks_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -294,6 +378,7 @@ export type Database = {
           status: string;
           uploaded_at: string | null;
           uploaded_by: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -306,6 +391,7 @@ export type Database = {
           status?: string;
           uploaded_at?: string | null;
           uploaded_by: string;
+          wedding_id: string;
         };
         Update: {
           error_message?: string | null;
@@ -317,8 +403,17 @@ export type Database = {
           status?: string;
           uploaded_at?: string | null;
           uploaded_by?: string;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "documents_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       email_campaigns: {
         Row: {
@@ -331,6 +426,7 @@ export type Database = {
           sent_at: string | null;
           sent_by: string | null;
           subject: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -343,6 +439,7 @@ export type Database = {
           sent_at?: string | null;
           sent_by?: string | null;
           subject: string;
+          wedding_id: string;
         };
         Update: {
           body?: string;
@@ -354,8 +451,17 @@ export type Database = {
           sent_at?: string | null;
           sent_by?: string | null;
           subject?: string;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       event_guests: {
         Row: {
@@ -363,6 +469,7 @@ export type Database = {
           event_id: string;
           guest_id: string;
           id: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -370,26 +477,35 @@ export type Database = {
           event_id: string;
           guest_id: string;
           id?: string;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
           event_id?: string;
           guest_id?: string;
           id?: string;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "event_guests_event_id_fkey";
-            columns: ["event_id"];
+            columns: ["event_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "events";
-            referencedColumns: ["id"];
+            referencedColumns: ["id", "wedding_id"];
           },
           {
             foreignKeyName: "event_guests_guest_id_fkey";
-            columns: ["guest_id"];
+            columns: ["guest_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "guests";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "event_guests_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -406,6 +522,7 @@ export type Database = {
           slug: string | null;
           sort_order: number | null;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -419,6 +536,7 @@ export type Database = {
           slug?: string | null;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
@@ -431,8 +549,17 @@ export type Database = {
           slug?: string | null;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "events_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       external_accommodations: {
         Row: {
@@ -448,6 +575,7 @@ export type Database = {
           sort_order: number | null;
           updated_at: string | null;
           url: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -463,6 +591,7 @@ export type Database = {
           sort_order?: number | null;
           updated_at?: string | null;
           url?: string | null;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
@@ -477,8 +606,17 @@ export type Database = {
           sort_order?: number | null;
           updated_at?: string | null;
           url?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "external_accommodations_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       faq_items: {
         Row: {
@@ -489,6 +627,7 @@ export type Database = {
           question: NonNullable<Json>;
           sort_order: number | null;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -499,6 +638,7 @@ export type Database = {
           question?: NonNullable<Json>;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           answer?: Json | null;
@@ -508,8 +648,17 @@ export type Database = {
           question?: NonNullable<Json>;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "faq_items_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       guest_events: {
         Row: {
@@ -517,6 +666,7 @@ export type Database = {
           event_id: string;
           guest_id: string;
           id: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -524,26 +674,35 @@ export type Database = {
           event_id: string;
           guest_id: string;
           id?: string;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
           event_id?: string;
           guest_id?: string;
           id?: string;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "guest_events_event_id_fkey";
-            columns: ["event_id"];
+            columns: ["event_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "events";
-            referencedColumns: ["id"];
+            referencedColumns: ["id", "wedding_id"];
           },
           {
             foreignKeyName: "guest_events_guest_id_fkey";
-            columns: ["guest_id"];
+            columns: ["guest_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "guests";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "guest_events_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -557,6 +716,7 @@ export type Database = {
           notes: string | null;
           room_id: string;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -567,6 +727,7 @@ export type Database = {
           notes?: string | null;
           room_id: string;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           bed_label?: string | null;
@@ -576,20 +737,28 @@ export type Database = {
           notes?: string | null;
           room_id?: string;
           updated_at?: string | null;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "guest_room_assignments_guest_id_fkey";
-            columns: ["guest_id"];
+            columns: ["guest_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "guests";
-            referencedColumns: ["id"];
+            referencedColumns: ["id", "wedding_id"];
           },
           {
             foreignKeyName: "guest_room_assignments_room_id_fkey";
-            columns: ["room_id"];
+            columns: ["room_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "venue_rooms";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "guest_room_assignments_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -603,6 +772,7 @@ export type Database = {
           saturday_night: boolean | null;
           sunday_night: boolean | null;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -613,6 +783,7 @@ export type Database = {
           saturday_night?: boolean | null;
           sunday_night?: boolean | null;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           friday_night?: boolean | null;
@@ -622,13 +793,21 @@ export type Database = {
           saturday_night?: boolean | null;
           sunday_night?: boolean | null;
           updated_at?: string | null;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "guest_stay_requests_guest_id_fkey";
-            columns: ["guest_id"];
-            isOneToOne: true;
+            columns: ["guest_id", "wedding_id"];
+            isOneToOne: false;
             referencedRelation: "guests";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "guest_stay_requests_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -639,6 +818,7 @@ export type Database = {
           guest_id: string;
           id: string;
           transport_option_id: string;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -646,26 +826,35 @@ export type Database = {
           guest_id: string;
           id?: string;
           transport_option_id: string;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
           guest_id?: string;
           id?: string;
           transport_option_id?: string;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "guest_transport_guest_id_fkey";
-            columns: ["guest_id"];
+            columns: ["guest_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "guests";
-            referencedColumns: ["id"];
+            referencedColumns: ["id", "wedding_id"];
           },
           {
             foreignKeyName: "guest_transport_transport_option_id_fkey";
-            columns: ["transport_option_id"];
+            columns: ["transport_option_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "transport_options";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "guest_transport_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -687,7 +876,6 @@ export type Database = {
           phone: string | null;
           plus_one_email: string | null;
           plus_one_name: string | null;
-          rsvp_link: string | null;
           save_the_date_notes: string | null;
           save_the_date_sent: boolean | null;
           tags: string[] | null;
@@ -697,6 +885,7 @@ export type Database = {
           transport_return: boolean | null;
           updated_at: string | null;
           venue_stay_invited: boolean | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -715,7 +904,6 @@ export type Database = {
           phone?: string | null;
           plus_one_email?: string | null;
           plus_one_name?: string | null;
-          rsvp_link?: never;
           save_the_date_notes?: string | null;
           save_the_date_sent?: boolean | null;
           tags?: string[] | null;
@@ -725,6 +913,7 @@ export type Database = {
           transport_return?: boolean | null;
           updated_at?: string | null;
           venue_stay_invited?: boolean | null;
+          wedding_id: string;
         };
         Update: {
           address?: string | null;
@@ -742,7 +931,6 @@ export type Database = {
           phone?: string | null;
           plus_one_email?: string | null;
           plus_one_name?: string | null;
-          rsvp_link?: never;
           save_the_date_notes?: string | null;
           save_the_date_sent?: boolean | null;
           tags?: string[] | null;
@@ -752,8 +940,17 @@ export type Database = {
           transport_return?: boolean | null;
           updated_at?: string | null;
           venue_stay_invited?: boolean | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "guests_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       planning_tasks: {
         Row: {
@@ -767,6 +964,7 @@ export type Database = {
           start_month: number;
           status: string | null;
           updated_at: string | null;
+          wedding_id: string;
           year: number;
         };
         ComputedFields: never;
@@ -781,6 +979,7 @@ export type Database = {
           start_month: number;
           status?: string | null;
           updated_at?: string | null;
+          wedding_id: string;
           year: number;
         };
         Update: {
@@ -794,7 +993,32 @@ export type Database = {
           start_month?: number;
           status?: string | null;
           updated_at?: string | null;
+          wedding_id?: string;
           year?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "planning_tasks_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      platform_admins: {
+        Row: {
+          created_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -813,6 +1037,7 @@ export type Database = {
           title: string;
           updated_at: string | null;
           url: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -829,6 +1054,7 @@ export type Database = {
           title: string;
           updated_at?: string | null;
           url?: string | null;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
@@ -844,8 +1070,17 @@ export type Database = {
           title?: string;
           updated_at?: string | null;
           url?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "registry_items_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       rsvp_responses: {
         Row: {
@@ -858,6 +1093,7 @@ export type Database = {
           responded_at: string | null;
           status: string;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -870,6 +1106,7 @@ export type Database = {
           responded_at?: string | null;
           status?: string;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           dietary_notes?: string | null;
@@ -881,20 +1118,28 @@ export type Database = {
           responded_at?: string | null;
           status?: string;
           updated_at?: string | null;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "rsvp_responses_event_id_fkey";
-            columns: ["event_id"];
+            columns: ["event_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "events";
-            referencedColumns: ["id"];
+            referencedColumns: ["id", "wedding_id"];
           },
           {
             foreignKeyName: "rsvp_responses_guest_id_fkey";
-            columns: ["guest_id"];
+            columns: ["guest_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "guests";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "rsvp_responses_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -908,6 +1153,7 @@ export type Database = {
           side: string;
           table_id: string;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -918,6 +1164,7 @@ export type Database = {
           side: string;
           table_id: string;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
@@ -927,20 +1174,28 @@ export type Database = {
           side?: string;
           table_id?: string;
           updated_at?: string | null;
+          wedding_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "seating_assignments_guest_id_fkey";
-            columns: ["guest_id"];
-            isOneToOne: true;
+            columns: ["guest_id", "wedding_id"];
+            isOneToOne: false;
             referencedRelation: "guests";
-            referencedColumns: ["id"];
+            referencedColumns: ["id", "wedding_id"];
           },
           {
             foreignKeyName: "seating_assignments_table_id_fkey";
-            columns: ["table_id"];
+            columns: ["table_id", "wedding_id"];
             isOneToOne: false;
             referencedRelation: "seating_tables";
+            referencedColumns: ["id", "wedding_id"];
+          },
+          {
+            foreignKeyName: "seating_assignments_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
             referencedColumns: ["id"];
           },
         ];
@@ -953,6 +1208,7 @@ export type Database = {
           seats_per_side: number;
           sort_order: number;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -962,6 +1218,7 @@ export type Database = {
           seats_per_side?: number;
           sort_order?: number;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           created_at?: string | null;
@@ -970,8 +1227,17 @@ export type Database = {
           seats_per_side?: number;
           sort_order?: number;
           updated_at?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "seating_tables_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       site_content: {
         Row: {
@@ -982,6 +1248,7 @@ export type Database = {
           label: string | null;
           updated_at: string | null;
           value: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -992,6 +1259,7 @@ export type Database = {
           label?: string | null;
           updated_at?: string | null;
           value?: string | null;
+          wedding_id: string;
         };
         Update: {
           content_type?: string | null;
@@ -1001,8 +1269,17 @@ export type Database = {
           label?: string | null;
           updated_at?: string | null;
           value?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "site_content_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       tavily_cache: {
         Row: {
@@ -1052,6 +1329,7 @@ export type Database = {
           timestamp: string | null;
           total_tokens: number | null;
           user_id: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -1067,6 +1345,7 @@ export type Database = {
           timestamp?: string | null;
           total_tokens?: number | null;
           user_id?: string | null;
+          wedding_id: string;
         };
         Update: {
           completion_tokens?: number | null;
@@ -1081,8 +1360,17 @@ export type Database = {
           timestamp?: string | null;
           total_tokens?: number | null;
           user_id?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "tokens_usage_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       transport_options: {
         Row: {
@@ -1098,6 +1386,7 @@ export type Database = {
           return_time: string | null;
           sort_order: number | null;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -1113,6 +1402,7 @@ export type Database = {
           return_time?: string | null;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           capacity?: number | null;
@@ -1127,8 +1417,17 @@ export type Database = {
           return_time?: string | null;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "transport_options_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       user_settings: {
         Row: {
@@ -1179,6 +1478,7 @@ export type Database = {
           section: string | null;
           sort_order: number | null;
           updated_at: string | null;
+          wedding_id: string;
         };
         ComputedFields: never;
         Insert: {
@@ -1195,6 +1495,7 @@ export type Database = {
           section?: string | null;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id: string;
         };
         Update: {
           amenities?: string[] | null;
@@ -1210,6 +1511,175 @@ export type Database = {
           section?: string | null;
           sort_order?: number | null;
           updated_at?: string | null;
+          wedding_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "venue_rooms_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wedding_domains: {
+        Row: {
+          hostname: string;
+          id: string;
+          is_primary: boolean;
+          verified_at: string | null;
+          wedding_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          hostname: string;
+          id?: string;
+          is_primary?: boolean;
+          verified_at?: string | null;
+          wedding_id: string;
+        };
+        Update: {
+          hostname?: string;
+          id?: string;
+          is_primary?: boolean;
+          verified_at?: string | null;
+          wedding_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wedding_domains_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wedding_invitations: {
+        Row: {
+          accepted_at: string | null;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string | null;
+          role: Database["public"]["Enums"]["wedding_role"];
+          token_hash: string;
+          wedding_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          accepted_at?: string | null;
+          email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          role: Database["public"]["Enums"]["wedding_role"];
+          token_hash: string;
+          wedding_id: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          role?: Database["public"]["Enums"]["wedding_role"];
+          token_hash?: string;
+          wedding_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wedding_invitations_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      wedding_members: {
+        Row: {
+          created_at: string;
+          role: Database["public"]["Enums"]["wedding_role"];
+          user_id: string;
+          wedding_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          role: Database["public"]["Enums"]["wedding_role"];
+          user_id: string;
+          wedding_id: string;
+        };
+        Update: {
+          created_at?: string;
+          role?: Database["public"]["Enums"]["wedding_role"];
+          user_id?: string;
+          wedding_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "wedding_members_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      weddings: {
+        Row: {
+          contact_email: string | null;
+          created_at: string;
+          created_by: string | null;
+          default_locale: string;
+          display_name: string;
+          id: string;
+          locales: string[];
+          partner_names: string[];
+          settings: NonNullable<Json>;
+          slug: string;
+          status: string;
+          theme: NonNullable<Json>;
+          timezone: string;
+          updated_at: string;
+          wedding_date: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          contact_email?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          default_locale?: string;
+          display_name: string;
+          id?: string;
+          locales?: string[];
+          partner_names?: string[];
+          settings?: NonNullable<Json>;
+          slug: string;
+          status?: string;
+          theme?: NonNullable<Json>;
+          timezone?: string;
+          updated_at?: string;
+          wedding_date?: string | null;
+        };
+        Update: {
+          contact_email?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          default_locale?: string;
+          display_name?: string;
+          id?: string;
+          locales?: string[];
+          partner_names?: string[];
+          settings?: NonNullable<Json>;
+          slug?: string;
+          status?: string;
+          theme?: NonNullable<Json>;
+          timezone?: string;
+          updated_at?: string;
+          wedding_date?: string | null;
         };
         Relationships: [];
       };
@@ -1223,9 +1693,18 @@ export type Database = {
           max_response_time_ms: number | null;
           successful_calls: number | null;
           total_calls: number | null;
+          wedding_id: string | null;
         };
         ComputedFields: never;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "api_logs_wedding_id_fkey";
+            columns: ["wedding_id"];
+            isOneToOne: false;
+            referencedRelation: "weddings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Functions: {
@@ -1233,14 +1712,32 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
+      is_any_wedding_member: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      is_platform_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      is_wedding_member: {
+        Args: {
+          min_role?: Database["public"]["Enums"]["wedding_role"];
+          w: string;
+        };
+        Returns: boolean;
+      };
+      is_wedding_public: { Args: { w: string }; Returns: boolean };
       reorder_checklist_items: {
-        Args: { item_ids: string[]; list_id: string };
+        Args: { item_ids: string[]; list_id: string; p_wedding_id: string };
         Returns: undefined;
+      };
+      role_rank: {
+        Args: { r: Database["public"]["Enums"]["wedding_role"] };
+        Returns: number;
       };
       search_document_chunks: {
         Args: {
           match_count?: number;
           match_threshold?: number;
+          p_wedding_id: string;
           query_embedding: string;
         };
         Returns: {
@@ -1252,9 +1749,13 @@ export type Database = {
           metadata: Json;
         }[];
       };
+      wedding_role_of: {
+        Args: { w: string };
+        Returns: Database["public"]["Enums"]["wedding_role"];
+      };
     };
     Enums: {
-      [_ in never]: never;
+      wedding_role: "owner" | "partner" | "planner" | "editor" | "viewer";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1381,6 +1882,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      wedding_role: ["owner", "partner", "planner", "editor", "viewer"],
+    },
   },
 } as const;
