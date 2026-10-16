@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole'
+import { logCampaign } from '@/lib/data/campaigns'
+import { listGuestsByIds } from '@/lib/data/guests'
+import { guestInviteUrl, guestRsvpUrl } from '@/lib/links'
 import { sendEmail } from '@/lib/email/send'
 import { generateBroadcastHtml, generateBroadcastText } from '@/lib/email/broadcast'
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'editor')
   if (!auth.ok) return auth.response
   const { subject, body, filter, recipient_ids } = await request.json()
 
@@ -13,16 +15,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const { data: guests, error } = await supabaseAdmin
-    .from('guests')
-    .select('id, name, email, invite_token, language')
-    .in('id', recipient_ids)
+  const { data: guests, error } = await listGuestsByIds(auth.weddingId, recipient_ids)
 
   if (error || !guests) {
     return NextResponse.json({ error: 'Failed to fetch recipients' }, { status: 500 })
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://giancat.com'
   let sent = 0
   let failed = 0
   let firstError: string | null = null
@@ -32,10 +30,8 @@ export async function POST(request: NextRequest) {
     if (!guest.email) { failed++; continue }
 
     const firstName = guest.name.split(' ')[0]
-    const locale = guest.language || 'en'
-    const localePath = locale === 'en' ? '' : `/${locale}`
-    const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
-    const rsvpUrl = `${baseUrl}${localePath}/rsvp?guest=${guest.invite_token}`
+    const inviteUrl = guestInviteUrl(guest)
+    const rsvpUrl = guestRsvpUrl(guest)
 
     try {
       await sendEmail({
@@ -53,17 +49,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  try {
-    await supabaseAdmin.from('email_campaigns').insert({
-      subject,
-      body,
-      recipient_filter:  filter,
-      recipient_count:   sent,
-      failed_count:      failed,
-      recipient_names:   sentNames.join(', '),
-      sent_by:           process.env.RESEND_FROM_EMAIL,
-    })
-  } catch { /* table not yet created */ }
+  await logCampaign(auth.weddingId, {
+    subject,
+    body,
+    recipient_filter:  filter,
+    recipient_count:   sent,
+    failed_count:      failed,
+    recipient_names:   sentNames.join(', '),
+    sent_by:           process.env.RESEND_FROM_EMAIL,
+  })
 
   return NextResponse.json({ sent, failed, error: firstError })
 }

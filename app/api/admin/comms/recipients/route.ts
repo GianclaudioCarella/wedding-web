@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole'
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'editor')
   if (!auth.ok) return auth.response
-  // guests and rsvp_responses are readable by authenticated users via RLS,
-  // so the user-scoped client is sufficient here (no service role).
-  const supabase = auth.supabase
+  // User-scoped client: RLS limits rows to the caller's weddings, and every
+  // query is filtered by the requested wedding as well.
+  const { supabase, weddingId } = auth
   const filter = request.nextUrl.searchParams.get('filter') || 'all'
 
   const { data: guests, error } = await supabase
     .from('guests')
     .select('id, name, email, invite_token, language')
+    .eq('wedding_id', weddingId)
     .is('party_leader_id', null)
     .not('email', 'is', null)
     .neq('email', '')
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
   const { data: members } = await supabase
     .from('guests')
     .select('party_leader_id')
+    .eq('wedding_id', weddingId)
     .not('party_leader_id', 'is', null)
 
   const memberCounts: Record<string, number> = {}
@@ -38,6 +40,7 @@ export async function GET(request: NextRequest) {
   const { data: rsvpRows } = await supabase
     .from('rsvp_responses')
     .select('guest_id, status')
+    .eq('wedding_id', weddingId)
     .in('guest_id', guestIds)
 
   const rsvpByGuest: Record<string, string[]> = {}

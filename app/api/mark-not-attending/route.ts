@@ -1,79 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole'
+import { getGuest, listGuestEventIds, listPartyMembers } from '@/lib/data/guests'
+import { upsertRsvps, upsertStayRequest } from '@/lib/data/rsvp'
 
-async function markGuestAsNotAttending(guestId: string) {
-  // Get all events the guest is invited to
-  const { data: guestEvents, error: geError } = await supabaseAdmin
-    .from('guest_events')
-    .select('event_id')
-    .eq('guest_id', guestId)
+async function markGuestAsNotAttending(weddingId: string, guestId: string) {
+  const now = new Date().toISOString()
+  const eventIds = await listGuestEventIds(weddingId, guestId)
 
-  if (geError) throw geError
+  const { error: rsvpError } = await upsertRsvps(weddingId, eventIds.map((event_id) => ({
+    guest_id: guestId, event_id, status: 'declined', responded_at: now, updated_at: now,
+  })))
+  if (rsvpError) throw rsvpError
 
-  // Upsert declined RSVP for each event
-  if (guestEvents && guestEvents.length > 0) {
-    const rsvpsToUpsert = guestEvents.map(ge => ({
-      guest_id: guestId,
-      event_id: ge.event_id,
-      status: 'declined',
-      responded_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }))
-
-    const { error: rsvpError } = await supabaseAdmin
-      .from('rsvp_responses')
-      .upsert(rsvpsToUpsert, { onConflict: 'guest_id,event_id' })
-
-    if (rsvpError) {
-      console.error('RSVP upsert error:', rsvpError)
-      throw rsvpError
-    }
-  }
-
-  // Update stay request to not staying
-  const { error: stayError } = await supabaseAdmin
-    .from('guest_stay_requests')
-    .upsert({
-      guest_id: guestId,
-      sunday_night: false,
-      friday_night: false,
-      saturday_night: false,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'guest_id' })
-
-  if (stayError) {
-    console.error('Stay request update error:', stayError)
-    throw stayError
-  }
+  const { error: stayError } = await upsertStayRequest(weddingId, {
+    guest_id: guestId, sunday_night: false, friday_night: false, saturday_night: false, updated_at: now,
+  })
+  if (stayError) throw stayError
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'editor')
   if (!auth.ok) return auth.response
   const { guest_id } = await request.json()
 
   if (!guest_id) {
     return NextResponse.json({ error: 'Missing guest_id' }, { status: 400 })
   }
+  if (!(await getGuest(auth.weddingId, guest_id))) {
+    return NextResponse.json({ error: 'Guest not found' }, { status: 404 })
+  }
 
   try {
-    // Mark the guest as not attending
-    await markGuestAsNotAttending(guest_id)
-
-    // Get party members and mark them as not attending too
-    const { data: partyMembers, error: pmError } = await supabaseAdmin
-      .from('guests')
-      .select('id')
-      .eq('party_leader_id', guest_id)
-
-    if (!pmError && partyMembers && partyMembers.length > 0) {
-      for (const member of partyMembers) {
-        await markGuestAsNotAttending(member.id)
-      }
-    }
-
-    console.log(`Marked guest ${guest_id} and ${partyMembers?.length || 0} party members as not attending`)
+    await markGuestAsNotAttending(auth.weddingId, guest_id)
+    const partyMembers = await listPartyMembers(auth.weddingId, guest_id)
+    for (const member of partyMembers) await markGuestAsNotAttending(auth.weddingId, member.id)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Mark not attending error:', error)

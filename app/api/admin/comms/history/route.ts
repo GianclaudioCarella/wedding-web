@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole'
+import { listCampaigns } from '@/lib/data/campaigns'
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'viewer')
   if (!auth.ok) return auth.response
-  const { data, error } = await supabaseAdmin
-    .from('email_campaigns')
-    .select('*')
-    .order('sent_at', { ascending: false })
-    .limit(50)
+  const { data, error } = await listCampaigns(auth.weddingId)
 
   if (error) {
-    // Table doesn't exist yet — return empty rather than crashing
+    console.error('Failed to load campaigns:', error.message)
     return NextResponse.json({ campaigns: [] })
   }
 

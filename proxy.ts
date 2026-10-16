@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { isAdminUser } from '@/lib/auth/admin'
 
 /**
- * Server-side protection for /admin pages (except /admin/login) and /api/admin/*.
- * API routes additionally enforce auth themselves via requireAdmin(), so this is
- * defence in depth. Bearer-token API calls are passed through to the route guard.
+ * Refreshes the Supabase session and blocks UNAUTHENTICATED access to /admin
+ * pages (except /admin/login) and the admin APIs. Per-wedding role checks live
+ * in the route handlers (requireWeddingRole) and in RLS, so the proxy does no
+ * database lookups. Bearer-token API calls are passed through to the handler.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -34,13 +34,8 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || !isAdminUser(user)) {
-    if (isApi) {
-      return NextResponse.json(
-        { error: user ? 'Forbidden' : 'Unauthorized' },
-        { status: user ? 403 : 401 },
-      )
-    }
+  if (!user) {
+    if (isApi) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/admin/login'
     loginUrl.search = ''

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole';
 import { encrypt, decrypt } from '@/lib/encryption';
+import type { TablesInsert, TablesUpdate } from '@/lib/database.types';
 
 const SENSITIVE_FIELDS = ['github_token', 'tavily_api_key', 'anthropic_api_key'] as const;
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdmin(request);
+  const auth = await requireWeddingRole(request, 'editor');
   if (!auth.ok) return auth.response;
   // user_settings has per-user RLS policies, so the user-scoped client is enough.
   const { user, supabase } = auth;
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request);
+  const auth = await requireWeddingRole(request, 'editor');
   if (!auth.ok) return auth.response;
   // user_settings has per-user RLS policies, so the user-scoped client is enough.
   const { user, supabase } = auth;
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (existing) {
-    const update: Record<string, string> = {};
+    const update: TablesUpdate<'user_settings'> = {};
     for (const field of SENSITIVE_FIELDS) {
       if (body[field] !== undefined) {
         update[field] = body[field] ? encrypt(body[field]) : '';
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id);
     if (error) return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
   } else {
-    const insert: Record<string, string> = { user_id: user.id };
+    const insert: TablesInsert<'user_settings'> = { user_id: user.id };
     for (const field of SENSITIVE_FIELDS) {
       insert[field] = body[field] ? encrypt(body[field]) : '';
     }

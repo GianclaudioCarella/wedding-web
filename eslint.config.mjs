@@ -16,6 +16,24 @@ export default defineConfig([
       'react/no-unescaped-entities': 'warn',
     },
   },
+  {
+    // Tenancy guard: the service_role client bypasses RLS, so it may only be
+    // used through lib/data/*, whose functions always take a weddingId.
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['lib/data/**', 'lib/supabase-admin.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: '@/lib/supabase-admin',
+          message: 'Use the wedding-scoped functions in lib/data/* instead of the service_role client.',
+        }],
+        patterns: [{
+          group: ['**/supabase-admin', '@/lib/data/client'],
+          message: 'Use the wedding-scoped functions in lib/data/* instead of the service_role client.',
+        }],
+      }],
+    },
+  },
   globalIgnores([
     '.next/**',
     'out/**',

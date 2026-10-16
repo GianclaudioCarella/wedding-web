@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole'
+import { getGuest } from '@/lib/data/guests'
+import { upsertRsvps } from '@/lib/data/rsvp'
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'editor')
   if (!auth.ok) return auth.response
   const { guest_id, statuses } = await request.json()
 
@@ -15,19 +16,14 @@ export async function POST(request: NextRequest) {
   if (entries.length === 0) {
     return NextResponse.json({ success: true })
   }
+  if (!(await getGuest(auth.weddingId, guest_id))) {
+    return NextResponse.json({ error: 'Guest not found' }, { status: 404 })
+  }
 
   const now = new Date().toISOString()
-  const rsvpsToUpsert = entries.map(([event_id, status]) => ({
-    guest_id,
-    event_id,
-    status,
-    responded_at: now,
-    updated_at: now,
-  }))
-
-  const { error } = await supabaseAdmin
-    .from('rsvp_responses')
-    .upsert(rsvpsToUpsert, { onConflict: 'guest_id,event_id' })
+  const { error } = await upsertRsvps(auth.weddingId, entries.map(([event_id, status]) => ({
+    guest_id, event_id, status, responded_at: now, updated_at: now,
+  })))
 
   if (error) {
     console.error('RSVP status upsert error:', error)

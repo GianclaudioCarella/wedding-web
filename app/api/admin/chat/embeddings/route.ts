@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole';
 import { decrypt } from '@/lib/encryption';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request);
+  const auth = await requireWeddingRole(request, 'editor');
   if (!auth.ok) return auth.response;
   // user_settings has per-user RLS policies, so the user-scoped client is enough.
   const { user, supabase } = auth;

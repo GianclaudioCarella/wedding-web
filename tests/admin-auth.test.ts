@@ -1,30 +1,55 @@
-import type { User } from '@supabase/supabase-js'
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { isAdminUser } from '@/lib/auth/admin'
+import { isBootstrapAdmin } from '@/lib/auth/bootstrap'
 import { isValidInviteToken } from '@/lib/auth/inviteToken'
+import { decideWeddingAccess } from '@/lib/auth/requireWeddingRole'
+import { DEFAULT_WEDDING_ID, hasRole, requestedWeddingId, roleRank } from '@/lib/tenant'
 
-const user = (email?: string) => ({ id: 'u1', email }) as User
+const OTHER = '11111111-2222-3333-4444-555555555555'
 
-describe('isAdminUser (current ADMIN_EMAILS behaviour)', () => {
+describe('role hierarchy', () => {
+  test('mirrors public.role_rank()', () => {
+    expect(['viewer', 'editor', 'planner', 'partner', 'owner'].map((r) => roleRank(r as never))).toEqual([1, 2, 3, 4, 5])
+    expect(hasRole('owner', 'partner')).toBe(true)
+    expect(hasRole('editor', 'planner')).toBe(false)
+    expect(hasRole(null, 'viewer')).toBe(false)
+  })
+})
+
+describe('decideWeddingAccess (replaces ADMIN_EMAILS)', () => {
   afterEach(() => vi.unstubAllEnvs())
 
-  test('rejects missing users', () => {
-    expect(isAdminUser(null)).toBe(false)
-    expect(isAdminUser(undefined)).toBe(false)
-  })
-
-  test('GAP: with ADMIN_EMAILS unset, every authenticated user is an admin', () => {
+  test('non-members get 404, members below the minimum role get 403', () => {
     vi.stubEnv('ADMIN_EMAILS', '')
-    expect(isAdminUser(user('anyone@example.com'))).toBe(true)
-    expect(isAdminUser(user())).toBe(true)
+    expect(decideWeddingAccess(null, 'viewer', { email: 'x@example.com', weddingId: DEFAULT_WEDDING_ID })).toEqual({ ok: false, status: 404 })
+    expect(decideWeddingAccess('viewer', 'editor', { weddingId: OTHER })).toEqual({ ok: false, status: 403 })
+    expect(decideWeddingAccess('editor', 'editor', { weddingId: OTHER })).toEqual({ ok: true, role: 'editor' })
   })
 
-  test('with ADMIN_EMAILS set, only listed emails (case-insensitive, trimmed) are admins', () => {
+  test('was GAP: with ADMIN_EMAILS unset, an authenticated non-member is NOT an admin', () => {
+    vi.stubEnv('ADMIN_EMAILS', '')
+    expect(isBootstrapAdmin('anyone@example.com', DEFAULT_WEDDING_ID)).toBe(false)
+    expect(decideWeddingAccess(null, 'editor', { email: 'anyone@example.com', weddingId: DEFAULT_WEDDING_ID }).ok).toBe(false)
+  })
+
+  test('transitional bootstrap: listed e-mails act as owner of the default wedding only', () => {
     vi.stubEnv('ADMIN_EMAILS', ' Owner@Example.com , partner@example.com ')
-    expect(isAdminUser(user('owner@example.com'))).toBe(true)
-    expect(isAdminUser(user('PARTNER@example.com'))).toBe(true)
-    expect(isAdminUser(user('guest@example.com'))).toBe(false)
-    expect(isAdminUser(user())).toBe(false)
+    expect(decideWeddingAccess(null, 'owner', { email: 'owner@example.com', weddingId: DEFAULT_WEDDING_ID })).toEqual({ ok: true, role: 'owner' })
+    expect(decideWeddingAccess(null, 'viewer', { email: 'owner@example.com', weddingId: OTHER })).toEqual({ ok: false, status: 404 })
+    expect(decideWeddingAccess(null, 'viewer', { email: 'guest@example.com', weddingId: DEFAULT_WEDDING_ID }).ok).toBe(false)
+    expect(decideWeddingAccess(null, 'viewer', { email: null, weddingId: DEFAULT_WEDDING_ID }).ok).toBe(false)
+  })
+
+  test('a real membership role takes precedence over the bootstrap', () => {
+    vi.stubEnv('ADMIN_EMAILS', 'owner@example.com')
+    expect(decideWeddingAccess('viewer', 'editor', { email: 'owner@example.com', weddingId: DEFAULT_WEDDING_ID })).toEqual({ ok: false, status: 403 })
+  })
+})
+
+describe('requestedWeddingId', () => {
+  test('defaults to the current tenant and validates the header', () => {
+    expect(requestedWeddingId(new Headers())).toBe(DEFAULT_WEDDING_ID)
+    expect(requestedWeddingId(new Headers({ 'x-wedding-id': OTHER }))).toBe(OTHER)
+    expect(requestedWeddingId(new Headers({ 'x-wedding-id': "1' OR 1=1" }))).toBeNull()
   })
 })
 

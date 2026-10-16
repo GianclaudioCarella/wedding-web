@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccommodationTranslations, generateAccommodationEmailHtml, generateAccommodationPlainText } from '@/lib/email/accommodation-generator';
 import { sendEmail } from '@/lib/email/send';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole';
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'editor')
   if (!auth.ok) return auth.response
   try {
     const body = await request.json();

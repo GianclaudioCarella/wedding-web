@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { findGuestByInviteToken } from '@/lib/data/guests'
+import { guestInviteUrl, guestRsvpUrl } from '@/lib/links'
 import { sendEmail } from '@/lib/email/send'
 import { isValidInviteToken } from '@/lib/auth/inviteToken'
 
@@ -126,21 +127,15 @@ export async function POST(request: NextRequest) {
   const { token, attending } = await request.json()
   if (!isValidInviteToken(token)) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
-  const { data: guest } = await supabaseAdmin
-    .from('guests')
-    .select('id, name, email, invite_token, language')
-    .eq('invite_token', token)
-    .single()
+  const guest = await findGuestByInviteToken(token)
 
   if (!guest?.email) {
     return NextResponse.json({ error: 'Guest not found or no email' }, { status: 404 })
   }
 
-  const baseUrl  = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const locale   = guest.language || 'en'
-  const localePath = locale === 'en' ? '' : `/${locale}`
-  const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
-  const rsvpUrl   = `${baseUrl}${localePath}/rsvp?guest=${guest.invite_token}`
+  const locale    = guest.language || 'en'
+  const inviteUrl = guestInviteUrl(guest)
+  const rsvpUrl   = guestRsvpUrl(guest)
 
   const subjects: Record<string, { yes: string; no: string }> = {
     en: { yes: 'You\'re all set — RSVP confirmed',          no: "We'll miss you — RSVP confirmed" },

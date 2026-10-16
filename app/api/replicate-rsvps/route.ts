@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole'
+import { getGuest, updateGuest } from '@/lib/data/guests'
+import { getStayRequest, insertRsvps, insertStayRequest, listRsvps } from '@/lib/data/rsvp'
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'editor')
   if (!auth.ok) return auth.response
+  const w = auth.weddingId
   const { new_guest_id, primary_guest_id } = await request.json()
 
   if (!new_guest_id || !primary_guest_id) {
@@ -12,69 +14,32 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Fetch primary guest's RSVPs
-    const { data: primaryRsvps, error: rsvpError } = await supabaseAdmin
-      .from('rsvp_responses')
-      .select('event_id, status, dietary_requirements, dietary_notes, notes')
-      .eq('guest_id', primary_guest_id)
+    // Both guests must belong to this wedding.
+    const [primaryGuest, newGuest] = await Promise.all([getGuest(w, primary_guest_id), getGuest(w, new_guest_id)])
+    if (!primaryGuest || !newGuest) return NextResponse.json({ error: 'Guest not found' }, { status: 404 })
 
-    if (rsvpError) throw rsvpError
+    const now = new Date().toISOString()
+    const primaryRsvps = await listRsvps(w, [primary_guest_id])
+    const { error: insertError } = await insertRsvps(w, primaryRsvps.map((r) => ({
+      guest_id: new_guest_id,
+      event_id: r.event_id,
+      status: r.status,
+      dietary_requirements: r.dietary_requirements,
+      dietary_notes: r.dietary_notes,
+      responded_at: now,
+      updated_at: now,
+    })))
+    if (insertError) throw insertError
 
-    // Replicate RSVPs to new party member
-    if (primaryRsvps && primaryRsvps.length > 0) {
-      const { error: insertError } = await supabaseAdmin
-        .from('rsvp_responses')
-        .insert(
-          primaryRsvps.map(r => ({
-            guest_id: new_guest_id,
-            event_id: r.event_id,
-            status: r.status,
-            dietary_requirements: r.dietary_requirements,
-            dietary_notes: r.dietary_notes,
-            responded_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }))
-        )
+    await updateGuest(w, new_guest_id, {
+      transport_needed: primaryGuest.transport_needed,
+      transport_from: primaryGuest.transport_from,
+      transport_return: primaryGuest.transport_return,
+    })
 
-      if (insertError) {
-        console.error('RSVP insert error:', insertError)
-        throw insertError
-      }
-    }
+    const primaryStay = await getStayRequest(w, primary_guest_id)
+    if (primaryStay) await insertStayRequest(w, { guest_id: new_guest_id, ...primaryStay })
 
-    // Replicate primary guest's transport answer
-    const { data: primaryGuest } = await supabaseAdmin
-      .from('guests')
-      .select('transport_needed, transport_from, transport_return')
-      .eq('id', primary_guest_id)
-      .single()
-
-    if (primaryGuest) {
-      await supabaseAdmin.from('guests').update({
-        transport_needed: primaryGuest.transport_needed,
-        transport_from: primaryGuest.transport_from,
-        transport_return: primaryGuest.transport_return,
-      }).eq('id', new_guest_id)
-    }
-
-    // Replicate primary guest's stay request
-    const { data: primaryStay, error: stayError } = await supabaseAdmin
-      .from('guest_stay_requests')
-      .select('sunday_night, friday_night, saturday_night, notes')
-      .eq('guest_id', primary_guest_id)
-      .single()
-
-    if (!stayError && primaryStay) {
-      await supabaseAdmin.from('guest_stay_requests').insert({
-        guest_id: new_guest_id,
-        sunday_night: primaryStay.sunday_night,
-        friday_night: primaryStay.friday_night,
-        saturday_night: primaryStay.saturday_night,
-        notes: primaryStay.notes,
-      })
-    }
-
-    console.log(`Replicated RSVPs from ${primary_guest_id} to ${new_guest_id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Replicate RSVPs error:', error)

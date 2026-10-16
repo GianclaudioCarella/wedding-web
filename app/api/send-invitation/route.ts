@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireWeddingRole } from '@/lib/auth/requireWeddingRole'
+import { logCampaign } from '@/lib/data/campaigns'
+import { listGuestsByIds, listPartyMembers, updateGuest } from '@/lib/data/guests'
+import { guestInviteUrl } from '@/lib/links'
 import { sendEmail } from '@/lib/email/send'
 
 function formatPartyNames(guestName: string, partyMembers: { name: string }[]): string {
@@ -125,23 +127,20 @@ function generateInvitationEmail(guestName: string, partyNames: string, inviteUr
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdmin(request)
+  const auth = await requireWeddingRole(request, 'editor')
   if (!auth.ok) return auth.response
+  const w = auth.weddingId
   const { guest_ids } = await request.json()
   if (!guest_ids?.length) {
     return NextResponse.json({ error: 'No guest IDs provided' }, { status: 400 })
   }
 
-  const { data: guests, error } = await supabaseAdmin
-    .from('guests')
-    .select('id, name, email, invite_token, language')
-    .in('id', guest_ids)
+  const { data: guests, error } = await listGuestsByIds(w, guest_ids)
 
   if (error || !guests) {
     return NextResponse.json({ error: 'Failed to fetch guests' }, { status: 500 })
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const results: { id: string; success: boolean; error?: string }[] = []
 
   for (const guest of guests) {
@@ -151,15 +150,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch party members for this guest (stored in guests table with party_leader_id)
-    const { data: partyMembers } = await supabaseAdmin
-      .from('guests')
-      .select('name')
-      .eq('party_leader_id', guest.id)
+    const partyMembers = await listPartyMembers(w, guest.id)
 
     const locale = guest.language || 'en'
-    const localePath = locale === 'en' ? '' : `/${locale}`
-    const inviteUrl = `${baseUrl}${localePath}/invite?guest=${guest.invite_token}`
-    const partyNames = formatPartyNames(guest.name, partyMembers || [])
+    const inviteUrl = guestInviteUrl(guest)
+    const partyNames = formatPartyNames(guest.name, partyMembers)
 
     const subjectMap: Record<string, string> = {
       en: "You're invited — Gian & Cat, 3 October 2026",
@@ -179,10 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     {
-      await supabaseAdmin
-        .from('guests')
-        .update({ invited_at: new Date().toISOString() })
-        .eq('id', guest.id)
+      await updateGuest(w, guest.id, { invited_at: new Date().toISOString() })
       results.push({ id: guest.id, success: true })
     }
   }
@@ -191,12 +183,12 @@ export async function POST(request: NextRequest) {
   const failCount    = results.filter(r => !r.success).length
 
   // Log to email_campaigns so it shows up in /admin/comms history
-  try {
+  {
     const sentNames = results
       .filter(r => r.success)
       .map(r => guests.find(g => g.id === r.id)?.name || r.id)
       .join(', ')
-    await supabaseAdmin.from('email_campaigns').insert({
+    await logCampaign(w, {
       subject:          'Wedding invitation',
       body:             'Wedding invitation email',
       recipient_filter: 'invitation',
@@ -205,7 +197,7 @@ export async function POST(request: NextRequest) {
       recipient_names:  sentNames,
       sent_by:          process.env.RESEND_FROM_EMAIL,
     })
-  } catch { /* table may not exist yet */ }
+  }
 
   return NextResponse.json({ results, successCount, total: guests.length })
 }
