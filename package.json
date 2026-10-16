@@ -19,7 +19,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run lint && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "db:types": "supabase gen types typescript --local --schema public > lib/database.types.ts && prettier --write lib/database.types.ts",
+    "db:reset": "supabase db reset"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -42,6 +44,8 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.2",
     "postcss": "^8.5.6",
+    "prettier": "^3.9.10",
+    "supabase": "^2.121.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"
