@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars and adjust.
+region      = "eu-west-1"
+bucket_name = "giancat-album"
+# aws_profile = "default"

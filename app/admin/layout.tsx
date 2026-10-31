@@ -19,6 +19,7 @@ const nav = [
   { href: '/admin/checklist',    label: 'Checklist',     icon: IconChecklist },
   { href: '/admin/audit',        label: 'Activity',      icon: IconAudit },
   { href: '/admin/inspiration',  label: 'Inspiration',   icon: IconInspiration },
+  { href: '/admin/album',        label: 'Album',         icon: IconAlbum },
   { href: '/admin/chat',         label: 'Chat',          icon: IconChat },
   { href: '/admin/metrics',      label: 'Metrics',       icon: IconMetrics },
 ];
@@ -276,6 +277,16 @@ function IconChat() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 10.5a1 1 0 0 1-1 1H5l-3 3V2.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v8z" />
+    </svg>
+  );
+}
+
+function IconAlbum() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" />
+      <circle cx="5.5" cy="6" r="1.25" />
+      <path d="M14.5 10.5l-3.5-3.5-6.5 6.5" />
     </svg>
   );
 }

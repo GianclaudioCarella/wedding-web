@@ -128,6 +128,14 @@ export default function InviteContent({ locale = 'en' }: { locale?: string }) {
   return (
     <div style={{ color: TEXT, fontFamily: SANS, minHeight: '100vh' }}>
 
+      {/* ── Post-wedding: photo album ── */}
+      <div className="album-banner">
+        <span>{t.album.homeBanner}</span>
+        <Link href={locale === 'en' ? '/album' : `/${locale}/album`} className="btn btn-primary" style={{ textDecoration: 'none' }}>
+          <WaveText text={t.album.homeCta} />
+        </Link>
+      </div>
+
       {/* ── FAB Menu ── */}
       <FAB links={navLinks} />
 
