@@ -19,11 +19,13 @@ function s3() {
   return client
 }
 
-const UPLOAD_EXPIRES_SECONDS = 15 * 60
+// Long enough for a large video over a slow mobile connection.
+const UPLOAD_EXPIRES_SECONDS = 60 * 60
 export const VIEW_EXPIRES_SECONDS = 2 * 60 * 60
 
-export const MAX_ORIGINAL_BYTES = 40 * 1024 * 1024
 export const MAX_DERIVED_BYTES = 8 * 1024 * 1024
+
+export type MediaType = 'image' | 'video'
 
 export const ALLOWED_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -32,6 +34,18 @@ export const ALLOWED_TYPES: Record<string, string> = {
   'image/heic': 'heic',
   'image/heif': 'heif',
   'image/gif': 'gif',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/webm': 'webm',
+  'video/x-m4v': 'm4v',
+}
+
+export const mediaTypeOf = (contentType: string): MediaType =>
+  contentType.startsWith('video/') ? 'video' : 'image'
+
+export const MAX_ORIGINAL_BYTES: Record<MediaType, number> = {
+  image: 40 * 1024 * 1024,
+  video: 1024 * 1024 * 1024,
 }
 
 export function photoKeys(id: string, contentType: string) {
@@ -56,6 +70,7 @@ export function presignUpload(key: string, contentType: string, maxBytes: number
   })
 }
 
+/** Signed GET URL. With `downloadName` the browser downloads the file instead of showing it. */
 export function presignView(key: string, downloadName?: string) {
   return getSignedUrl(
     s3(),

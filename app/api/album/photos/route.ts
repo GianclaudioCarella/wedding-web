@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { hasAlbumSession, hashUploaderKey } from '@/lib/album/session'
-import { ALLOWED_TYPES, MAX_ORIGINAL_BYTES, objectSize, photoKeys } from '@/lib/album/s3'
+import { ALLOWED_TYPES, MAX_ORIGINAL_BYTES, mediaTypeOf, objectSize, photoKeys } from '@/lib/album/s3'
 import { PHOTO_COLUMNS, toAlbumPhoto, UUID_RE, type GuestPhotoRow } from '@/lib/album/photos'
 
 /** Lists visible photos, newest first. `mine` is set using the X-Album-Uploader header. */
@@ -40,18 +40,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid photo' }, { status: 400 })
   }
 
+  const mediaType = mediaTypeOf(contentType)
   const keys = photoKeys(id, contentType)
   const [originalSize, displaySize, thumbSize] = await Promise.all([
     objectSize(keys.original),
     objectSize(keys.display),
     objectSize(keys.thumb),
   ])
-  if (!originalSize || !displaySize || !thumbSize || originalSize > MAX_ORIGINAL_BYTES) {
+  if (!originalSize || !displaySize || !thumbSize || originalSize > MAX_ORIGINAL_BYTES[mediaType]) {
     return NextResponse.json({ error: 'Upload incomplete' }, { status: 400 })
   }
 
   const dimension = (value: unknown) =>
     Number.isInteger(value) && (value as number) > 0 && (value as number) < 100_000 ? (value as number) : null
+  const duration = Number(body.durationSeconds)
   const text = (value: unknown, max: number) =>
     typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null
 
@@ -63,6 +65,8 @@ export async function POST(request: NextRequest) {
       display_key: keys.display,
       thumb_key: keys.thumb,
       content_type: contentType,
+      media_type: mediaType,
+      duration_seconds: mediaType === 'video' && Number.isFinite(duration) && duration >= 0 ? duration : null,
       size_bytes: originalSize,
       width: dimension(body.width),
       height: dimension(body.height),

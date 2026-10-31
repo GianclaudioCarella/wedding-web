@@ -1,4 +1,4 @@
-import { presignView } from './s3'
+import { presignView, type MediaType } from './s3'
 
 // Server-side only.
 
@@ -8,6 +8,8 @@ export interface GuestPhotoRow {
   display_key: string
   thumb_key: string
   content_type: string
+  media_type: MediaType
+  duration_seconds: number | null
   size_bytes: number
   width: number | null
   height: number | null
@@ -19,19 +21,26 @@ export interface GuestPhotoRow {
 }
 
 export const PHOTO_COLUMNS =
-  'id, original_key, display_key, thumb_key, content_type, size_bytes, width, height, original_filename, uploader_name, uploader_key_hash, hidden, created_at'
+  'id, original_key, display_key, thumb_key, content_type, media_type, duration_seconds, size_bytes, width, height, original_filename, uploader_name, uploader_key_hash, hidden, created_at'
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Shape sent to the browser: signed URLs instead of keys, no uploader hash. */
+/**
+ * Shape sent to the browser: signed URLs instead of keys, no uploader hash.
+ * For videos, displayUrl is the poster frame and videoUrl streams the file.
+ */
 export async function toAlbumPhoto(row: GuestPhotoRow, uploaderKeyHash: string | null) {
-  const [thumbUrl, displayUrl, downloadUrl] = await Promise.all([
+  const isVideo = row.media_type === 'video'
+  const [thumbUrl, displayUrl, downloadUrl, videoUrl] = await Promise.all([
     presignView(row.thumb_key),
     presignView(row.display_key),
     presignView(row.original_key, row.original_filename ?? row.original_key.split('/').pop()),
+    isVideo ? presignView(row.original_key) : null,
   ])
   return {
     id: row.id,
+    mediaType: row.media_type,
+    durationSeconds: row.duration_seconds,
     width: row.width,
     height: row.height,
     uploaderName: row.uploader_name,
@@ -41,6 +50,7 @@ export async function toAlbumPhoto(row: GuestPhotoRow, uploaderKeyHash: string |
     thumbUrl,
     displayUrl,
     downloadUrl,
+    videoUrl,
   }
 }
 

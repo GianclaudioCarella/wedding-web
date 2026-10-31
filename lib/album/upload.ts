@@ -3,7 +3,7 @@
 const UPLOADER_KEY_STORAGE = 'album_uploader_key'
 const UPLOADER_NAME_STORAGE = 'album_uploader_name'
 
-export const MAX_FILE_BYTES = 40 * 1024 * 1024
+export const MAX_FILE_BYTES = { image: 40 * 1024 * 1024, video: 1024 * 1024 * 1024 }
 
 /** Random key identifying this browser as the uploader (lets guests delete their own photos). */
 export function getUploaderKey(): string {
@@ -40,7 +40,7 @@ async function decode(file: File): Promise<ImageBitmap | HTMLImageElement> {
   }
 }
 
-function toJpeg(source: ImageBitmap | HTMLImageElement, width: number, height: number, maxSide: number, quality: number) {
+function toJpeg(source: CanvasImageSource, width: number, height: number, maxSide: number, quality: number) {
   const scale = Math.min(1, maxSide / Math.max(width, height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(width * scale)
@@ -58,6 +58,7 @@ export interface PreparedImage {
   height: number
   display: Blob
   thumb: Blob
+  durationSeconds?: number
 }
 
 /** Builds the ~2048px viewer image and the grid thumbnail. */
@@ -72,6 +73,77 @@ export async function prepareImage(file: File): Promise<PreparedImage> {
     return { width, height, display, thumb }
   } finally {
     if (source instanceof ImageBitmap) source.close()
+  }
+}
+
+/** Waits for a media event, failing on error or after `ms`. */
+function waitFor(el: HTMLMediaElement, event: string, ms: number) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => done(new Error('timeout')), ms)
+    const onError = () => done(new Error('media error'))
+    const onEvent = () => done()
+    function done(error?: Error) {
+      clearTimeout(timer)
+      el.removeEventListener(event, onEvent)
+      el.removeEventListener('error', onError)
+      if (error) reject(error)
+      else resolve()
+    }
+    el.addEventListener(event, onEvent)
+    el.addEventListener('error', onError)
+  })
+}
+
+/** Neutral poster for videos this browser can't decode (e.g. HEVC on Chrome/Windows). */
+function fallbackPoster(): Promise<Blob> {
+  const canvas = document.createElement('canvas')
+  canvas.width = 640
+  canvas.height = 640
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#262626'
+  ctx.fillRect(0, 0, 640, 640)
+  ctx.fillStyle = '#FFB3F0'
+  ctx.beginPath()
+  ctx.moveTo(270, 240)
+  ctx.lineTo(270, 400)
+  ctx.lineTo(400, 320)
+  ctx.closePath()
+  ctx.fill()
+  return new Promise((resolve, reject) =>
+    canvas.toBlob(blob => (blob ? resolve(blob) : reject(new UnsupportedImageError())), 'image/jpeg', 0.8))
+}
+
+/** Captures a poster frame (~1s in) to use as the video's viewer poster and grid thumbnail. */
+export async function prepareVideo(file: File): Promise<PreparedImage> {
+  const url = URL.createObjectURL(file)
+  const video = document.createElement('video')
+  video.muted = true
+  video.playsInline = true
+  video.preload = 'auto'
+  video.src = url
+  try {
+    await waitFor(video, 'loadedmetadata', 15000)
+    const durationSeconds = Number.isFinite(video.duration) ? video.duration : undefined
+    try {
+      video.currentTime = Math.min(1, (video.duration || 0) / 2)
+      await waitFor(video, 'seeked', 15000)
+      const { videoWidth: width, videoHeight: height } = video
+      if (!width || !height) throw new Error('no frame')
+      const display = await toJpeg(video, width, height, 1280, 0.85)
+      const thumb = await toJpeg(video, width, height, 640, 0.8)
+      return { width, height, display, thumb, durationSeconds }
+    } catch {
+      const poster = await fallbackPoster()
+      return { width: video.videoWidth, height: video.videoHeight, display: poster, thumb: poster, durationSeconds }
+    }
+  } catch {
+    // Can't even read the metadata: still accept the upload with a generic poster.
+    const poster = await fallbackPoster()
+    return { width: 0, height: 0, display: poster, thumb: poster }
+  } finally {
+    video.removeAttribute('src')
+    video.load()
+    URL.revokeObjectURL(url)
   }
 }
 

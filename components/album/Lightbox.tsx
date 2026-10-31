@@ -55,7 +55,13 @@ export default function Lightbox({ locale, photos, index, onIndexChange, onClose
   if (!photo) return null
 
   const onTouchStart = (e: React.TouchEvent) => {
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    const touch = e.touches[0]
+    // Leave the bottom of a video alone so dragging its scrubber doesn't change photo.
+    if (e.target instanceof HTMLVideoElement) {
+      const rect = e.target.getBoundingClientRect()
+      if (touch.clientY > rect.bottom - rect.height * 0.25) return
+    }
+    touchStart.current = { x: touch.clientX, y: touch.clientY }
   }
   const onTouchEnd = (e: React.TouchEvent) => {
     if (!touchStart.current) return
@@ -89,9 +95,23 @@ export default function Lightbox({ locale, photos, index, onIndexChange, onClose
       </div>
 
       <div className="lightbox-stage" onClick={e => e.target === e.currentTarget && onClose()}>
-        {/* Thumbnail is already cached — show it while the larger image loads */}
-        <img key={`thumb-${photo.id}`} src={photo.thumbUrl} alt="" className="lightbox-img lightbox-img--placeholder" />
-        <img key={photo.id} src={photo.displayUrl} alt="" className="lightbox-img" />
+        {photo.mediaType === 'video' && photo.videoUrl ? (
+          <video
+            key={photo.id}
+            src={photo.videoUrl}
+            poster={photo.displayUrl}
+            controls
+            playsInline
+            preload="metadata"
+            className="lightbox-img lightbox-video"
+          />
+        ) : (
+          <>
+            {/* Thumbnail is already cached — show it while the larger image loads */}
+            <img key={`thumb-${photo.id}`} src={photo.thumbUrl} alt="" className="lightbox-img lightbox-img--placeholder" />
+            <img key={photo.id} src={photo.displayUrl} alt="" className="lightbox-img" />
+          </>
+        )}
 
         {hasPrev && (
           <button type="button" className="lightbox-btn lightbox-nav lightbox-nav--prev" onClick={prev} aria-label={t.previous}>←</button>

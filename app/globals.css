@@ -789,3 +789,38 @@ body {
   font-size: var(--text-sm);
   text-align: center;
 }
+
+/* Album: videos, filters, undo */
+.album-filters {
+  display: flex;
+  gap: 8px;
+}
+.album-filters .pill { border: none; cursor: pointer; }
+
+.album-tile-video {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: var(--text-xs);
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+.lightbox-video {
+  pointer-events: auto;
+  background: #000;
+}
+
+.album-status-action {
+  margin-left: 12px;
+  background: var(--color-pink);
+  color: var(--color-text);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { AlbumPhoto } from '@/lib/album/photos';
 
 type Filter = 'all' | 'visible' | 'hidden';
+type MediaFilter = 'all' | 'image' | 'video';
 
 export default function AdminAlbumPage() {
   const [photos, setPhotos] = useState<AlbumPhoto[]>([]);
@@ -11,6 +12,7 @@ export default function AdminAlbumPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [uploader, setUploader] = useState('');
+  const [mediaFilter, setMediaFilter] = useState<MediaFilter>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,8 +56,10 @@ export default function AdminAlbumPage() {
   const uploaders = Array.from(new Set(photos.map(p => p.uploaderName ?? ''))).sort();
   const visible = photos.filter(p =>
     (filter === 'all' || p.hidden === (filter === 'hidden')) &&
-    (!uploader || (p.uploaderName ?? '') === uploader));
+    (!uploader || (p.uploaderName ?? '') === uploader) &&
+    (mediaFilter === 'all' || p.mediaType === mediaFilter));
   const hiddenCount = photos.filter(p => p.hidden).length;
+  const videoCount = photos.filter(p => p.mediaType === 'video').length;
 
   return (
     <div className="p-4 sm:p-8 mx-auto max-w-7xl">
@@ -63,10 +67,16 @@ export default function AdminAlbumPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 mb-1">Album</h1>
           <p className="text-sm text-gray-500">
-            {photos.length} photos · {hiddenCount} hidden · <a href="/album" target="_blank" className="underline">open album</a>
+            {photos.length - videoCount} photos · {videoCount} videos · {hiddenCount} hidden · <a href="/album" target="_blank" className="underline">open album</a>
           </p>
         </div>
         <div className="flex gap-2">
+          <select value={mediaFilter} onChange={e => setMediaFilter(e.target.value as MediaFilter)}
+            className="bg-white border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700">
+            <option value="all">Photos &amp; videos</option>
+            <option value="image">Photos</option>
+            <option value="video">Videos</option>
+          </select>
           <select value={filter} onChange={e => setFilter(e.target.value as Filter)}
             className="bg-white border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-700">
             <option value="all">All</option>
@@ -88,8 +98,11 @@ export default function AdminAlbumPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {visible.map(photo => (
           <div key={photo.id} className={`bg-white border border-gray-200 rounded-lg overflow-hidden ${photo.hidden ? 'opacity-50' : ''}`}>
-            <a href={photo.displayUrl} target="_blank" rel="noopener noreferrer">
+            <a href={photo.videoUrl ?? photo.displayUrl} target="_blank" rel="noopener noreferrer" className="relative block">
               <img src={photo.thumbUrl} alt="" loading="lazy" className="w-full aspect-square object-cover" />
+              {photo.mediaType === 'video' && (
+                <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">▶ Video</span>
+              )}
             </a>
             <div className="p-2 space-y-2">
               <p className="text-xs text-gray-500 truncate">
