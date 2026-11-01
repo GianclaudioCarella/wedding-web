@@ -36,7 +36,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     .from('guest_photos')
     .delete()
     .eq('id', id)
-    .select('original_key, display_key, thumb_key')
+    .select('original_key, display_key, thumb_key, playback_key')
     .maybeSingle()
 
   if (error) {
@@ -46,6 +46,6 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  await deleteObjects([data.original_key, data.display_key, data.thumb_key])
+  await deleteObjects([data.original_key, data.display_key, data.thumb_key, data.playback_key].filter(k => k !== null))
   return NextResponse.json({ ok: true })
 }

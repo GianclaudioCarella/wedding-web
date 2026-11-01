@@ -7,6 +7,7 @@ export interface GuestPhotoRow {
   original_key: string
   display_key: string
   thumb_key: string
+  playback_key: string | null
   content_type: string
   media_type: MediaType
   duration_seconds: number | null
@@ -21,7 +22,7 @@ export interface GuestPhotoRow {
 }
 
 export const PHOTO_COLUMNS =
-  'id, original_key, display_key, thumb_key, content_type, media_type, duration_seconds, size_bytes, width, height, original_filename, uploader_name, uploader_key_hash, hidden, created_at'
+  'id, original_key, display_key, thumb_key, playback_key, content_type, media_type, duration_seconds, size_bytes, width, height, original_filename, uploader_name, uploader_key_hash, hidden, created_at'
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -35,7 +36,7 @@ export async function toAlbumPhoto(row: GuestPhotoRow, uploaderKeyHash: string |
     presignView(row.thumb_key),
     presignView(row.display_key),
     presignView(row.original_key, row.original_filename ?? row.original_key.split('/').pop()),
-    isVideo ? presignView(row.original_key) : null,
+    isVideo ? presignView(row.playback_key ?? row.original_key, undefined, 'video/mp4') : null,
   ])
   return {
     id: row.id,

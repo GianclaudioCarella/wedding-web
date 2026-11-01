@@ -115,7 +115,8 @@ function fallbackPoster(): Promise<Blob> {
 
 /** Captures a poster frame (~1s in) to use as the video's viewer poster and grid thumbnail. */
 export async function prepareVideo(file: File): Promise<PreparedImage> {
-  const url = URL.createObjectURL(file)
+  // Browsers often refuse video/quicktime even when the .mov holds plain H.264 — present it as MP4.
+  const url = URL.createObjectURL(file.type === 'video/quicktime' ? new Blob([file], { type: 'video/mp4' }) : file)
   const video = document.createElement('video')
   video.muted = true
   video.playsInline = true

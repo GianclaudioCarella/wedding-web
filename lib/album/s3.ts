@@ -70,8 +70,11 @@ export function presignUpload(key: string, contentType: string, maxBytes: number
   })
 }
 
-/** Signed GET URL. With `downloadName` the browser downloads the file instead of showing it. */
-export function presignView(key: string, downloadName?: string) {
+/**
+ * Signed GET URL. With `downloadName` the browser downloads the file instead of showing it.
+ * `contentType` overrides the stored type, e.g. so browsers accept a .mov (video/quicktime) as MP4.
+ */
+export function presignView(key: string, downloadName?: string, contentType?: string) {
   return getSignedUrl(
     s3(),
     new GetObjectCommand({
@@ -80,6 +83,7 @@ export function presignView(key: string, downloadName?: string) {
       ResponseContentDisposition: downloadName
         ? `attachment; filename="${downloadName.replace(/[^\w.\- ]/g, '_')}"`
         : undefined,
+      ResponseContentType: contentType,
     }),
     { expiresIn: VIEW_EXPIRES_SECONDS },
   )
